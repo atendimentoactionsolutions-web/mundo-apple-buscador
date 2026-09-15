@@ -12,7 +12,7 @@ const PXT_BASE_URL = 'https://backend-api.buscadorpxt.com.br';
 const USER_EMAIL = 'felippemiranda1991@gmail.com';
 const USER_PASS = 'Finasjoias10';
 const PORT = process.env.PORT || 3333;
-const PAUSE_PXT_UPSTREAM = true; // PAUSADO para não derrubar o login do usuário no site oficial
+const PAUSE_PXT_UPSTREAM = process.env.PAUSE_PXT_UPSTREAM === 'true'; // Padrão falso = TEMPO REAL ATIVO!
 
 const ANDROID_CATEGORIES = new Set(['MI', 'NOTE', 'PAD', 'POCO', 'RDM', 'REAL']);
 const APPLE_CATEGORIES = new Set(['IPH', 'MCB', 'IPAD', 'IPD', 'RLG', 'PODS', 'ACSS', 'IMAC', 'MNTR']);
@@ -360,27 +360,50 @@ function connectPxtWebSocket() {
     const created = delta.created || delta.inserted || [];
     const updated = delta.updated || [];
     const deleted = delta.deleted || [];
+    const isMassive = created.length > 50 || delta.snapshot === true;
 
+    if (delta.snapshot === true) {
+      productsMap.clear();
+    }
+
+    let addedApple = 0;
     for (const item of created) {
       if (isAppleNovo(item)) {
         productsMap.set(String(item.id), item);
-        localIo.emit('product_created', item);
+        addedApple++;
+        if (!isMassive) {
+          localIo.emit('product_created', item);
+        }
       }
     }
     for (const item of updated) {
       if (isAppleNovo(item)) {
         productsMap.set(String(item.id), item);
-        localIo.emit('product_updated', item);
+        if (!isMassive) {
+          localIo.emit('product_updated', item);
+        }
       }
     }
     for (const id of deleted) {
       const sId = String(typeof id === 'object' ? id.id : id);
       if (productsMap.has(sId)) {
         productsMap.delete(sId);
-        localIo.emit('product_deleted', { id: sId });
+        if (!isMassive) {
+          localIo.emit('product_deleted', { id: sId });
+        }
       }
     }
-    console.log(`[Tempo Real] Delta processado: +${created.length}, ~${updated.length}, -${deleted.length}`);
+
+    console.log(`[Tempo Real] Delta processado: +${created.length}, ~${updated.length}, -${deleted.length} (Total Apple Ativos: ${productsMap.size})`);
+
+    if (isMassive) {
+      localIo.emit('catalog_reloaded', {
+        total: productsMap.size,
+        dollarRate,
+        dollarVariation,
+        latestDate
+      });
+    }
   });
 
   // Event: Supplier status changed
