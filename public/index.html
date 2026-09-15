@@ -150,12 +150,7 @@
             </select>
           </div>
 
-          <!-- Verified Checkbox -->
-          <label class="pod-checkbox-label" title="Filtrar apenas fornecedores verificados">
-            <input type="checkbox" id="podVerifiedFilter">
-            <span class="pod-custom-check"></span>
-            <span>Verificados</span>
-          </label>
+
 
           <!-- Export Button -->
           <button class="pod-btn-export" onclick="exportPricesDayTable()" title="Copiar resumo de preços para o WhatsApp">
@@ -405,20 +400,11 @@
             </select>
           </div>
 
-          <div class="select-wrapper">
-            <select class="filter-select" id="sortFilter">
-              <option value="price_asc">Menor Preço (Padrão)</option>
-              <option value="price_desc">Maior Preço</option>
-              <option value="name_asc">Nome (A-Z)</option>
-              <option value="recent">Mais Recentes</option>
+          <div class="select-wrapper" id="ramFilterWrapper">
+            <select class="filter-select" id="ramFilter">
+              <option value="">RAM (Todas)</option>
             </select>
           </div>
-
-          <label class="toggle-filter" title="Apenas fornecedores verificados">
-            <input type="checkbox" id="verifiedOnly">
-            <span class="toggle-check"></span>
-            <span class="toggle-label">Verificados</span>
-          </label>
 
           <button class="clear-filters-btn" id="clearFiltersBtn" title="Limpar todos os filtros">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">

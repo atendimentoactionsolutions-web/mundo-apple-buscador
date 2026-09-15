@@ -4,10 +4,10 @@ let currentCategory = 'ALL';
 let selectedModel = ''; // Isolated model filter (e.g. "IPHONE 17 PRO MAX")
 let searchQuery = '';
 let selectedStorage = '';
+let selectedRam = '';
 let selectedColor = '';
 let selectedSupplier = '';
 let sortMode = 'price_asc';
-let onlyVerified = false;
 
 // Connect to Local Socket.io server
 const socket = io();
@@ -20,10 +20,9 @@ const searchInput = document.getElementById('searchInput');
 const searchClearBtn = document.getElementById('searchClearBtn');
 const autocompleteDropdown = document.getElementById('autocompleteDropdown');
 const storageFilter = document.getElementById('storageFilter');
+const ramFilter = document.getElementById('ramFilter');
 const colorFilter = document.getElementById('colorFilter');
 const supplierFilter = document.getElementById('supplierFilter');
-const sortFilter = document.getElementById('sortFilter');
-const verifiedOnly = document.getElementById('verifiedOnly');
 const clearFiltersBtn = document.getElementById('clearFiltersBtn');
 const dollarRateText = document.getElementById('dollarRateText');
 const dollarVarText = document.getElementById('dollarVarText');
@@ -88,6 +87,8 @@ function updateDynamicFilters() {
 
   // Extract available Capacities from the pool
   const capacitiesMap = new Map();
+  // Extract available RAMs from the pool
+  const ramsMap = new Map();
   // Extract available Colors from the pool
   const colorsMap = new Map();
   // Extract available Suppliers from the pool
@@ -98,9 +99,12 @@ function updateDynamicFilters() {
       const s = p.storage.trim().toUpperCase();
       capacitiesMap.set(s, (capacitiesMap.get(s) || 0) + 1);
     }
+    const ram = getMacBookRam(p);
+    if (ram) {
+      ramsMap.set(ram, (ramsMap.get(ram) || 0) + 1);
+    }
     if (p.color) {
       const c = p.color.trim().toUpperCase();
-      // If a storage is already selected, count colors for that storage
       if (!selectedStorage || (p.storage || '').toUpperCase().includes(selectedStorage)) {
         colorsMap.set(c, (colorsMap.get(c) || 0) + 1);
       }
@@ -120,48 +124,75 @@ function updateDynamicFilters() {
     return a.localeCompare(b);
   });
 
-  storageFilter.innerHTML = '<option value="">Capacidade (Todas)</option>';
-  availableStorages.forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s;
-    opt.textContent = `${s} (${capacitiesMap.get(s)})`;
-    if (s === selectedStorage) opt.selected = true;
-    storageFilter.appendChild(opt);
-  });
+  if (storageFilter) {
+    storageFilter.innerHTML = '<option value="">Capacidade (Todas)</option>';
+    availableStorages.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = `${s} (${capacitiesMap.get(s)})`;
+      if (s === selectedStorage) opt.selected = true;
+      storageFilter.appendChild(opt);
+    });
 
-  // If previous selectedStorage doesn't exist in new model, reset it
-  if (selectedStorage && !capacitiesMap.has(selectedStorage)) {
-    selectedStorage = '';
-    storageFilter.value = '';
+    if (selectedStorage && !capacitiesMap.has(selectedStorage)) {
+      selectedStorage = '';
+      storageFilter.value = '';
+    }
+  }
+
+  // Update RAM Dropdown
+  const ramWrapper = document.getElementById('ramFilterWrapper');
+  if (ramFilter) {
+    const sortedRams = Array.from(ramsMap.keys()).sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
+    ramFilter.innerHTML = '<option value="">Memória RAM (Todas)</option>';
+    sortedRams.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r;
+      opt.textContent = `${r} (${ramsMap.get(r)})`;
+      if (r === selectedRam) opt.selected = true;
+      ramFilter.appendChild(opt);
+    });
+
+    if (ramWrapper) {
+      ramWrapper.style.display = sortedRams.length > 0 ? 'inline-block' : 'none';
+    }
+
+    if (selectedRam && !ramsMap.has(selectedRam)) {
+      selectedRam = '';
+      ramFilter.value = '';
+    }
   }
 
   // Update Colors Dropdown
   const sortedColors = Array.from(colorsMap.entries()).sort((a, b) => b[1] - a[1]);
-  colorFilter.innerHTML = '<option value="">Cor (Todas as Cores)</option>';
-  sortedColors.forEach(([c, count]) => {
-    const opt = document.createElement('option');
-    opt.value = c;
-    opt.textContent = `${c} (${count})`;
-    if (c === selectedColor) opt.selected = true;
-    colorFilter.appendChild(opt);
-  });
+  if (colorFilter) {
+    colorFilter.innerHTML = '<option value="">Cor (Todas as Cores)</option>';
+    sortedColors.forEach(([c, count]) => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = `${c} (${count})`;
+      if (c === selectedColor) opt.selected = true;
+      colorFilter.appendChild(opt);
+    });
 
-  // If previous selectedColor doesn't exist in new model, reset it
-  if (selectedColor && !colorsMap.has(selectedColor)) {
-    selectedColor = '';
-    colorFilter.value = '';
+    if (selectedColor && !colorsMap.has(selectedColor)) {
+      selectedColor = '';
+      colorFilter.value = '';
+    }
   }
 
   // Update Suppliers Dropdown
   const sortedSuppliers = Array.from(suppliersMap.keys()).sort();
-  supplierFilter.innerHTML = '<option value="">Fornecedor (Todos)</option>';
-  sortedSuppliers.forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s;
-    opt.textContent = `${s} (${suppliersMap.get(s)})`;
-    if (s === selectedSupplier) opt.selected = true;
-    supplierFilter.appendChild(opt);
-  });
+  if (supplierFilter) {
+    supplierFilter.innerHTML = '<option value="">Fornecedor (Todos)</option>';
+    sortedSuppliers.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = `${s} (${suppliersMap.get(s)})`;
+      if (s === selectedSupplier) opt.selected = true;
+      supplierFilter.appendChild(opt);
+    });
+  }
 
   // Active supplier count text
   const supplierCountLabel = document.getElementById('supplierCountLabel');
@@ -264,6 +295,11 @@ function getFilteredProducts() {
       if (!stor.includes(selectedStorage)) return false;
     }
 
+    // RAM filter
+    if (selectedRam) {
+      if (getMacBookRam(p) !== selectedRam) return false;
+    }
+
     // Color filter
     if (selectedColor) {
       const col = (p.color || '').toUpperCase();
@@ -273,11 +309,6 @@ function getFilteredProducts() {
     // Supplier filter
     if (selectedSupplier) {
       if (p.supplier?.name !== selectedSupplier) return false;
-    }
-
-    // Verified only
-    if (onlyVerified) {
-      if (!p.supplier?.isVerified) return false;
     }
 
     return true;
@@ -830,19 +861,18 @@ window.resetFilters = function() {
   selectedModel = '';
   searchQuery = '';
   selectedStorage = '';
+  selectedRam = '';
   selectedColor = '';
   selectedSupplier = '';
   sortMode = 'price_asc';
-  onlyVerified = false;
 
   searchInput.value = '';
   searchClearBtn.style.display = 'none';
-  autocompleteDropdown.classList.remove('open');
-  storageFilter.value = '';
-  colorFilter.value = '';
-  supplierFilter.value = '';
-  sortFilter.value = 'price_asc';
-  verifiedOnly.checked = false;
+  if (autocompleteDropdown) autocompleteDropdown.classList.remove('open');
+  if (storageFilter) storageFilter.value = '';
+  if (ramFilter) ramFilter.value = '';
+  if (colorFilter) colorFilter.value = '';
+  if (supplierFilter) supplierFilter.value = '';
 
   categoryNav.querySelectorAll('.category-pill').forEach(b => {
     b.classList.toggle('active', b.dataset.category === 'ALL');
@@ -929,31 +959,35 @@ categoryNav.addEventListener('click', (e) => {
   render();
 });
 
-storageFilter.addEventListener('change', (e) => {
-  selectedStorage = e.target.value;
-  updateDynamicFilters();
-  render();
-});
+if (storageFilter) {
+  storageFilter.addEventListener('change', (e) => {
+    selectedStorage = e.target.value;
+    updateDynamicFilters();
+    render();
+  });
+}
 
-colorFilter.addEventListener('change', (e) => {
-  selectedColor = e.target.value;
-  render();
-});
+if (ramFilter) {
+  ramFilter.addEventListener('change', (e) => {
+    selectedRam = e.target.value;
+    updateDynamicFilters();
+    render();
+  });
+}
 
-supplierFilter.addEventListener('change', (e) => {
-  selectedSupplier = e.target.value;
-  render();
-});
+if (colorFilter) {
+  colorFilter.addEventListener('change', (e) => {
+    selectedColor = e.target.value;
+    render();
+  });
+}
 
-sortFilter.addEventListener('change', (e) => {
-  sortMode = e.target.value;
-  render();
-});
-
-verifiedOnly.addEventListener('change', (e) => {
-  onlyVerified = e.target.checked;
-  render();
-});
+if (supplierFilter) {
+  supplierFilter.addEventListener('change', (e) => {
+    selectedSupplier = e.target.value;
+    render();
+  });
+}
 
 clearFiltersBtn.addEventListener('click', resetFilters);
 
