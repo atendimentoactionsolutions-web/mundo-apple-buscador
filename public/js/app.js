@@ -40,10 +40,7 @@ const removeModelBtn = document.getElementById('removeModelBtn');
 async function loadProducts() {
   try {
     const res = await fetch('/api/products');
-    if (res.status === 401) {
-      window.location.href = '/login.html';
-      return;
-    }
+    if (!res.ok) return;
     const json = await res.json();
     if (json.success && Array.isArray(json.data)) {
       allProducts = json.data;
@@ -296,12 +293,58 @@ function formatBRL(val) {
   return Number(val).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+// Extrai fielmente a quantidade de RAM de MacBooks e Macs
+function getMacBookRam(p) {
+  if (!p) return '';
+  const cat = (p.category || '').toUpperCase();
+  const name = (p.name || '').toUpperCase();
+  const isMac = cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('IMAC');
+  if (!isMac) return '';
+
+  // 1. No PXT, a memória RAM de MacBooks vem no campo region (ex: "8GB", "16GB", "24GB", "32GB", "36GB", "48GB", "64GB")
+  if (p.region && /\b\d{1,3}\s*GB\b/i.test(p.region)) {
+    return p.region.trim().toUpperCase();
+  }
+
+  // 2. Busca na descrição ou nome se houver menção explícita
+  const combined = `${p.description || ''} ${p.name || ''}`;
+  const m = combined.match(/\b(8|16|18|24|32|36|48|64|96|128)\s*GB\b/i);
+  if (m) {
+    return `${m[1]}GB`;
+  }
+  return '';
+}
+
+// Normalizador de busca inteligente (ignora acentos, pontuação e maiúsculas/minúsculas)
+function normalizeSearchText(str) {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Verifica se todos os termos digitados na busca estão presentes no produto
+function matchSearchTokens(product, tokens) {
+  if (!tokens || tokens.length === 0) return true;
+  const ram = getMacBookRam(product);
+  const rawText = `${product.name || ''} ${product.description || ''} ${product.storage || ''} ${product.color || ''} ${product.region || ''} ${ram} ${ram ? ram + ' RAM' : ''} ${product.supplier?.name || ''}`;
+  const normalized = normalizeSearchText(rawText);
+  return tokens.every(token => normalized.includes(token));
+}
+
 // Helper para montar mensagem direta e profissional de WhatsApp para o fornecedor
-function buildSupplierWhatsAppMessage(model, storage, color, price) {
+function buildSupplierWhatsAppMessage(model, storage, color, price, ram = '') {
   const parts = [];
   if (model) parts.push(model.trim().toUpperCase());
+  if (ram && !model.toUpperCase().includes(ram.toUpperCase())) {
+    parts.push(ram.trim().toUpperCase());
+  }
   if (storage) parts.push(storage.trim().toUpperCase());
-  if (color) parts.push(color.trim().toUpperCase());
+  if (color && color.toUpperCase() !== 'PADRÃO') parts.push(color.trim().toUpperCase());
   
   const productInfo = parts.join(' ');
   const formattedPrice = formatBRL(price || 0);
@@ -1145,7 +1188,8 @@ function renderPricesOfTheDay() {
   const podShownCountText = document.getElementById('podShownCountText');
   const podSupplierCountLabel = document.getElementById('podSupplierCountLabel');
 
-  const searchTerm = (podSearchInput?.value || '').trim().toLowerCase();
+  const searchTerm = (podSearchInput?.value || '').trim();
+  const searchTokens = normalizeSearchText(searchTerm).split(' ').filter(Boolean);
   const selectedRegion = podRegionFilter?.value || '';
   const onlyVerified = podVerifiedFilter?.checked || false;
 
@@ -1158,7 +1202,7 @@ function renderPricesOfTheDay() {
       const cat = (p.category || '').toUpperCase().trim();
       const name = (p.name || '').toUpperCase();
       if (podCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
-      if (podCurrentCategory === 'MCB' && !(cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO'))) return false;
+      if (podCurrentCategory === 'MCB' && !(cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO') || name.includes('IMAC'))) return false;
       if (podCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
       if (podCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
       if (podCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
@@ -1166,24 +1210,21 @@ function renderPricesOfTheDay() {
       if (podCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
     }
 
-    // Search filter (instantâneo por modelo, capacidade, cor ou fornecedor)
-    if (searchTerm) {
-      const name = (p.name || '').toLowerCase();
-      const desc = (p.description || '').toLowerCase();
-      const stor = (p.storage || '').toLowerCase();
-      const col = (p.color || '').toLowerCase();
-      const supp = (p.supplier?.name || '').toLowerCase();
-      const combined = `${name} ${desc} ${stor} ${col} ${supp}`;
-      if (!combined.includes(searchTerm)) return false;
+    // Search filter inteligente multi-palavras (modelo, RAM, capacidade, cor ou fornecedor)
+    if (searchTokens.length > 0) {
+      if (!matchSearchTokens(p, searchTokens)) return false;
     }
 
-    // Region filter
+    // Region filter (aplica apenas em iPhones/iPads; MacBooks usam region para RAM)
     if (selectedRegion) {
-      const reg = (p.region || p.description || p.name || '').toUpperCase();
-      if (selectedRegion === 'EUA' && !(reg.includes('EUA') || reg.includes('USA') || reg.includes('LL/A') || reg.includes('CHIP VIRTUAL'))) return false;
-      if (selectedRegion === 'BR' && !(reg.includes('BR') || reg.includes('ANATEL') || reg.includes('NACIONAL') || reg.includes('BZ/A'))) return false;
-      if (selectedRegion === 'PY' && !(reg.includes('PY') || reg.includes('PARAGUAI') || reg.includes('PARAGUAY'))) return false;
-      if (selectedRegion === 'GLOBAL' && !(reg.includes('GLOBAL') || reg.includes('J/A') || reg.includes('ZD/A') || reg.includes('HN/A'))) return false;
+      const isMac = (p.category || '').toUpperCase() === 'MCB' || (p.name || '').toUpperCase().includes('MAC');
+      if (!isMac) {
+        const reg = (p.region || p.description || p.name || '').toUpperCase();
+        if (selectedRegion === 'EUA' && !(reg.includes('EUA') || reg.includes('USA') || reg.includes('LL/A') || reg.includes('CHIP VIRTUAL'))) return false;
+        if (selectedRegion === 'BR' && !(reg.includes('BR') || reg.includes('ANATEL') || reg.includes('NACIONAL') || reg.includes('BZ/A'))) return false;
+        if (selectedRegion === 'PY' && !(reg.includes('PY') || reg.includes('PARAGUAI') || reg.includes('PARAGUAY'))) return false;
+        if (selectedRegion === 'GLOBAL' && !(reg.includes('GLOBAL') || reg.includes('J/A') || reg.includes('ZD/A') || reg.includes('HN/A'))) return false;
+      }
     }
 
     // Verified filter
@@ -1192,16 +1233,18 @@ function renderPricesOfTheDay() {
     return true;
   });
 
-  // AGRUPAMENTO ESTRITO POR MODELO (ZERO MISTURA)
+  // AGRUPAMENTO ESTRITO POR MODELO E VARIANTE DE CAPACIDADE/RAM
   const modelFamilies = new Map();
   const suppliersSet = new Set();
-  let totalCardsCount = 0;
 
   filtered.forEach(p => {
     if (p.supplier?.name) suppliersSet.add(p.supplier.name);
 
     const modelKey = (p.name || 'Apple').trim().toUpperCase();
+    const ram = getMacBookRam(p);
     const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
+    // Chave única para separar variantes (MacBooks separam por RAM e SSD para nunca misturar)
+    const variantKey = ram ? `${storageKey}__${ram}` : storageKey;
 
     if (!modelFamilies.has(modelKey)) {
       modelFamilies.set(modelKey, {
@@ -1212,17 +1255,17 @@ function renderPricesOfTheDay() {
     }
 
     const fam = modelFamilies.get(modelKey);
-    if (!fam.storagesMap.has(storageKey)) {
-      fam.storagesMap.set(storageKey, {
+    if (!fam.storagesMap.has(variantKey)) {
+      fam.storagesMap.set(variantKey, {
         model: fam.modelName,
         storage: (p.storage || '').trim(),
+        ram: ram,
         colors: new Map(),
         allOffers: []
       });
-      totalCardsCount++;
     }
 
-    const stGrp = fam.storagesMap.get(storageKey);
+    const stGrp = fam.storagesMap.get(variantKey);
     stGrp.allOffers.push(p);
 
     const colorName = (p.color || 'Padrão').trim();
@@ -1237,6 +1280,7 @@ function renderPricesOfTheDay() {
         whatsappNumber: p.supplier?.whatsappNumber || '',
         isVerified: p.supplier?.isVerified,
         address: p.supplier?.address || '',
+        ram: ram,
         count: (curColor ? curColor.count : 0) + 1
       });
     } else {
@@ -1273,12 +1317,15 @@ function renderPricesOfTheDay() {
     return;
   }
 
-  // Renderiza estruturado por Seção de Modelo + Cards das Capacidades
+  // Renderiza estruturado por Seção de Modelo + Cards das Capacidades e RAM
   let html = '';
   sortedFamilies.forEach(fam => {
     // Ordena as capacidades do modelo em ordem lógica (128GB, 256GB, 512GB, 1TB, etc)
     const storages = Array.from(fam.storagesMap.values()).sort((a, b) => {
-      return getStorageRank(a.storage) - getStorageRank(b.storage);
+      const rA = getStorageRank(a.storage);
+      const rB = getStorageRank(b.storage);
+      if (rA !== rB) return rA - rB;
+      return (parseInt(a.ram) || 0) - (parseInt(b.ram) || 0);
     });
 
     const catIcon = getCategoryIcon(fam.modelName, fam.category);
@@ -1291,28 +1338,28 @@ function renderPricesOfTheDay() {
           <span class="pod-model-section-icon">${catIcon}</span>
           <h2 class="pod-model-section-title">${fam.modelName}</h2>
         </div>
-        <span class="pod-model-section-badge">${storagesCount} ${storagesCount === 1 ? 'capacidade' : 'capacidades disponíveis'}</span>
+        <span class="pod-model-section-badge">${storagesCount} ${storagesCount === 1 ? 'configuração disponível' : 'configurações disponíveis'}</span>
       </div>
     `;
 
-    // Cards individuais de cada capacidade para este modelo
+    // Cards individuais de cada capacidade/RAM para este modelo
     storages.forEach(grp => {
       const colorsArr = Array.from(grp.colors.values()).sort((a, b) => a.minPrice - b.minPrice);
 
       const colorRowsHtml = colorsArr.map(col => {
         const hex = getAppleColorHex(col.color);
         const rawPhone = (col.whatsappNumber || '').replace(/\D/g, '');
-        const orderMsg = buildSupplierWhatsAppMessage(grp.model, grp.storage, col.color, col.minPrice);
+        const orderMsg = buildSupplierWhatsAppMessage(grp.model, grp.storage, col.color, col.minPrice, grp.ram);
         const waLink = rawPhone ? `https://wa.me/${rawPhone}?text=${encodeURIComponent(orderMsg)}` : '#';
 
         return `
           <div class="matrix-color-row">
-            <div class="matrix-color-left" onclick="openAllOffersModal('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}')">
+            <div class="matrix-color-left" onclick="openAllOffersModal('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}', '${encodeURIComponent(grp.ram || '')}')">
               <span class="matrix-color-dot" style="background-color: ${hex};" title="Cor: ${col.color}"></span>
               <span class="matrix-color-name" title="${col.color}">${col.color}</span>
             </div>
             <div class="matrix-color-right">
-              <div class="matrix-cost-group" onclick="openAllOffersModal('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}')">
+              <div class="matrix-cost-group" onclick="openAllOffersModal('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}', '${encodeURIComponent(grp.ram || '')}')">
                 <span class="matrix-cost-label">CUSTO</span>
                 <span class="matrix-cost-val">${formatBRL(col.minPrice)}</span>
               </div>
@@ -1331,9 +1378,12 @@ function renderPricesOfTheDay() {
           <div class="matrix-card-header">
             <div class="matrix-card-title-wrap">
               <h3 class="matrix-card-title" title="${grp.model}">${grp.model}</h3>
-              ${grp.storage ? `<span class="matrix-card-storage">${grp.storage}</span>` : ''}
+              <div style="display: flex; gap: 6px; align-items: center; margin-top: 3px; flex-wrap: wrap;">
+                ${grp.ram ? `<span class="matrix-card-ram-badge" style="background: rgba(0, 113, 227, 0.18); color: #2997ff; border: 1px solid rgba(41, 151, 255, 0.35); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/></svg>${grp.ram} RAM</span>` : ''}
+                ${grp.storage ? `<span class="matrix-card-storage">${grp.storage}</span>` : ''}
+              </div>
             </div>
-            <button class="matrix-card-all-btn" onclick="openAllOffersModal('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}')" title="Ver todos os fornecedores deste modelo">
+            <button class="matrix-card-all-btn" onclick="openAllOffersModal('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '', '${encodeURIComponent(grp.ram || '')}')" title="Ver todos os fornecedores deste modelo">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
                 <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
@@ -1352,22 +1402,26 @@ function renderPricesOfTheDay() {
   container.innerHTML = html;
 }
 
-// 16. Open Modal with All Offers for a Specific Model + Storage
-window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor) {
+// 16. Open Modal with All Offers for a Specific Model + Storage + RAM
+window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor, encodedRam) {
   const model = decodeURIComponent(encodedModel || '');
   const storage = decodeURIComponent(encodedStorage || '');
   const selectedColor = encodedColor ? decodeURIComponent(encodedColor) : '';
+  const selectedRam = encodedRam ? decodeURIComponent(encodedRam) : '';
 
   const modal = document.getElementById('allOffersModal');
   const title = document.getElementById('allOffersModalTitle');
   const body = document.getElementById('allOffersModalBody');
   if (!modal || !body) return;
 
-  title.textContent = `${model} ${storage ? '• ' + storage : ''}`;
+  const ramTitlePart = selectedRam ? ` • ${selectedRam} RAM` : '';
+  const storageTitlePart = storage ? ` • ${storage}` : '';
+  title.textContent = `${model}${ramTitlePart}${storageTitlePart}`;
 
   let offers = allProducts.filter(p => {
     if ((p.name || '').trim().toUpperCase() !== model.trim().toUpperCase()) return false;
     if (storage && (p.storage || '').trim().toUpperCase() !== storage.trim().toUpperCase()) return false;
+    if (selectedRam && getMacBookRam(p) !== selectedRam) return false;
     if (selectedColor && (p.color || '').trim().toUpperCase() !== selectedColor.trim().toUpperCase()) return false;
     return p.price && p.price > 0;
   });
@@ -1394,8 +1448,9 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor)
     const whatsapp = (p.supplier?.whatsappNumber || '').replace(/\D/g, '');
     const isLowest = p.price === lowestPrice;
     const colHex = getAppleColorHex(p.color);
+    const ram = getMacBookRam(p);
 
-    const orderMsg = buildSupplierWhatsAppMessage(p.name, p.storage, p.color, p.price);
+    const orderMsg = buildSupplierWhatsAppMessage(p.name, p.storage, p.color, p.price, ram);
     const waLink = whatsapp ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(orderMsg)}` : '#';
 
     return `
@@ -1419,6 +1474,7 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor)
         <div class="all-offer-color-tag">
           <span class="matrix-color-dot" style="background-color: ${colHex};"></span>
           <span>${p.color || 'Padrão'}</span>
+          ${ram ? `<span style="margin-left: 6px; font-size: 0.7rem; font-weight: 700; color: #2997ff; background: rgba(0, 113, 227, 0.16); padding: 1px 6px; border-radius: 4px;">${ram} RAM</span>` : ''}
         </div>
 
         <div class="all-offer-price-group">
@@ -1600,8 +1656,7 @@ async function checkAuthSession() {
   try {
     const res = await fetch('/api/auth/me');
     if (res.status === 401) {
-      window.location.href = '/login.html';
-      return;
+      return; // sem login, continua sem badge
     }
     const user = await res.json();
     currentUser = user;
@@ -1635,7 +1690,7 @@ async function handleHeaderLogout() {
   try {
     await fetch('/api/auth/logout', { method: 'POST' });
   } finally {
-    window.location.href = '/login.html';
+    window.location.href = '/';
   }
 }
 

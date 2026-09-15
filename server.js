@@ -41,18 +41,12 @@ function clearSessionCookie(res) {
   res.setHeader('Set-Cookie', `fornecedor_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
 }
 
-// Rotas de Páginas Protegidas com Redirecionamento de Login
-app.get('/', async (req, res) => {
-  const token = auth.getSessionTokenFromRequest(req);
-  const user = await auth.findUserBySessionToken(token);
-  if (!user) return res.redirect('/login.html');
+// Rotas Públicas do Buscador Principal (Acesso Direto Sem Login)
+app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.get('/index.html', async (req, res) => {
-  const token = auth.getSessionTokenFromRequest(req);
-  const user = await auth.findUserBySessionToken(token);
-  if (!user) return res.redirect('/login.html');
+app.get('/index.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
@@ -531,8 +525,8 @@ app.delete('/api/admin/lojistas/:id', requireAdminApi, async (req, res) => {
   }
 });
 
-// --- ROTAS DE PRODUTOS (PROTEGIDAS COM AUTENTICAÇÃO) ---
-app.get('/api/products', requireAuthApi, (req, res) => {
+// --- ROTAS DE PRODUTOS (ACESSO DIRETO) ---
+app.get('/api/products', (req, res) => {
   const products = Array.from(productsMap.values());
   res.json({
     success: true,
@@ -545,7 +539,7 @@ app.get('/api/products', requireAuthApi, (req, res) => {
   });
 });
 
-app.get('/api/price-history/:id', requireAuthApi, async (req, res) => {
+app.get('/api/price-history/:id', async (req, res) => {
   const { id } = req.params;
   try {
     const resp = await axios.get(`${PXT_BASE_URL}/products/${id}/price-history`, {
@@ -557,7 +551,7 @@ app.get('/api/price-history/:id', requireAuthApi, async (req, res) => {
   }
 });
 
-app.get('/api/stats', requireAuthApi, (req, res) => {
+app.get('/api/stats', (req, res) => {
   const uniqueSuppliers = new Set(Array.from(productsMap.values()).map(p => p.supplier?.name).filter(Boolean)).size;
   res.json({
     totalProducts: productsMap.size,
