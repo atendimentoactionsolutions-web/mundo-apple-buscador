@@ -241,13 +241,8 @@ function getFilteredProducts() {
 
     // Free text search query (when model is not locked)
     if (!selectedModel && sLower) {
-      const name = (p.name || '').toLowerCase();
-      const desc = (p.description || '').toLowerCase();
-      const supp = (p.supplier?.name || '').toLowerCase();
-      const stor = (p.storage || '').toLowerCase();
-      const color = (p.color || '').toLowerCase();
-      const combined = `${name} ${desc} ${supp} ${stor} ${color}`;
-      if (!combined.includes(sLower)) return false;
+      const tokens = normalizeSearchText(sLower).split(' ').filter(Boolean);
+      if (!matchSearchTokens(p, tokens)) return false;
     }
 
     // Storage filter
@@ -439,8 +434,8 @@ function renderColorPricesTopic() {
     if (selectedModel) {
       if ((p.name || '').trim().toUpperCase() !== selectedModel.trim().toUpperCase()) return false;
     } else if (searchQuery.trim()) {
-      const combined = `${p.name || ''} ${p.description || ''}`.toLowerCase();
-      if (!combined.includes(searchQuery.trim().toLowerCase())) return false;
+      const tokens = normalizeSearchText(searchQuery.trim()).split(' ').filter(Boolean);
+      if (!matchSearchTokens(p, tokens)) return false;
     }
     if (selectedStorage) {
       if (!(p.storage || '').toUpperCase().includes(selectedStorage)) return false;
