@@ -204,8 +204,10 @@ window.selectModel = function(modelName) {
 // Remove model isolation
 window.clearSelectedModel = function() {
   selectedModel = '';
+  searchQuery = '';
   searchInput.value = '';
   searchClearBtn.style.display = 'none';
+  if (autocompleteDropdown) autocompleteDropdown.classList.remove('open');
   selectedStorage = '';
   selectedColor = '';
   selectedSupplier = '';
@@ -760,20 +762,45 @@ searchInput.addEventListener('focus', () => {
   }
 });
 
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const firstItem = autocompleteDropdown.querySelector('.autocomplete-item');
+    if (firstItem && autocompleteDropdown.classList.contains('open')) {
+      firstItem.click();
+    } else {
+      autocompleteDropdown.classList.remove('open');
+      searchInput.blur();
+    }
+  } else if (e.key === 'Escape') {
+    autocompleteDropdown.classList.remove('open');
+    searchInput.blur();
+  }
+});
+
 searchClearBtn.addEventListener('click', () => {
   clearSelectedModel();
+  searchInput.focus();
 });
 
 // Shortcut ⌘K / Ctrl+K to focus search & Esc to close
 document.addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault();
-    searchInput.focus();
-    searchInput.select();
+    if (currentView === 'products') {
+      searchInput.focus();
+      searchInput.select();
+    } else {
+      const podInp = document.getElementById('podSearchInput');
+      if (podInp) { podInp.focus(); podInp.select(); }
+    }
   }
   if (e.key === 'Escape') {
-    autocompleteDropdown.classList.remove('open');
-    searchInput.blur();
+    if (autocompleteDropdown) autocompleteDropdown.classList.remove('open');
+    const podDropdown = document.getElementById('podAutocompleteDropdown');
+    if (podDropdown) podDropdown.classList.remove('open');
+    const allOffersModal = document.getElementById('allOffersModal');
+    if (allOffersModal) allOffersModal.classList.remove('active');
   }
 });
 
@@ -932,15 +959,35 @@ clearFiltersBtn.addEventListener('click', resetFilters);
 
 // 11. Theme Toggle (Dark / Light)
 const themeBtn = document.getElementById('themeBtn');
+const themeLabel = document.getElementById('themeLabel');
+const themeIcon = document.getElementById('themeIcon');
+
+function updateThemeUI(isLight) {
+  if (themeLabel) themeLabel.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
+  if (themeIcon) {
+    if (isLight) {
+      themeIcon.innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+    } else {
+      themeIcon.innerHTML = `<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>`;
+    }
+  }
+}
+
 const savedTheme = localStorage.getItem('apple_pxt_theme') || 'dark';
 if (savedTheme === 'light') {
   document.body.classList.add('light-theme');
+  updateThemeUI(true);
+} else {
+  updateThemeUI(false);
 }
 
-themeBtn.addEventListener('click', () => {
-  const isLight = document.body.classList.toggle('light-theme');
-  localStorage.setItem('apple_pxt_theme', isLight ? 'light' : 'dark');
-});
+if (themeBtn) {
+  themeBtn.addEventListener('click', () => {
+    const isLight = document.body.classList.toggle('light-theme');
+    localStorage.setItem('apple_pxt_theme', isLight ? 'light' : 'dark');
+    updateThemeUI(isLight);
+  });
+}
 
 // =========================================================================
 // 12. VIEW MANAGER: PRODUTOS (DEFAULT) VS PREÇOS DO DIA (AO LADO)
@@ -1633,6 +1680,24 @@ if (podSearchInput) {
   podSearchInput.addEventListener('focus', () => {
     if (podSearchInput.value.trim()) {
       renderPodAutocomplete(podSearchInput.value);
+    }
+  });
+
+  podSearchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const dropdown = document.getElementById('podAutocompleteDropdown');
+      const firstItem = dropdown ? dropdown.querySelector('.autocomplete-item') : null;
+      if (firstItem && dropdown.classList.contains('open')) {
+        firstItem.click();
+      } else {
+        if (dropdown) dropdown.classList.remove('open');
+        podSearchInput.blur();
+      }
+    } else if (e.key === 'Escape') {
+      const dropdown = document.getElementById('podAutocompleteDropdown');
+      if (dropdown) dropdown.classList.remove('open');
+      podSearchInput.blur();
     }
   });
 }
