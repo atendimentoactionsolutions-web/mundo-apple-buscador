@@ -525,9 +525,17 @@ app.delete('/api/admin/lojistas/:id', requireAdminApi, async (req, res) => {
   }
 });
 
+function isCpoProduct(p) {
+  if (!p) return false;
+  const n = (p.name || '').toUpperCase();
+  const d = (p.description || '').toUpperCase();
+  const r = (p.region || '').toUpperCase();
+  return n.includes('CPO') || d.includes('CPO') || r.includes('CPO');
+}
+
 // --- ROTAS DE PRODUTOS (ACESSO DIRETO) ---
 app.get('/api/products', (req, res) => {
-  const products = Array.from(productsMap.values());
+  const products = Array.from(productsMap.values()).filter(p => !isCpoProduct(p));
   res.json({
     success: true,
     total: products.length,

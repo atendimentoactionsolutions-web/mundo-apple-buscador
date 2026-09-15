@@ -35,14 +35,23 @@ const activeModelNameText = document.getElementById('activeModelNameText');
 const activeModelCountText = document.getElementById('activeModelCountText');
 const removeModelBtn = document.getElementById('removeModelBtn');
 
-// 1. Fetch initial product data
+// // Helper para identificar e excluir rigorosamente produtos CPO (Certified Pre-Owned)
+function isCpoProduct(p) {
+  if (!p) return false;
+  const n = (p.name || '').toUpperCase();
+  const d = (p.description || '').toUpperCase();
+  const r = (p.region || '').toUpperCase();
+  return n.includes('CPO') || d.includes('CPO') || r.includes('CPO');
+}
+
+// 1. Fetch initial dataset from backend API
 async function loadProducts() {
   try {
     const res = await fetch('/api/products');
     if (!res.ok) return;
     const json = await res.json();
     if (json.success && Array.isArray(json.data)) {
-      allProducts = json.data;
+      allProducts = json.data.filter(p => !isCpoProduct(p));
       if (dollarRateText) dollarRateText.textContent = `R$ ${Number(json.dollarRate).toFixed(4)}`;
       if (dollarVarText) dollarVarText.textContent = `(${Number(json.dollarVariation) >= 0 ? '+' : ''}${Number(json.dollarVariation).toFixed(2)}%)`;
       if (json.latestDate && dateText) dateText.textContent = json.latestDate;
@@ -271,6 +280,9 @@ function getFilteredProducts() {
   const sLower = searchQuery.trim().toLowerCase();
 
   let filtered = allProducts.filter(p => {
+    // Excluir produtos CPO
+    if (isCpoProduct(p)) return false;
+
     // Category filter
     if (currentCategory !== 'ALL') {
       const pCat = (p.category || '').toUpperCase();
@@ -723,6 +735,8 @@ function renderAutocomplete(term) {
   // Extract all matching unique models
   const modelCounts = new Map();
   allProducts.forEach(p => {
+    if (isCpoProduct(p)) return;
+
     // Check category filter
     if (currentCategory !== 'ALL') {
       const pCat = (p.category || '').toUpperCase();
@@ -1242,6 +1256,7 @@ function renderPodAutocomplete(term) {
 
   const modelCounts = new Map();
   allProducts.forEach(p => {
+    if (isCpoProduct(p)) return;
     const name = (p.name || '').trim();
     if (!name) return;
     const normalizedName = normalizeSearchText(name);
@@ -1317,6 +1332,7 @@ function renderPricesOfTheDay() {
   // Filter pool
   const filtered = allProducts.filter(p => {
     if (!p.price || p.price <= 0) return false;
+    if (isCpoProduct(p)) return false;
 
     // Category filter
     if (podCurrentCategory !== 'ALL') {
@@ -1540,6 +1556,7 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
   title.textContent = `${model}${ramTitlePart}${storageTitlePart}`;
 
   let offers = allProducts.filter(p => {
+    if (isCpoProduct(p)) return false;
     if ((p.name || '').trim().toUpperCase() !== model.trim().toUpperCase()) return false;
     if (storage && (p.storage || '').trim().toUpperCase() !== storage.trim().toUpperCase()) return false;
     if (selectedRam && getMacBookRam(p) !== selectedRam) return false;
