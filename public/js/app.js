@@ -655,8 +655,14 @@ function render() {
 
 // 7. AUTOCOMPLETE SEARCH LOGIC
 function renderAutocomplete(term) {
-  const t = term.trim().toLowerCase();
-  
+  const t = term.trim();
+  if (!t) {
+    autocompleteDropdown.classList.remove('open');
+    return;
+  }
+
+  const tokens = normalizeSearchText(t).split(' ').filter(Boolean);
+
   // Extract all matching unique models
   const modelCounts = new Map();
   allProducts.forEach(p => {
@@ -670,7 +676,10 @@ function renderAutocomplete(term) {
     const name = (p.name || '').trim();
     if (!name) return;
 
-    if (!t || name.toLowerCase().includes(t)) {
+    // Token-based match: todos os tokens devem estar no nome normalizado
+    const normalizedName = normalizeSearchText(name);
+    const matches = tokens.every(tok => normalizedName.includes(tok));
+    if (matches) {
       modelCounts.set(name, (modelCounts.get(name) || 0) + 1);
     }
   });
