@@ -394,64 +394,70 @@ function buildSupplierWhatsAppMessage(model, storage, color, price, ram = '') {
 }
 
 // Apple Official Colors Hex Palette Helper
+// Apple Official Colors Hex Palette Helper (Mapeamento Oficial de Cores Apple & PXT)
 function getAppleColorHex(colorName) {
-  if (!colorName) return '#999999';
+  if (!colorName) return '#8e8e93';
   const c = colorName.trim().toUpperCase();
 
   // Desert / Deserto Titanium
   if (c.includes('DESERT') || c.includes('DESERTO')) return '#c8a882';
   // Natural Titanium / Titânio Natural
   if (c.includes('NATURAL')) return '#9f9a93';
-  // Black Titanium / Preto Espacial / Space Black / Meia-noite / Midnight
-  if (c.includes('BLACK') || c.includes('PRETO') || c.includes('MEIA-NOITE') || c.includes('MIDNIGHT') || c.includes('ESCURO')) {
-    if (c.includes('TITANIUM') || c.includes('TITANIO')) return '#3b3b3d';
-    if (c.includes('SPACE') || c.includes('ESPACIAL')) return '#2e2e30';
-    if (c.includes('MIDNIGHT') || c.includes('MEIA')) return '#1e2430';
-    return '#222325';
-  }
-  // Space Gray / Grafite / Cinza
-  if (c.includes('GRAFITE') || c.includes('GRAPHITE') || c.includes('CINZA') || c.includes('GRAY') || c.includes('GREY')) {
-    return '#535150';
-  }
-  // White Titanium / White / Branco / Silver / Prata / Prateado / Starlight / Estelar
-  if (c.includes('WHITE') || c.includes('BRANC')) {
-    if (c.includes('TITANIUM') || c.includes('TITANIO')) return '#ebeae6';
-    return '#f5f5f7';
-  }
-  if (c.includes('STARLIGHT') || c.includes('ESTELAR')) return '#f0ece3';
-  if (c.includes('SILVER') || c.includes('PRATA') || c.includes('PRATEADO')) return '#e3e4e6';
-  // Ultramarine / Ultramarino
-  if (c.includes('ULTRAMARIN')) return '#3f51b5';
-  // Deep Blue / Mist Blue / Blue / Azul
-  if (c.includes('BLUE') || c.includes('AZUL')) {
-    if (c.includes('DEEP') || c.includes('ESCURO') || c.includes('SIERRA')) return '#24374b';
-    if (c.includes('MIST') || c.includes('PACIFIC') || c.includes('PACIFICO')) return '#395b64';
-    if (c.includes('LIGHT') || c.includes('CLARO') || c.includes('CEU')) return '#a4c2d7';
-    if (c.includes('TITANIUM') || c.includes('TITANIO')) return '#394653';
-    return '#496d8e';
-  }
-  // Pink / Rosa / Rose / Dourado / Gold
-  if (c.includes('PINK') || c.includes('ROSA') || c.includes('ROSE')) {
+  // Cosmic Orange / Laranja / Orange / Citrus / Coral
+  if (c.includes('COSMIC') || c.includes('ORANGE') || c.includes('LARANJ') || c.includes('CITRUS') || c.includes('CORAL')) return '#e06d53';
+  // Teal / Sage / Verde-azulado
+  if (c.includes('TEAL') || c.includes('SAGE')) return '#3b827e';
+  // Ultramarine / Ultramarino / Indigo
+  if (c.includes('ULTRAMARIN') || c.includes('INDIGO')) return '#4052b5';
+  // Blush / Soft Pink / Pink / Rosa / Rose / Rose Gold
+  if (c.includes('BLUSH') || c.includes('PINK') || c.includes('ROSA') || c.includes('ROSE')) {
     if (c.includes('GOLD') || c.includes('OURO')) return '#e8bfb5';
     return '#f7c5cc';
   }
+  // Lavender / Purple / Roxo / Lilás / Violeta
+  if (c.includes('LAVENDER') || c.includes('PURPLE') || c.includes('ROXO') || c.includes('VIOLET') || c.includes('LILAS')) {
+    if (c.includes('DEEP') || c.includes('ESCURO')) return '#433447';
+    return '#d1c7df';
+  }
+  // Jet Black / Space Black
+  if (c.includes('JET BLACK') || (c.includes('SPACE') && c.includes('BLACK'))) return '#1c1c1e';
+  // Black / Midnight / Preto / Meia-noite / Charcoal
+  if (c.includes('BLACK') || c.includes('PRETO') || c.includes('MEIA-NOITE') || c.includes('MIDNIGHT')) {
+    if (c.includes('TITANIUM') || c.includes('TITANIO')) return '#3b3b3d';
+    if (c.includes('MIDNIGHT') || c.includes('MEIA')) return '#1e2430';
+    return '#222325';
+  }
+  // Space Gray / Charcoal / Graphite / Grafite / Cinza
+  if (c.includes('CHARCOAL') || c.includes('GRAFITE') || c.includes('GRAPHITE') || c.includes('CINZA') || c.includes('GRAY') || c.includes('GREY')) {
+    return '#535150';
+  }
+  // Cloud White / White / Branco / White Titanium
+  if (c.includes('WHITE') || c.includes('BRANC') || c.includes('CLOUD')) {
+    if (c.includes('TITANIUM') || c.includes('TITANIO')) return '#ebeae6';
+    return '#f5f5f7';
+  }
+  // Starlight / Estelar
+  if (c.includes('STARLIGHT') || c.includes('ESTELAR')) return '#f0ece3';
+  // Silver / Prata / Prateado
+  if (c.includes('SILVER') || c.includes('PRATA') || c.includes('PRATEADO')) return '#e3e4e6';
+  // Mist Blue / Deep Blue / Sky Blue / Blue / Azul / Sierra / Pacific
+  if (c.includes('BLUE') || c.includes('AZUL') || c.includes('SIERRA') || c.includes('PACIFIC')) {
+    if (c.includes('DEEP') || c.includes('ESCURO')) return '#24374b';
+    if (c.includes('MIST') || c.includes('PACIFIC') || c.includes('PACIFICO')) return '#395b64';
+    if (c.includes('SKY') || c.includes('LIGHT') || c.includes('CLARO') || c.includes('CEU')) return '#a4c2d7';
+    if (c.includes('TITANIUM') || c.includes('TITANIO')) return '#394653';
+    return '#496d8e';
+  }
+  // Gold / Dourado / Light Gold / Ouro
   if (c.includes('GOLD') || c.includes('DOURAD') || c.includes('OURO')) return '#fae7cf';
-  // Teal / Verde / Green / Verde-acinzentado / Alpine Green
-  if (c.includes('TEAL')) return '#88b5a5';
-  if (c.includes('VERDE') || c.includes('GREEN')) {
+  // Alpine Green / Green / Verde
+  if (c.includes('VERDE') || c.includes('GREEN') || c.includes('ALPINE')) {
     if (c.includes('ALPINE') || c.includes('ALPINO')) return '#576856';
     if (c.includes('MIDNIGHT') || c.includes('ESCURO')) return '#2c3e35';
     return '#aee1cd';
   }
-  // Purple / Roxo / Violeta / Deep Purple / Lilas
-  if (c.includes('PURPLE') || c.includes('ROXO') || c.includes('VIOLET') || c.includes('LILAS')) {
-    if (c.includes('DEEP') || c.includes('ESCURO')) return '#433447';
-    return '#d1c7df';
-  }
   // Yellow / Amarelo
   if (c.includes('YELLOW') || c.includes('AMAREL')) return '#f9e784';
-  // Orange / Laranja / Coral
-  if (c.includes('ORANGE') || c.includes('LARANJ') || c.includes('CORAL')) return '#ff7d59';
   // Red / Vermelho / Product Red
   if (c.includes('RED') || c.includes('VERMELH')) return '#e02424';
 
