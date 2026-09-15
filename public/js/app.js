@@ -296,6 +296,18 @@ function formatBRL(val) {
   return Number(val).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+// Helper para montar mensagem direta e profissional de WhatsApp para o fornecedor
+function buildSupplierWhatsAppMessage(model, storage, color, price) {
+  const parts = [];
+  if (model) parts.push(model.trim().toUpperCase());
+  if (storage) parts.push(storage.trim().toUpperCase());
+  if (color) parts.push(color.trim().toUpperCase());
+  
+  const productInfo = parts.join(' ');
+  const formattedPrice = formatBRL(price || 0);
+  return `Olá, ${productInfo} ${formattedPrice}, ainda está disponível?`;
+}
+
 // Apple Official Colors Hex Palette Helper
 function getAppleColorHex(colorName) {
   if (!colorName) return '#999999';
@@ -428,10 +440,8 @@ function renderColorPricesTopic() {
     const isSelected = selectedColor === item.color;
     const hex = getAppleColorHex(item.color);
     const rawPhone = (item.whatsappNumber || '').replace(/\D/g, '');
-    const orderText = encodeURIComponent(
-      `Olá! Vi no *Fornecedor* que você tem o menor preço no *${modelDisplayName}${storageDisplayName}* na cor *${item.color}* por *${formatBRL(item.minPrice)}*. Tem pronta entrega hoje?`
-    );
-    const waLink = rawPhone ? `https://wa.me/${rawPhone}?text=${orderText}` : '#';
+    const orderMsg = buildSupplierWhatsAppMessage(modelDisplayName, selectedStorage, item.color, item.minPrice);
+    const waLink = rawPhone ? `https://wa.me/${rawPhone}?text=${encodeURIComponent(orderMsg)}` : '#';
 
     return `
       <div class="color-box-card ${isSelected ? 'active-color' : ''}">
@@ -545,10 +555,8 @@ function render() {
     const whatsapp = (p.supplier?.whatsappNumber || '').replace(/\D/g, '');
 
     // Build WhatsApp message
-    const orderText = encodeURIComponent(
-      `Olá! Vi no *Fornecedor* o produto *${p.name} ${p.storage || ''} ${p.color || ''}* listado hoje por *${formatBRL(p.price)}*. Ainda tem pronta entrega?`
-    );
-    const waLink = whatsapp ? `https://wa.me/${whatsapp}?text=${orderText}` : '#';
+    const orderMsg = buildSupplierWhatsAppMessage(p.name, p.storage, p.color, p.price);
+    const waLink = whatsapp ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(orderMsg)}` : '#';
 
     return `
       <article class="product-card" data-id="${p.id}">
@@ -1294,10 +1302,8 @@ function renderPricesOfTheDay() {
       const colorRowsHtml = colorsArr.map(col => {
         const hex = getAppleColorHex(col.color);
         const rawPhone = (col.whatsappNumber || '').replace(/\D/g, '');
-        const waMsg = encodeURIComponent(
-          `Olá! Vi no *Fornecedor* o *${grp.model} ${grp.storage || ''}* na cor *${col.color}* anunciado hoje por *${formatBRL(col.minPrice)}* com você (*${col.bestSupplier}*). Ainda está disponível para pronta entrega?`
-        );
-        const waLink = rawPhone ? `https://wa.me/${rawPhone}?text=${waMsg}` : '#';
+        const orderMsg = buildSupplierWhatsAppMessage(grp.model, grp.storage, col.color, col.minPrice);
+        const waLink = rawPhone ? `https://wa.me/${rawPhone}?text=${encodeURIComponent(orderMsg)}` : '#';
 
         return `
           <div class="matrix-color-row">
@@ -1389,10 +1395,8 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor)
     const isLowest = p.price === lowestPrice;
     const colHex = getAppleColorHex(p.color);
 
-    const waMsg = encodeURIComponent(
-      `Olá! Vi no *Fornecedor* o *${p.name} ${p.storage || ''}* na cor *${p.color || ''}* anunciado por *${formatBRL(p.price)}*. Ainda tem pronta entrega hoje?`
-    );
-    const waLink = whatsapp ? `https://wa.me/${whatsapp}?text=${waMsg}` : '#';
+    const orderMsg = buildSupplierWhatsAppMessage(p.name, p.storage, p.color, p.price);
+    const waLink = whatsapp ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(orderMsg)}` : '#';
 
     return `
       <div class="all-offer-item">
