@@ -178,6 +178,17 @@ window.selectModel = function(modelName) {
   searchClearBtn.style.display = 'flex';
   autocompleteDropdown.classList.remove('open');
 
+  // If user selected a model that does not match currentCategory, reset category to ALL
+  const sample = allProducts.find(p => (p.name || '').trim().toUpperCase() === selectedModel.toUpperCase());
+  if (sample && currentCategory !== 'ALL') {
+    const pCat = (sample.category || '').toUpperCase();
+    const matches = (currentCategory === 'IPAD' && (pCat === 'IPAD' || pCat === 'IPD')) || (pCat === currentCategory);
+    if (!matches) {
+      currentCategory = 'ALL';
+      document.querySelectorAll('.cat-pill').forEach(p => p.classList.toggle('active', p.dataset.category === 'ALL'));
+    }
+  }
+
   // Reset secondary filters when switching models to avoid empty results
   selectedStorage = '';
   selectedColor = '';
@@ -507,12 +518,12 @@ function renderColorPricesTopic() {
         </div>
 
         <div class="color-box-actions-row">
-          <button class="color-box-btn color-box-btn-wa" onclick="sendWhatsappToSupplier('${rawPhone}', '${waMsg}')" title="Chamar fornecedor no WhatsApp">
+          <a class="color-box-btn color-box-btn-wa" href="${waLink}" target="_blank" rel="noopener noreferrer" title="Chamar fornecedor no WhatsApp">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17.472 14.382c-.301-.15-1.781-.879-2.057-.98-.276-.1-.477-.15-.678.15-.2.301-.778.98-.954 1.18-.175.201-.351.226-.652.075-1.933-.969-3.196-1.727-4.464-3.905-.337-.58.338-.538.968-1.799.1-.201.05-.376-.025-.526-.075-.15-.678-1.632-.929-2.235-.244-.588-.493-.508-.678-.517-.175-.008-.376-.01-.577-.01-.201 0-.527.075-.803.376-.276.301-1.054 1.03-1.054 2.511 0 1.481 1.079 2.91 1.23 3.111.15.201 2.123 3.242 5.143 4.546 2.067.893 2.87.897 3.896.744.624-.093 1.781-.728 2.032-1.431.251-.703.251-1.305.175-1.43-.075-.126-.276-.201-.577-.351zM12 21.848c-1.802 0-3.568-.485-5.116-1.405l-.367-.218-3.804.997 1.015-3.708-.239-.38C2.508 15.518 2 13.784 2 12c0-5.514 4.486-10 10-10s10 4.486 10 10-4.486 10-10 10zm0-18.182C7.488 3.666 3.818 7.336 3.818 12c0 1.636.474 3.208 1.371 4.564l.215.324-.606 2.215 2.268-.595.314.186C8.705 19.645 10.33 20.182 12 20.182c4.512 0 8.182-3.67 8.182-8.182 0-4.512-3.67-8.182-8.182-8.182z"/>
             </svg>
             Zap
-          </button>
+          </a>
           <button class="color-box-btn color-box-btn-filter ${isSelected ? 'active' : ''}" onclick="selectColorFromTopic('${item.color.replace(/'/g, "\\'")}')" title="Filtrar por esta cor">
             ${isSelected ? '✕ Desmarcar' : 'Filtrar'}
           </button>
@@ -573,8 +584,12 @@ function render() {
     activeModelBanner.style.display = 'none';
   }
 
-  // Render Tópico de Melhores Preços por Cor
-  renderColorPricesTopic();
+  // Render Tópico de Melhores Preços por Cor (com proteção try/catch)
+  try {
+    renderColorPricesTopic();
+  } catch (err) {
+    console.error('Erro ao renderizar tópico de cores:', err);
+  }
 
   if (filtered.length === 0) {
     productsGrid.innerHTML = `
@@ -1185,6 +1200,14 @@ window.selectPodModel = function(modelName) {
   if (podSearchInput) podSearchInput.value = modelName;
   if (dropdown) dropdown.classList.remove('open');
   if (clearBtn) clearBtn.style.display = 'flex';
+
+  // Se o modelo selecionado não coincidir com a categoria atual do Preços do Dia, reseta para ALL
+  if (podCurrentCategory !== 'ALL') {
+    podCurrentCategory = 'ALL';
+    const catPills = document.querySelectorAll('#podCategoryNav .pod-cat-pill');
+    catPills.forEach(p => p.classList.toggle('active', p.dataset.category === 'ALL'));
+  }
+
   renderPricesOfTheDay();
 };
 
