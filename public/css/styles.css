@@ -1520,8 +1520,17 @@ body.light-theme .product-card:hover {
     padding: 0 14px;
     border-radius: 12px;
   }
-  .search-box input {
-    font-size: 0.96rem;
+  .search-box input,
+  .pod-search-wrap input {
+    font-size: 16px !important; /* Prevents auto-zoom on iOS Safari */
+  }
+  .autocomplete-dropdown {
+    top: calc(100% + 6px);
+    max-height: 50vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.75);
+    z-index: 10000;
   }
   
   /* 2x2 Grid for Filters on Mobile */
