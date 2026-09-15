@@ -5,11 +5,14 @@ const ioClient = require('socket.io-client');
 const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
+const auth = require('./auth');
 
 const PXT_BASE_URL = 'https://backend-api.buscadorpxt.com.br';
 const USER_EMAIL = 'felippemiranda1991@gmail.com';
 const USER_PASS = 'Finasjoias10';
 const PORT = process.env.PORT || 3333;
+const PAUSE_PXT_UPSTREAM = true; // PAUSADO para não derrubar o login do usuário no site oficial
 
 const ANDROID_CATEGORIES = new Set(['MI', 'NOTE', 'PAD', 'POCO', 'RDM', 'REAL']);
 const APPLE_CATEGORIES = new Set(['IPH', 'MCB', 'IPAD', 'IPD', 'RLG', 'PODS', 'ACSS', 'IMAC', 'MNTR']);
@@ -22,7 +25,64 @@ const localIo = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+
+// Helper de Cookies de Sessão
+function setSessionCookie(res, token) {
+  const maxAge = 30 * 24 * 60 * 60; // 30 dias em segundos
+  res.setHeader('Set-Cookie', `fornecedor_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`);
+}
+function clearSessionCookie(res) {
+  res.setHeader('Set-Cookie', `fornecedor_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+}
+
+// Rotas de Páginas Protegidas com Redirecionamento de Login
+app.get('/', async (req, res) => {
+  const token = auth.getSessionTokenFromRequest(req);
+  const user = await auth.findUserBySessionToken(token);
+  if (!user) return res.redirect('/login.html');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/index.html', async (req, res) => {
+  const token = auth.getSessionTokenFromRequest(req);
+  const user = await auth.findUserBySessionToken(token);
+  if (!user) return res.redirect('/login.html');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/admin', async (req, res) => {
+  const token = auth.getSessionTokenFromRequest(req);
+  const user = await auth.findUserBySessionToken(token);
+  if (!user) return res.redirect('/login.html?redirect=admin');
+  if (user.role !== 'admin') return res.redirect('/');
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+app.get('/admin.html', async (req, res) => {
+  const token = auth.getSessionTokenFromRequest(req);
+  const user = await auth.findUserBySessionToken(token);
+  if (!user) return res.redirect('/login.html?redirect=admin');
+  if (user.role !== 'admin') return res.redirect('/');
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+app.get('/login', (req, res) => res.redirect('/login.html'));
+
+app.get('/login.html', async (req, res, next) => {
+  const token = auth.getSessionTokenFromRequest(req);
+  const user = await auth.findUserBySessionToken(token);
+  if (user) return res.redirect('/');
+  next();
+});
+
+// Arquivos estáticos (CSS, JS, Imagens, login.html)
+app.use(express.static(path.join(__dirname, 'public'), { index: false, etag: false, maxAge: 0 }));
 
 // In-memory product and supplier store
 let authToken = null;
@@ -330,8 +390,126 @@ function connectPxtWebSocket() {
   });
 }
 
-// 4. REST Endpoints for Frontend
-app.get('/api/products', (req, res) => {
+// =========================================================================
+// 4. AUTENTICAÇÃO, ANTI-PIRATARIA & ENDPOINTS REST
+// =========================================================================
+
+// Middleware de Proteção de API para Usuários Autenticados
+async function requireAuthApi(req, res, next) {
+  const token = auth.getSessionTokenFromRequest(req);
+  if (!token) {
+    return res.status(401).json({ error: 'Acesso não autorizado. Faça login.', code: 'UNAUTHORIZED' });
+  }
+  const user = await auth.findUserBySessionToken(token);
+  if (!user) {
+    return res.status(401).json({ error: 'Sessão inválida ou desconectada em outro aparelho.', code: 'SESSION_EXPIRED' });
+  }
+  if (user.status === 'blocked') {
+    return res.status(403).json({ error: 'Conta suspensa. Entre em contato com o administrador.', code: 'ACCOUNT_BLOCKED' });
+  }
+  req.user = user;
+  next();
+}
+
+// Middleware de Proteção de API para Administrador
+async function requireAdminApi(req, res, next) {
+  const token = auth.getSessionTokenFromRequest(req);
+  if (!token) return res.status(401).json({ error: 'Não autenticado' });
+  const user = await auth.findUserBySessionToken(token);
+  if (!user || user.role !== 'admin') {
+    return res.status(403).json({ error: 'Acesso restrito ao administrador.' });
+  }
+  req.user = user;
+  next();
+}
+
+// --- ROTAS DE AUTENTICAÇÃO ---
+app.post('/api/auth/login', async (req, res) => {
+  const { username, password } = req.body || {};
+  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const result = await auth.loginUser(username, password, clientIp, localIo);
+  if (result.success) {
+    setSessionCookie(res, result.sessionToken);
+    return res.json({ success: true, user: result.user });
+  }
+  return res.status(401).json(result);
+});
+
+app.post('/api/auth/logout', async (req, res) => {
+  const token = auth.getSessionTokenFromRequest(req);
+  if (token) await auth.logoutUser(token);
+  clearSessionCookie(res);
+  res.json({ success: true });
+});
+
+app.get('/api/auth/me', async (req, res) => {
+  const token = auth.getSessionTokenFromRequest(req);
+  if (!token) return res.status(401).json({ error: 'Não autenticado' });
+  const user = await auth.findUserBySessionToken(token);
+  if (!user) return res.status(401).json({ error: 'Sessão inválida ou expirada' });
+  res.json({
+    id: user.id,
+    storeName: user.store_name,
+    ownerName: user.owner_name,
+    username: user.username,
+    role: user.role,
+    expiresAt: user.expires_at
+  });
+});
+
+// --- ROTAS ADMINISTRATIVAS (GESTÃO DE LOJISTAS) ---
+app.get('/api/admin/lojistas', requireAdminApi, async (req, res) => {
+  const list = await auth.listLojistas();
+  res.json(list);
+});
+
+app.post('/api/admin/lojistas', requireAdminApi, async (req, res) => {
+  try {
+    const lojista = await auth.createLojista(req.body);
+    res.json({ success: true, lojista });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/lojistas/:id/renew', requireAdminApi, async (req, res) => {
+  try {
+    const result = await auth.renewLojista(req.params.id, req.body.days || 30);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/lojistas/:id/block', requireAdminApi, async (req, res) => {
+  try {
+    const result = await auth.toggleBlockLojista(req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/admin/lojistas/:id/password', requireAdminApi, async (req, res) => {
+  try {
+    const result = await auth.updateLojistaPassword(req.params.id, req.body.newPassword);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/admin/lojistas/:id', requireAdminApi, async (req, res) => {
+  try {
+    const result = await auth.deleteLojista(req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// --- ROTAS DE PRODUTOS (PROTEGIDAS COM AUTENTICAÇÃO) ---
+app.get('/api/products', requireAuthApi, (req, res) => {
   const products = Array.from(productsMap.values());
   res.json({
     success: true,
@@ -344,7 +522,7 @@ app.get('/api/products', (req, res) => {
   });
 });
 
-app.get('/api/price-history/:id', async (req, res) => {
+app.get('/api/price-history/:id', requireAuthApi, async (req, res) => {
   const { id } = req.params;
   try {
     const resp = await axios.get(`${PXT_BASE_URL}/products/${id}/price-history`, {
@@ -356,7 +534,7 @@ app.get('/api/price-history/:id', async (req, res) => {
   }
 });
 
-app.get('/api/stats', (req, res) => {
+app.get('/api/stats', requireAuthApi, (req, res) => {
   const uniqueSuppliers = new Set(Array.from(productsMap.values()).map(p => p.supplier?.name).filter(Boolean)).size;
   res.json({
     totalProducts: productsMap.size,
@@ -368,7 +546,7 @@ app.get('/api/stats', (req, res) => {
   });
 });
 
-app.post('/api/sync', async (req, res) => {
+app.post('/api/sync', requireAdminApi, async (req, res) => {
   try {
     await fetchProducts();
     res.json({ success: true, count: productsMap.size });
@@ -377,8 +555,19 @@ app.post('/api/sync', async (req, res) => {
   }
 });
 
-// Local client socket connection
+// Local client socket connection com Anti-Pirataria
 localIo.on('connection', (clientSocket) => {
+  // O cliente registra seu token de sessão para receber avisos imediatos de sessão única
+  clientSocket.on('register_session', async (token) => {
+    if (token) {
+      const user = await auth.findUserBySessionToken(token);
+      if (user) {
+        clientSocket.join(`user_${user.id}`);
+        clientSocket.userId = user.id;
+      }
+    }
+  });
+
   clientSocket.emit('init_stats', {
     total: productsMap.size,
     dollarRate,
@@ -387,36 +576,61 @@ localIo.on('connection', (clientSocket) => {
   });
 });
 
+// Carrega catálogo offline em cache para não derrubar o login do usuário no site oficial
+function loadOfflineCatalog() {
+  try {
+    const cachePath = path.join(__dirname, 'data', 'cached_catalog.json');
+    if (fs.existsSync(cachePath)) {
+      const items = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
+      productsMap.clear();
+      items.forEach(p => productsMap.set(String(p.id), p));
+      totalSuppliers = new Set(items.map(p => p.supplier?.name).filter(Boolean)).size;
+      latestDate = '10-09';
+      console.log(`[PXT Cache] ✅ ${items.length} produtos carregados do cache offline.`);
+    }
+  } catch (err) {
+    console.warn('[PXT Cache] Falha ao carregar cache offline:', err.message);
+  }
+}
+
 // Start service
 async function start() {
+  await auth.initAuth();
+
   server.listen(PORT, async () => {
     console.log(`\n======================================================`);
-    console.log(`🚀 BUSCADOR APPLE PRO (TEMPO REAL) ONLINE!`);
+    console.log(`🚀 BUSCADOR APPLE PRO ONLINE!`);
     console.log(`👉 Acesse no navegador: http://localhost:${PORT}`);
     console.log(`======================================================\n`);
 
     try {
-      await authenticate();
-      await fetchProducts();
-      connectPxtWebSocket();
+      if (PAUSE_PXT_UPSTREAM) {
+        console.log(`[PXT] ⏸️ CONEXÃO COM O BUSCADOR OFICIAL PAUSADA!`);
+        console.log(`[PXT] 🔒 O servidor local NÃO fará login no PXT para não derrubar sua sessão original.`);
+        console.log(`[PXT] 📦 Carregando catálogo em modo offline / desenvolvimento...`);
+        loadOfflineCatalog();
+      } else {
+        await authenticate();
+        await fetchProducts();
+        connectPxtWebSocket();
 
-      // WATCHDOG ATIVO: Verifica a cada 15 segundos se a conexão está 100% viva
-      setInterval(() => {
-        if (!pxtSocket || !pxtSocket.connected) {
-          console.log('[Watchdog] ⚠️ Conexão caiu ou inativa. Iniciando auto-recuperação imediata...');
-          reconnectAndSync('watchdog_heartbeat_failed');
-        }
-      }, 15000);
+        // WATCHDOG ATIVO: Verifica a cada 15 segundos se a conexão está 100% viva
+        setInterval(() => {
+          if (!pxtSocket || !pxtSocket.connected) {
+            console.log('[Watchdog] ⚠️ Conexão caiu ou inativa. Iniciando auto-recuperação imediata...');
+            reconnectAndSync('watchdog_heartbeat_failed');
+          }
+        }, 15000);
 
-      // Ressincronização periódica de integridade (a cada 5 minutos)
-      setInterval(() => {
-        if (pxtSocket && pxtSocket.connected) {
-          const dateQuery = latestDate || `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-          console.log('[Watchdog] 🔄 Disparando checagem periódica de sincronia de produtos...');
-          pxtSocket.emit('products_sync_request', { date: dateQuery });
-        }
-      }, 5 * 60 * 1000);
-
+        // Ressincronização periódica de integridade (a cada 5 minutos)
+        setInterval(() => {
+          if (pxtSocket && pxtSocket.connected) {
+            const dateQuery = latestDate || `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+            console.log('[Watchdog] 🔄 Disparando checagem periódica de sincronia de produtos...');
+            pxtSocket.emit('products_sync_request', { date: dateQuery });
+          }
+        }, 5 * 60 * 1000);
+      }
     } catch (err) {
       console.error('Falha na inicialização do serviço:', err.message);
     }

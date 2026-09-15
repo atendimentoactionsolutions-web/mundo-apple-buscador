@@ -1,0 +1,15 @@
+[
+  {
+    "id": "admin-001",
+    "store_name": "Administração Fornecedor",
+    "owner_name": "Admin",
+    "whatsapp": "",
+    "username": "admin",
+    "password_hash": "scrypt:bfd767e4f52754f18225e00d23d16089:0cda79074aaace17a4cd851e93deae7c383edc42981ec81e8e00663dfaf1d01cc231ef1ea0d9beb4f302f1d74b17526bb413d2b3c7b31687b1299fb95f9d6011",
+    "role": "admin",
+    "status": "active",
+    "expires_at": null,
+    "current_session_token": null,
+    "created_at": "2026-09-10T11:48:52.784Z"
+  }
+]

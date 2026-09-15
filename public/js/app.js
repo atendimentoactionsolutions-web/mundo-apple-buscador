@@ -40,6 +40,10 @@ const removeModelBtn = document.getElementById('removeModelBtn');
 async function loadProducts() {
   try {
     const res = await fetch('/api/products');
+    if (res.status === 401) {
+      window.location.href = '/login.html';
+      return;
+    }
     const json = await res.json();
     if (json.success && Array.isArray(json.data)) {
       allProducts = json.data;
@@ -48,8 +52,21 @@ async function loadProducts() {
       if (json.latestDate && dateText) dateText.textContent = json.latestDate;
       if (totalCountEl) totalCountEl.textContent = allProducts.length;
 
+      // Update Toolbar Dollar & Date in Preços do Dia
+      const podDollarRate = document.getElementById('podDollarRate');
+      const podDateLabel = document.getElementById('podDateLabel');
+      if (podDollarRate) {
+        const dVal = Number(json.dollarRate || 5.1253).toFixed(4);
+        const dVar = Number(json.dollarVariation || 0.57);
+        const sign = dVar >= 0 ? '+' : '';
+        podDollarRate.innerHTML = `R$ ${dVal} <small id="podDollarVar">${sign}${dVar.toFixed(2)}%</small>`;
+      }
+      if (podDateLabel && json.latestDate) {
+        podDateLabel.textContent = json.latestDate;
+      }
+
       updateDynamicFilters();
-      render();
+      refreshCurrentView();
     }
   } catch (err) {
     console.error('Erro ao carregar produtos:', err);
@@ -412,7 +429,7 @@ function renderColorPricesTopic() {
     const hex = getAppleColorHex(item.color);
     const rawPhone = (item.whatsappNumber || '').replace(/\D/g, '');
     const orderText = encodeURIComponent(
-      `Olá! Vi no *Mundo Apple Buscador* que você tem o menor preço no *${modelDisplayName}${storageDisplayName}* na cor *${item.color}* por *${formatBRL(item.minPrice)}*. Tem pronta entrega hoje?`
+      `Olá! Vi no *Fornecedor* que você tem o menor preço no *${modelDisplayName}${storageDisplayName}* na cor *${item.color}* por *${formatBRL(item.minPrice)}*. Tem pronta entrega hoje?`
     );
     const waLink = rawPhone ? `https://wa.me/${rawPhone}?text=${orderText}` : '#';
 
@@ -429,9 +446,8 @@ function renderColorPricesTopic() {
         <div class="color-box-price" onclick="selectColorFromTopic('${item.color.replace(/'/g, "\\'")}')" style="cursor: pointer;">
           ${formatBRL(item.minPrice)}
         </div>
-
-        <div class="color-box-supplier" onclick="selectColorFromTopic('${item.color.replace(/'/g, "\\'")}')" style="cursor: pointer;" title="${item.bestSupplier}">
-          🏆 Menor: <strong>${item.bestSupplier}</strong>
+           <div class="color-box-supplier" onclick="selectColorFromTopic('${item.color.replace(/'/g, "\\'")}')" style="cursor: pointer;" title="${item.bestSupplier}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px; margin-right: 3px; color: var(--accent-green);"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>Menor: <strong>${item.bestSupplier}</strong>
           ${item.isVerified ? `
             <svg class="verified-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
@@ -440,13 +456,13 @@ function renderColorPricesTopic() {
         </div>
 
         <div class="color-box-actions-row">
-          <a class="color-box-whatsapp-btn" href="${waLink}" target="_blank" rel="noopener noreferrer" title="Chamar o fornecedor ${item.bestSupplier} no WhatsApp">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
+          <button class="color-box-btn color-box-btn-wa" onclick="sendWhatsappToSupplier('${rawPhone}', '${waMsg}')" title="Chamar fornecedor no WhatsApp">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.301-.15-1.781-.879-2.057-.98-.276-.1-.477-.15-.678.15-.2.301-.778.98-.954 1.18-.175.201-.351.226-.652.075-1.933-.969-3.196-1.727-4.464-3.905-.337-.58.338-.538.968-1.799.1-.201.05-.376-.025-.526-.075-.15-.678-1.632-.929-2.235-.244-.588-.493-.508-.678-.517-.175-.008-.376-.01-.577-.01-.201 0-.527.075-.803.376-.276.301-1.054 1.03-1.054 2.511 0 1.481 1.079 2.91 1.23 3.111.15.201 2.123 3.242 5.143 4.546 2.067.893 2.87.897 3.896.744.624-.093 1.781-.728 2.032-1.431.251-.703.251-1.305.175-1.43-.075-.126-.276-.201-.577-.351zM12 21.848c-1.802 0-3.568-.485-5.116-1.405l-.367-.218-3.804.997 1.015-3.708-.239-.38C2.508 15.518 2 13.784 2 12c0-5.514 4.486-10 10-10s10 4.486 10 10-4.486 10-10 10zm0-18.182C7.488 3.666 3.818 7.336 3.818 12c0 1.636.474 3.208 1.371 4.564l.215.324-.606 2.215 2.268-.595.314.186C8.705 19.645 10.33 20.182 12 20.182c4.512 0 8.182-3.67 8.182-8.182 0-4.512-3.67-8.182-8.182-8.182z"/>
             </svg>
-            <span>WhatsApp</span>
-          </a>
-          <button class="color-box-filter-btn" onclick="selectColorFromTopic('${item.color.replace(/'/g, "\\'")}')" title="Filtrar produtos desta cor abaixo">
+            Zap
+          </button>
+          <button class="color-box-btn color-box-btn-filter ${isSelected ? 'active' : ''}" onclick="selectColorFromTopic('${item.color.replace(/'/g, "\\'")}')" title="Filtrar por esta cor">
             ${isSelected ? '✕ Desmarcar' : 'Filtrar'}
           </button>
         </div>
@@ -459,7 +475,7 @@ function renderColorPricesTopic() {
       <div class="color-prices-header">
         <div>
           <div class="color-prices-title">
-            <span>🎨 Menores Preços por Cor:</span>
+            <span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -3px; margin-right: 6px;"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z"/></svg>Menores Preços por Cor:</span>
             <span class="model-highlight">${modelDisplayName}${storageDisplayName}</span>
           </div>
           <div class="color-prices-subtitle">
@@ -530,7 +546,7 @@ function render() {
 
     // Build WhatsApp message
     const orderText = encodeURIComponent(
-      `Olá! Vi no *Mundo Apple Buscador* o produto *${p.name} ${p.storage || ''} ${p.color || ''}* listado hoje por *${formatBRL(p.price)}*. Ainda tem pronta entrega?`
+      `Olá! Vi no *Fornecedor* o produto *${p.name} ${p.storage || ''} ${p.color || ''}* listado hoje por *${formatBRL(p.price)}*. Ainda tem pronta entrega?`
     );
     const waLink = whatsapp ? `https://wa.me/${whatsapp}?text=${orderText}` : '#';
 
@@ -583,11 +599,6 @@ function render() {
             </svg>
             <span>Chamar no WhatsApp</span>
           </a>
-          <button class="history-btn" title="Ver Histórico de Preços" onclick="openPriceHistory('${p.id}', '${p.name.replace(/'/g, "\\'")}')">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-            </svg>
-          </button>
         </div>
       </article>
     `;
@@ -632,25 +643,22 @@ function renderAutocomplete(term) {
 
   const itemsHtml = sorted.map(([mName, count]) => `
     <div class="autocomplete-item" onclick="selectModel('${mName.replace(/'/g, "\\'")}')">
-      <div class="autocomplete-item-left">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-lime);">
+      <div class="autocomplete-item-name">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-green); flex-shrink: 0;">
           <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
           <path d="M12 18h.01"/>
         </svg>
-        <span class="autocomplete-item-name">${mName}</span>
+        <span>${mName}</span>
       </div>
-      <span class="autocomplete-item-count">${count} opções</span>
+      <span class="autocomplete-item-badge">${count} opções</span>
     </div>
   `).join('');
 
-  autocompleteDropdown.innerHTML = `
-    <div class="autocomplete-section-title">Modelos Disponíveis (Clique para selecionar)</div>
-    ${itemsHtml}
-  `;
+  autocompleteDropdown.innerHTML = itemsHtml;
   autocompleteDropdown.classList.add('open');
 }
 
-// Search input events
+// Search input events (instant model & keyword search)
 searchInput.addEventListener('input', (e) => {
   const val = e.target.value;
   searchClearBtn.style.display = val ? 'flex' : 'none';
@@ -664,15 +672,36 @@ searchInput.addEventListener('input', (e) => {
     return;
   }
 
+  // Real-time search as user types
+  selectedModel = '';
+  searchQuery = val.trim();
+  updateDynamicFilters();
+  render();
+
   renderAutocomplete(val);
 });
 
 searchInput.addEventListener('focus', () => {
-  renderAutocomplete(searchInput.value);
+  if (searchInput.value.trim()) {
+    renderAutocomplete(searchInput.value);
+  }
 });
 
 searchClearBtn.addEventListener('click', () => {
   clearSelectedModel();
+});
+
+// Shortcut ⌘K / Ctrl+K to focus search & Esc to close
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    searchInput.focus();
+    searchInput.select();
+  }
+  if (e.key === 'Escape') {
+    autocompleteDropdown.classList.remove('open');
+    searchInput.blur();
+  }
 });
 
 // Close autocomplete when clicking outside
@@ -730,7 +759,7 @@ socket.on('price_changed', (evt) => {
     const prod = allProducts[index];
     prod.price = evt.newPrice;
     allProducts[index] = prod;
-    render();
+    refreshCurrentView();
   }
 });
 
@@ -738,14 +767,14 @@ socket.on('product_created', (item) => {
   allProducts.unshift(item);
   totalCountEl.textContent = allProducts.length;
   updateDynamicFilters();
-  render();
+  refreshCurrentView();
 });
 
 socket.on('product_updated', (item) => {
   const index = allProducts.findIndex(p => String(p.id) === String(item.id));
   if (index >= 0) {
     allProducts[index] = item;
-    render();
+    refreshCurrentView();
   }
 });
 
@@ -753,7 +782,7 @@ socket.on('product_deleted', (evt) => {
   allProducts = allProducts.filter(p => String(p.id) !== String(evt.id));
   totalCountEl.textContent = allProducts.length;
   updateDynamicFilters();
-  render();
+  refreshCurrentView();
 });
 
 socket.on('catalog_reloaded', (meta) => {
@@ -840,44 +869,783 @@ themeBtn.addEventListener('click', () => {
   localStorage.setItem('apple_pxt_theme', isLight ? 'light' : 'dark');
 });
 
-// 12. Price History Modal
-const historyModal = document.getElementById('historyModal');
-const closeHistoryModal = document.getElementById('closeHistoryModal');
-const historyModalTitle = document.getElementById('historyModalTitle');
-const historyModalBody = document.getElementById('historyModalBody');
+// =========================================================================
+// 12. VIEW MANAGER: PRODUTOS (DEFAULT) VS PREÇOS DO DIA (AO LADO)
+// =========================================================================
+let currentView = 'products'; // Produtos primeiro por padrão
+let podCurrentCategory = 'ALL';
+let podSearchQuery = '';
+let podSelectedRegion = '';
+let podOnlyVerified = false;
 
-closeHistoryModal.addEventListener('click', () => historyModal.classList.remove('active'));
-historyModal.addEventListener('click', (e) => {
-  if (e.target === historyModal) historyModal.classList.remove('active');
-});
+window.switchView = function(viewName) {
+  currentView = viewName;
+  const viewPricesDay = document.getElementById('viewPricesDay');
+  const viewProducts = document.getElementById('viewProducts');
+  const tabPricesDay = document.getElementById('tabPricesDay');
+  const tabProducts = document.getElementById('tabProducts');
 
-window.openPriceHistory = async function(id, name) {
-  historyModalTitle.textContent = `Histórico de Preço: ${name}`;
-  historyModalBody.innerHTML = '<div style="padding: 20px; text-align: center;">Carregando histórico...</div>';
-  historyModal.classList.add('active');
-
-  try {
-    const res = await fetch(`/api/price-history/${id}`);
-    const data = await res.json();
-    const history = data.history || data.data || [];
-
-    if (!Array.isArray(history) || history.length === 0) {
-      historyModalBody.innerHTML = '<p style="padding: 16px; text-align: center;">Nenhuma variação recente registrada para este produto.</p>';
-      return;
-    }
-
-    let rows = history.map(h => `
-      <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color);">
-        <span>${h.date || h.createdAt?.slice(0, 10) || 'Hoje'}</span>
-        <strong style="color: var(--accent-green);">${formatBRL(h.price)}</strong>
-      </div>
-    `).join('');
-
-    historyModalBody.innerHTML = rows;
-  } catch (err) {
-    historyModalBody.innerHTML = '<p style="color: red; padding: 16px;">Falha ao carregar o histórico de preço.</p>';
+  if (viewName === 'prices_of_the_day') {
+    if (viewPricesDay) viewPricesDay.style.display = 'block';
+    if (viewProducts) viewProducts.style.display = 'none';
+    if (tabPricesDay) tabPricesDay.classList.add('active');
+    if (tabProducts) tabProducts.classList.remove('active');
+    renderPricesOfTheDay();
+  } else {
+    if (viewPricesDay) viewPricesDay.style.display = 'none';
+    if (viewProducts) viewProducts.style.display = 'block';
+    if (tabPricesDay) tabPricesDay.classList.remove('active');
+    if (tabProducts) tabProducts.classList.add('active');
+    render();
   }
 };
 
-// Initial boot
+function refreshCurrentView() {
+  if (currentView === 'prices_of_the_day') {
+    renderPricesOfTheDay();
+  } else {
+    render();
+  }
+}
+
+// Category Count Badges Updater for Preços do Dia
+function updatePricesDayCategoryCounts() {
+  let cALL = 0, cIPH = 0, cMCB = 0, cIPAD = 0, cRLG = 0, cPODS = 0, cACSS = 0, cIMAC = 0;
+
+  allProducts.forEach(p => {
+    if (!p.price || p.price <= 0) return;
+    const cat = (p.category || '').toUpperCase().trim();
+    const name = (p.name || '').toUpperCase();
+    cALL++;
+    if (cat === 'IPH' || name.includes('IPHONE')) cIPH++;
+    else if (cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO')) cMCB++;
+    else if (cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD')) cIPAD++;
+    else if (cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA')) cRLG++;
+    else if (cat === 'PODS' || name.includes('AIRPOD')) cPODS++;
+    else if (cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR')) cACSS++;
+    else if (cat === 'IMAC' || name.includes('IMAC')) cIMAC++;
+  });
+
+  const elAll = document.getElementById('countCatALL');
+  const elIph = document.getElementById('countCatIPH');
+  const elMcb = document.getElementById('countCatMCB');
+  const elIpad = document.getElementById('countCatIPAD');
+  const elRlg = document.getElementById('countCatRLG');
+  const elPods = document.getElementById('countCatPODS');
+  const elAcss = document.getElementById('countCatACSS');
+  const elImac = document.getElementById('countCatIMAC');
+
+  if (elAll) elAll.textContent = cALL;
+  if (elIph) elIph.textContent = cIPH;
+  if (elMcb) elMcb.textContent = cMCB;
+  if (elIpad) elIpad.textContent = cIPAD;
+  if (elRlg) elRlg.textContent = cRLG;
+  if (elPods) elPods.textContent = cPODS;
+  if (elAcss) elAcss.textContent = cACSS;
+  if (elImac) elImac.textContent = cIMAC;
+}
+
+// 14. Model Sorting & Hierarchy Ranking (Zero Mistura - Organização Perfeita)
+function getModelOrderRank(modelName, category) {
+  const m = (modelName || '').toUpperCase();
+
+  // 1. iPhones (Flagships mais novos primeiro)
+  if (m.includes('IPHONE 17 PRO MAX')) return 100;
+  if (m.includes('IPHONE 17 PRO')) return 110;
+  if (m.includes('IPHONE 17 AIR') || m.includes('IPHONE 17 PLUS') || m.includes('IPHONE 17 SLIM')) return 120;
+  if (m.includes('IPHONE 17')) return 130;
+
+  if (m.includes('IPHONE 16 PRO MAX')) return 200;
+  if (m.includes('IPHONE 16 PRO')) return 210;
+  if (m.includes('IPHONE 16 PLUS')) return 220;
+  if (m.includes('IPHONE 16')) return 230;
+
+  if (m.includes('IPHONE 15 PRO MAX')) return 300;
+  if (m.includes('IPHONE 15 PRO')) return 310;
+  if (m.includes('IPHONE 15 PLUS')) return 320;
+  if (m.includes('IPHONE 15')) return 330;
+
+  if (m.includes('IPHONE 14 PRO MAX')) return 400;
+  if (m.includes('IPHONE 14 PRO')) return 410;
+  if (m.includes('IPHONE 14 PLUS')) return 420;
+  if (m.includes('IPHONE 14')) return 430;
+
+  if (m.includes('IPHONE 13 PRO MAX')) return 500;
+  if (m.includes('IPHONE 13 PRO')) return 510;
+  if (m.includes('IPHONE 13 MINI')) return 520;
+  if (m.includes('IPHONE 13')) return 530;
+
+  if (m.includes('IPHONE 12')) return 600;
+  if (m.includes('IPHONE 11')) return 700;
+  if (m.includes('IPHONE')) return 800;
+
+  // 2. MacBooks & Macs
+  if (m.includes('MACBOOK PRO 16')) return 1000;
+  if (m.includes('MACBOOK PRO 14')) return 1010;
+  if (m.includes('MACBOOK PRO')) return 1020;
+  if (m.includes('MACBOOK AIR 15')) return 1030;
+  if (m.includes('MACBOOK AIR 13')) return 1040;
+  if (m.includes('MACBOOK AIR')) return 1050;
+  if (m.includes('MACBOOK')) return 1060;
+  if (m.includes('MAC MINI')) return 1070;
+  if (m.includes('MAC STUDIO')) return 1080;
+  if (m.includes('IMAC')) return 1090;
+  if (m.includes('MAC')) return 1100;
+
+  // 3. iPads
+  if (m.includes('IPAD PRO 13')) return 2000;
+  if (m.includes('IPAD PRO 11')) return 2010;
+  if (m.includes('IPAD PRO')) return 2020;
+  if (m.includes('IPAD AIR 13')) return 2030;
+  if (m.includes('IPAD AIR 11')) return 2040;
+  if (m.includes('IPAD AIR')) return 2050;
+  if (m.includes('IPAD MINI')) return 2060;
+  if (m.includes('IPAD 10') || m.includes('IPAD 11')) return 2070;
+  if (m.includes('IPAD 9')) return 2080;
+  if (m.includes('IPAD')) return 2090;
+
+  // 4. Apple Watches
+  if (m.includes('ULTRA 2') || m.includes('ULTRA 3')) return 3000;
+  if (m.includes('ULTRA')) return 3010;
+  if (m.includes('SERIES 10') || m.includes('SERIE 10') || m.includes('S10')) return 3020;
+  if (m.includes('SERIES 9') || m.includes('SERIE 9') || m.includes('S9')) return 3030;
+  if (m.includes('SERIES 8') || m.includes('SERIE 8') || m.includes('S8')) return 3040;
+  if (m.includes('WATCH SE')) return 3050;
+  if (m.includes('WATCH')) return 3060;
+
+  // 5. AirPods
+  if (m.includes('AIRPODS MAX')) return 4000;
+  if (m.includes('AIRPODS PRO 2') || m.includes('PRO 2')) return 4010;
+  if (m.includes('AIRPODS PRO')) return 4020;
+  if (m.includes('AIRPODS 4')) return 4030;
+  if (m.includes('AIRPODS 3')) return 4040;
+  if (m.includes('AIRPODS')) return 4050;
+
+  // 6. Acessórios
+  if (m.includes('PENCIL PRO')) return 5000;
+  if (m.includes('PENCIL')) return 5010;
+  if (m.includes('MAGIC KEYBOARD')) return 5020;
+  if (m.includes('MAGIC MOUSE') || m.includes('MAGIC TRACKPAD')) return 5030;
+  if (m.includes('AIRTAG')) return 5040;
+  if (m.includes('CARREGADOR') || m.includes('FONTE') || m.includes('CABO')) return 5050;
+
+  return 9999;
+}
+
+function getStorageRank(storage) {
+  if (!storage) return 999;
+  const s = storage.toUpperCase().trim();
+  if (s === '64GB') return 1;
+  if (s === '128GB') return 2;
+  if (s === '256GB') return 3;
+  if (s === '512GB') return 4;
+  if (s === '1TB') return 5;
+  if (s === '2TB') return 6;
+  return 50;
+}
+
+function getCategoryIcon(modelName, category) {
+  const m = (modelName || '').toUpperCase();
+  const c = (category || '').toUpperCase();
+  if (c === 'IPH' || m.includes('IPHONE')) {
+    return `<svg class="pod-model-section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="3.5"/><line x1="11" y1="5" x2="13" y2="5" stroke-width="2.5"/></svg>`;
+  }
+  if (c === 'MCB' || m.includes('MACBOOK') || m.includes('MAC')) {
+    return `<svg class="pod-model-section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M2 19h20"/><path d="M10 16h4"/></svg>`;
+  }
+  if (c === 'IPAD' || c === 'IPD' || m.includes('IPAD')) {
+    return `<svg class="pod-model-section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="3"/><circle cx="12" cy="19" r="0.75" fill="currentColor"/></svg>`;
+  }
+  if (c === 'RLG' || m.includes('WATCH')) {
+    return `<svg class="pod-model-section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="12" height="14" rx="4"/><path d="M9 5V2h6v3"/><path d="M9 19v3h6v-3"/></svg>`;
+  }
+  if (c === 'PODS' || m.includes('AIRPOD')) {
+    return `<svg class="pod-model-section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="7" r="3"/><path d="M8 10v7a1.5 1.5 0 0 0 3 0v-2"/><circle cx="16" cy="7" r="3"/><path d="M16 10v7a1.5 1.5 0 0 1-3 0v-2"/></svg>`;
+  }
+  if (c === 'IMAC' || m.includes('IMAC')) {
+    return `<svg class="pod-model-section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="13" rx="2"/><path d="M8 21h8"/><path d="M12 16v5"/></svg>`;
+  }
+  if (c === 'ACSS' || m.includes('PENCIL') || m.includes('MAGIC') || m.includes('CABO')) {
+    return `<svg class="pod-model-section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 2 4 4-14 14H4v-4L18 2z"/><line x1="14.5" y1="5.5" x2="18.5" y2="9.5"/></svg>`;
+  }
+  return `<svg class="pod-model-section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>`;
+}
+
+// Autocomplete Dropdown para a barra de pesquisa de Preços do Dia
+function renderPodAutocomplete(term) {
+  const dropdown = document.getElementById('podAutocompleteDropdown');
+  if (!dropdown) return;
+  const t = term.trim().toLowerCase();
+
+  const modelCounts = new Map();
+  allProducts.forEach(p => {
+    const name = (p.name || '').trim();
+    if (!name) return;
+    if (!t || name.toLowerCase().includes(t)) {
+      modelCounts.set(name, (modelCounts.get(name) || 0) + 1);
+    }
+  });
+
+  const sorted = Array.from(modelCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+  if (sorted.length === 0) {
+    dropdown.innerHTML = `
+      <div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 0.82rem;">
+        Nenhum modelo encontrado para "${term}"
+      </div>
+    `;
+    dropdown.classList.add('open');
+    return;
+  }
+
+  const itemsHtml = sorted.map(([mName, count]) => `
+    <div class="autocomplete-item" onclick="selectPodModel('${mName.replace(/'/g, "\\'")}')">
+      <div class="autocomplete-item-name">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-green); flex-shrink: 0;">
+          <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+          <path d="M12 18h.01"/>
+        </svg>
+        <span>${mName}</span>
+      </div>
+      <span class="autocomplete-item-badge">${count} ofertas</span>
+    </div>
+  `).join('');
+
+  dropdown.innerHTML = itemsHtml;
+  dropdown.classList.add('open');
+}
+
+window.selectPodModel = function(modelName) {
+  const podSearchInput = document.getElementById('podSearchInput');
+  const dropdown = document.getElementById('podAutocompleteDropdown');
+  const clearBtn = document.getElementById('podSearchClearBtn');
+
+  if (podSearchInput) podSearchInput.value = modelName;
+  if (dropdown) dropdown.classList.remove('open');
+  if (clearBtn) clearBtn.style.display = 'flex';
+  renderPricesOfTheDay();
+};
+
+// 15. Render Preços do Dia (ESTRITAMENTE ORGANIZADO POR MODELOS COM BANNERS DE SEÇÃO)
+function renderPricesOfTheDay() {
+  const container = document.getElementById('podMatrixGrid');
+  if (!container) return;
+
+  const podSearchInput = document.getElementById('podSearchInput');
+  const podRegionFilter = document.getElementById('podRegionFilter');
+  const podVerifiedFilter = document.getElementById('podVerifiedFilter');
+  const podShownCountText = document.getElementById('podShownCountText');
+  const podSupplierCountLabel = document.getElementById('podSupplierCountLabel');
+
+  const searchTerm = (podSearchInput?.value || '').trim().toLowerCase();
+  const selectedRegion = podRegionFilter?.value || '';
+  const onlyVerified = podVerifiedFilter?.checked || false;
+
+  // Filter pool
+  const filtered = allProducts.filter(p => {
+    if (!p.price || p.price <= 0) return false;
+
+    // Category filter
+    if (podCurrentCategory !== 'ALL') {
+      const cat = (p.category || '').toUpperCase().trim();
+      const name = (p.name || '').toUpperCase();
+      if (podCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
+      if (podCurrentCategory === 'MCB' && !(cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO'))) return false;
+      if (podCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
+      if (podCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
+      if (podCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
+      if (podCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR'))) return false;
+      if (podCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
+    }
+
+    // Search filter (instantâneo por modelo, capacidade, cor ou fornecedor)
+    if (searchTerm) {
+      const name = (p.name || '').toLowerCase();
+      const desc = (p.description || '').toLowerCase();
+      const stor = (p.storage || '').toLowerCase();
+      const col = (p.color || '').toLowerCase();
+      const supp = (p.supplier?.name || '').toLowerCase();
+      const combined = `${name} ${desc} ${stor} ${col} ${supp}`;
+      if (!combined.includes(searchTerm)) return false;
+    }
+
+    // Region filter
+    if (selectedRegion) {
+      const reg = (p.region || p.description || p.name || '').toUpperCase();
+      if (selectedRegion === 'EUA' && !(reg.includes('EUA') || reg.includes('USA') || reg.includes('LL/A') || reg.includes('CHIP VIRTUAL'))) return false;
+      if (selectedRegion === 'BR' && !(reg.includes('BR') || reg.includes('ANATEL') || reg.includes('NACIONAL') || reg.includes('BZ/A'))) return false;
+      if (selectedRegion === 'PY' && !(reg.includes('PY') || reg.includes('PARAGUAI') || reg.includes('PARAGUAY'))) return false;
+      if (selectedRegion === 'GLOBAL' && !(reg.includes('GLOBAL') || reg.includes('J/A') || reg.includes('ZD/A') || reg.includes('HN/A'))) return false;
+    }
+
+    // Verified filter
+    if (onlyVerified && !p.supplier?.isVerified) return false;
+
+    return true;
+  });
+
+  // AGRUPAMENTO ESTRITO POR MODELO (ZERO MISTURA)
+  const modelFamilies = new Map();
+  const suppliersSet = new Set();
+  let totalCardsCount = 0;
+
+  filtered.forEach(p => {
+    if (p.supplier?.name) suppliersSet.add(p.supplier.name);
+
+    const modelKey = (p.name || 'Apple').trim().toUpperCase();
+    const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
+
+    if (!modelFamilies.has(modelKey)) {
+      modelFamilies.set(modelKey, {
+        modelName: (p.name || 'Apple').trim(),
+        category: p.category,
+        storagesMap: new Map()
+      });
+    }
+
+    const fam = modelFamilies.get(modelKey);
+    if (!fam.storagesMap.has(storageKey)) {
+      fam.storagesMap.set(storageKey, {
+        model: fam.modelName,
+        storage: (p.storage || '').trim(),
+        colors: new Map(),
+        allOffers: []
+      });
+      totalCardsCount++;
+    }
+
+    const stGrp = fam.storagesMap.get(storageKey);
+    stGrp.allOffers.push(p);
+
+    const colorName = (p.color || 'Padrão').trim();
+    const colorKey = colorName.toUpperCase();
+    const curColor = stGrp.colors.get(colorKey);
+
+    if (!curColor || p.price < curColor.minPrice) {
+      stGrp.colors.set(colorKey, {
+        color: colorName,
+        minPrice: p.price,
+        bestSupplier: p.supplier?.name || 'Fornecedor',
+        whatsappNumber: p.supplier?.whatsappNumber || '',
+        isVerified: p.supplier?.isVerified,
+        address: p.supplier?.address || '',
+        count: (curColor ? curColor.count : 0) + 1
+      });
+    } else {
+      curColor.count++;
+    }
+  });
+
+  // Ordena as famílias de modelos pela hierarquia oficial Apple
+  const sortedFamilies = Array.from(modelFamilies.values()).sort((a, b) => {
+    const rankA = getModelOrderRank(a.modelName, a.category);
+    const rankB = getModelOrderRank(b.modelName, b.category);
+    if (rankA !== rankB) return rankA - rankB;
+    return a.modelName.localeCompare(b.modelName);
+  });
+
+  // Atualiza contadores
+  if (podShownCountText) {
+    podShownCountText.textContent = `Mostrando ${sortedFamilies.length} modelos organizados (${filtered.length} ofertas)`;
+  }
+  if (podSupplierCountLabel) {
+    podSupplierCountLabel.textContent = `${suppliersSet.size || 100}+ fornecedores conectados em tempo real`;
+  }
+
+  updatePricesDayCategoryCounts();
+
+  if (sortedFamilies.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
+        <h3 style="font-size: 1.25rem; color: var(--text-primary); margin-bottom: 8px;">Nenhum produto encontrado nesta categoria ou busca.</h3>
+        <p style="margin-bottom: 16px;">Tente alterar os filtros ou pesquisar por outro modelo.</p>
+        <button class="pod-btn-export" onclick="resetPodFilters()" style="margin: 0 auto;">✕ Limpar Filtros</button>
+      </div>
+    `;
+    return;
+  }
+
+  // Renderiza estruturado por Seção de Modelo + Cards das Capacidades
+  let html = '';
+  sortedFamilies.forEach(fam => {
+    // Ordena as capacidades do modelo em ordem lógica (128GB, 256GB, 512GB, 1TB, etc)
+    const storages = Array.from(fam.storagesMap.values()).sort((a, b) => {
+      return getStorageRank(a.storage) - getStorageRank(b.storage);
+    });
+
+    const catIcon = getCategoryIcon(fam.modelName, fam.category);
+    const storagesCount = storages.length;
+
+    // Cabeçalho / Divisor de Modelo (Zero Mistura!)
+    html += `
+      <div class="pod-model-section">
+        <div class="pod-model-section-left">
+          <span class="pod-model-section-icon">${catIcon}</span>
+          <h2 class="pod-model-section-title">${fam.modelName}</h2>
+        </div>
+        <span class="pod-model-section-badge">${storagesCount} ${storagesCount === 1 ? 'capacidade' : 'capacidades disponíveis'}</span>
+      </div>
+    `;
+
+    // Cards individuais de cada capacidade para este modelo
+    storages.forEach(grp => {
+      const colorsArr = Array.from(grp.colors.values()).sort((a, b) => a.minPrice - b.minPrice);
+
+      const colorRowsHtml = colorsArr.map(col => {
+        const hex = getAppleColorHex(col.color);
+        const rawPhone = (col.whatsappNumber || '').replace(/\D/g, '');
+        const waMsg = encodeURIComponent(
+          `Olá! Vi no *Fornecedor* o *${grp.model} ${grp.storage || ''}* na cor *${col.color}* anunciado hoje por *${formatBRL(col.minPrice)}* com você (*${col.bestSupplier}*). Ainda está disponível para pronta entrega?`
+        );
+        const waLink = rawPhone ? `https://wa.me/${rawPhone}?text=${waMsg}` : '#';
+
+        return `
+          <div class="matrix-color-row">
+            <div class="matrix-color-left" onclick="openAllOffersModal('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}')">
+              <span class="matrix-color-dot" style="background-color: ${hex};" title="Cor: ${col.color}"></span>
+              <span class="matrix-color-name" title="${col.color}">${col.color}</span>
+            </div>
+            <div class="matrix-color-right">
+              <div class="matrix-cost-group" onclick="openAllOffersModal('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}')">
+                <span class="matrix-cost-label">CUSTO</span>
+                <span class="matrix-cost-val">${formatBRL(col.minPrice)}</span>
+              </div>
+              <a class="matrix-wa-btn" href="${waLink}" target="_blank" rel="noopener noreferrer" title="Chamar ${col.bestSupplier} no WhatsApp (${formatBRL(col.minPrice)})">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      html += `
+        <article class="matrix-card">
+          <div class="matrix-card-header">
+            <div class="matrix-card-title-wrap">
+              <h3 class="matrix-card-title" title="${grp.model}">${grp.model}</h3>
+              ${grp.storage ? `<span class="matrix-card-storage">${grp.storage}</span>` : ''}
+            </div>
+            <button class="matrix-card-all-btn" onclick="openAllOffersModal('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}')" title="Ver todos os fornecedores deste modelo">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+              </svg>
+              <span>Todas</span>
+            </button>
+          </div>
+          <div class="matrix-card-body">
+            ${colorRowsHtml}
+          </div>
+        </article>
+      `;
+    });
+  });
+
+  container.innerHTML = html;
+}
+
+// 16. Open Modal with All Offers for a Specific Model + Storage
+window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor) {
+  const model = decodeURIComponent(encodedModel || '');
+  const storage = decodeURIComponent(encodedStorage || '');
+  const selectedColor = encodedColor ? decodeURIComponent(encodedColor) : '';
+
+  const modal = document.getElementById('allOffersModal');
+  const title = document.getElementById('allOffersModalTitle');
+  const body = document.getElementById('allOffersModalBody');
+  if (!modal || !body) return;
+
+  title.textContent = `${model} ${storage ? '• ' + storage : ''}`;
+
+  let offers = allProducts.filter(p => {
+    if ((p.name || '').trim().toUpperCase() !== model.trim().toUpperCase()) return false;
+    if (storage && (p.storage || '').trim().toUpperCase() !== storage.trim().toUpperCase()) return false;
+    if (selectedColor && (p.color || '').trim().toUpperCase() !== selectedColor.trim().toUpperCase()) return false;
+    return p.price && p.price > 0;
+  });
+
+  offers.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+
+  if (offers.length === 0) {
+    body.innerHTML = `
+      <div style="padding: 30px; text-align: center; color: var(--text-muted);">
+        Nenhuma oferta adicional encontrada para este modelo com os filtros atuais.
+      </div>
+    `;
+    modal.classList.add('active');
+    return;
+  }
+
+  const lowestPrice = offers[0].price;
+
+  const offersHtml = offers.map((p) => {
+    const sName = p.supplier?.name || 'Fornecedor';
+    const sAvatar = p.supplier?.profileImageUrl || 'https://pub-857bffb3be264baf89938943b80bff74.r2.dev/supplier-profiles/default.png';
+    const sAddress = p.supplier?.address || 'São Paulo - SP';
+    const isVerified = p.supplier?.isVerified;
+    const whatsapp = (p.supplier?.whatsappNumber || '').replace(/\D/g, '');
+    const isLowest = p.price === lowestPrice;
+    const colHex = getAppleColorHex(p.color);
+
+    const waMsg = encodeURIComponent(
+      `Olá! Vi no *Fornecedor* o *${p.name} ${p.storage || ''}* na cor *${p.color || ''}* anunciado por *${formatBRL(p.price)}*. Ainda tem pronta entrega hoje?`
+    );
+    const waLink = whatsapp ? `https://wa.me/${whatsapp}?text=${waMsg}` : '#';
+
+    return `
+      <div class="all-offer-item">
+        <div class="all-offer-supplier">
+          <img class="all-offer-avatar" src="${sAvatar}" alt="${sName}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(sName)}&background=272b30&color=fff'">
+          <div class="all-offer-supp-info">
+            <div class="all-offer-supp-name-row">
+              <span>${sName}</span>
+              ${isVerified ? `
+                <svg class="verified-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+              ` : ''}
+              ${isLowest ? `<span style="font-size: 0.65rem; background: var(--accent-green); color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 800;">MENOR VALOR</span>` : ''}
+            </div>
+            <div class="all-offer-supp-addr">${sAddress}</div>
+          </div>
+        </div>
+
+        <div class="all-offer-color-tag">
+          <span class="matrix-color-dot" style="background-color: ${colHex};"></span>
+          <span>${p.color || 'Padrão'}</span>
+        </div>
+
+        <div class="all-offer-price-group">
+          <span class="all-offer-price-val">${formatBRL(p.price)}</span>
+        </div>
+
+        <a class="all-offer-wa-btn" href="${waLink}" target="_blank" rel="noopener noreferrer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
+          </svg>
+          <span>Negociar</span>
+        </a>
+      </div>
+    `;
+  }).join('');
+
+  body.innerHTML = `
+    <div class="all-offers-header-info">
+      <div>
+        <strong>${model} ${storage}</strong> — Todos os fornecedores cadastrados
+      </div>
+      <span class="all-offers-count-badge">${offers.length} opções disponíveis</span>
+    </div>
+    <div class="all-offers-list">
+      ${offersHtml}
+    </div>
+  `;
+
+  modal.classList.add('active');
+};
+
+// Modal Close logic
+const allOffersModal = document.getElementById('allOffersModal');
+const closeAllOffersModal = document.getElementById('closeAllOffersModal');
+if (closeAllOffersModal) {
+  closeAllOffersModal.addEventListener('click', () => allOffersModal.classList.remove('active'));
+}
+if (allOffersModal) {
+  allOffersModal.addEventListener('click', (e) => {
+    if (e.target === allOffersModal) allOffersModal.classList.remove('active');
+  });
+}
+
+// 17. Export Preços do Dia Summary to WhatsApp
+window.exportPricesDayTable = function() {
+  const groupsMap = new Map();
+  allProducts.forEach(p => {
+    if (!p.price || p.price <= 0) return;
+    const key = `${p.name} ${p.storage || ''}`.trim();
+    const cur = groupsMap.get(key);
+    if (!cur || p.price < cur.minPrice) {
+      groupsMap.set(key, { name: key, minPrice: p.price, supplier: p.supplier?.name || 'Fornecedor' });
+    }
+  });
+
+  const sorted = Array.from(groupsMap.values()).slice(0, 30);
+  let text = `*TABELA DE PREÇOS DO DIA — FORNECEDOR*\n`;
+  text += `Data: ${new Date().toLocaleDateString('pt-BR')}\n`;
+  text += `----------------------------------------\n`;
+  sorted.forEach(item => {
+    text += `📱 *${item.name}*: ${formatBRL(item.minPrice)} (${item.supplier})\n`;
+  });
+  text += `----------------------------------------\n`;
+  text += `Consulte mais modelos em nosso painel oficial!`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Resumo de preços copiado com sucesso para a área de transferência! Cole no WhatsApp.');
+    }).catch(() => {
+      prompt('Copie o texto abaixo para o WhatsApp:', text);
+    });
+  } else {
+    prompt('Copie o texto abaixo para o WhatsApp:', text);
+  }
+};
+
+// Reset Filters for Preços do Dia
+window.resetPodFilters = function() {
+  const podSearchInput = document.getElementById('podSearchInput');
+  const podRegionFilter = document.getElementById('podRegionFilter');
+  const podVerifiedFilter = document.getElementById('podVerifiedFilter');
+  const podSearchClearBtn = document.getElementById('podSearchClearBtn');
+  const podDropdown = document.getElementById('podAutocompleteDropdown');
+
+  if (podSearchInput) podSearchInput.value = '';
+  if (podSearchClearBtn) podSearchClearBtn.style.display = 'none';
+  if (podRegionFilter) podRegionFilter.value = '';
+  if (podVerifiedFilter) podVerifiedFilter.checked = false;
+  if (podDropdown) podDropdown.classList.remove('open');
+  podCurrentCategory = 'ALL';
+
+  const catPills = document.querySelectorAll('#podCategoryNav .pod-cat-pill');
+  catPills.forEach(p => p.classList.toggle('active', p.dataset.category === 'ALL'));
+
+  renderPricesOfTheDay();
+};
+
+// Preços do Dia Toolbar Controls Event Listeners (Busca instantânea por modelo)
+const podSearchInput = document.getElementById('podSearchInput');
+const podSearchClearBtn = document.getElementById('podSearchClearBtn');
+const podRegionFilter = document.getElementById('podRegionFilter');
+const podVerifiedFilter = document.getElementById('podVerifiedFilter');
+const podCategoryNav = document.getElementById('podCategoryNav');
+const podAutocompleteDropdown = document.getElementById('podAutocompleteDropdown');
+
+if (podSearchInput) {
+  podSearchInput.addEventListener('input', (e) => {
+    const val = e.target.value;
+    if (podSearchClearBtn) podSearchClearBtn.style.display = val ? 'flex' : 'none';
+    
+    // Busca instantânea no grid de preços
+    renderPricesOfTheDay();
+
+    // Sugestões de modelos enquanto digita
+    if (val.trim().length >= 1) {
+      renderPodAutocomplete(val);
+    } else if (podAutocompleteDropdown) {
+      podAutocompleteDropdown.classList.remove('open');
+    }
+  });
+
+  podSearchInput.addEventListener('focus', () => {
+    if (podSearchInput.value.trim()) {
+      renderPodAutocomplete(podSearchInput.value);
+    }
+  });
+}
+
+if (podSearchClearBtn) {
+  podSearchClearBtn.addEventListener('click', () => {
+    if (podSearchInput) podSearchInput.value = '';
+    podSearchClearBtn.style.display = 'none';
+    if (podAutocompleteDropdown) podAutocompleteDropdown.classList.remove('open');
+    renderPricesOfTheDay();
+  });
+}
+
+// Fechar dropdown de sugestões de modelo ao clicar fora
+document.addEventListener('click', (e) => {
+  if (podAutocompleteDropdown && !e.target.closest('.pod-search-wrap')) {
+    podAutocompleteDropdown.classList.remove('open');
+  }
+});
+
+if (podRegionFilter) {
+  podRegionFilter.addEventListener('change', () => {
+    renderPricesOfTheDay();
+  });
+}
+
+if (podVerifiedFilter) {
+  podVerifiedFilter.addEventListener('change', () => {
+    renderPricesOfTheDay();
+  });
+}
+
+if (podCategoryNav) {
+  podCategoryNav.addEventListener('click', (e) => {
+    const btn = e.target.closest('.pod-cat-pill');
+    if (!btn) return;
+    podCategoryNav.querySelectorAll('.pod-cat-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    podCurrentCategory = btn.dataset.category || 'ALL';
+    renderPricesOfTheDay();
+  });
+}
+
+// Initial boot (Produtos por padrão)
+switchView('products');
 loadProducts();
+checkAuthSession();
+
+// =========================================================================
+// GESTÃO DE SESSÃO & PROTEÇÃO ANTI-PIRATARIA
+// =========================================================================
+let currentUser = null;
+
+async function checkAuthSession() {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (res.status === 401) {
+      window.location.href = '/login.html';
+      return;
+    }
+    const user = await res.json();
+    currentUser = user;
+
+    // Registra sessão no WebSocket para controle anti-pirataria
+    const sessionToken = getCookie('fornecedor_session');
+    if (sessionToken) {
+      socket.emit('register_session', sessionToken);
+    }
+
+    // Exibe identificação no cabeçalho
+    const userSessionInfo = document.getElementById('userSessionInfo');
+    const userStoreBadge = document.getElementById('userStoreBadge');
+    const adminHeaderBtn = document.getElementById('adminHeaderBtn');
+
+    if (userSessionInfo && userStoreBadge) {
+      userSessionInfo.style.display = 'flex';
+      let badgeText = user.storeName || user.username;
+      if (user.role === 'admin') {
+        badgeText = '👑 ' + badgeText;
+        if (adminHeaderBtn) adminHeaderBtn.style.display = 'inline-flex';
+      }
+      userStoreBadge.textContent = badgeText;
+    }
+  } catch (err) {
+    console.error('Erro ao verificar sessão do usuário:', err);
+  }
+}
+
+async function handleHeaderLogout() {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST' });
+  } finally {
+    window.location.href = '/login.html';
+  }
+}
+
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return null;
+}
+
+// Alerta Anti-Pirataria em tempo real se a conta for aberta em outro aparelho
+socket.on('session_terminated', (data) => {
+  alert('⚠️ Acesso Concorrente Detectado:\n\n' + (data.reason || 'Sua conta foi conectada em outro dispositivo ou navegador. O Fornecedor permite apenas 1 tela ativa por assinatura.'));
+  window.location.href = '/login.html';
+});
+
+

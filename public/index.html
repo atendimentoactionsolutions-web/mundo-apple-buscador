@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mundo Apple Buscador — Preços Atacado em Tempo Real</title>
-  <link rel="stylesheet" href="/css/styles.css">
+  <title>Fornecedor — Preços do Dia em Tempo Real</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css?v=3.0">
   <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
@@ -12,44 +15,60 @@
   <!-- Top Sticky Header -->
   <header class="top-header">
     <div class="header-inner">
+      
+      <!-- Brand Logo -->
       <div class="brand-section">
-        <div class="brand-logo">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"></path>
-            <path d="M10 2c1 .5 2 2 2 5"></path>
-          </svg>
-          <span>MUNDO APPLE BUSCADOR</span>
+        <div class="brand-logo" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" style="cursor: pointer;">
+          <div class="logo-icon-wrap">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 1.01-2.85-.92.04-2.02.62-2.67 1.37-.58.66-1.09 1.73-1.02 2.76 1.03.08 2.07-.53 2.68-1.28z"/>
+            </svg>
+          </div>
+          <span class="brand-title">FORNECEDOR</span>
         </div>
-        <span class="brand-badge">ATACADO SP</span>
       </div>
 
-      <!-- Live metrics -->
-      <div class="header-metrics">
+      <!-- Navigation Tabs (Produtos primeiro, Preços do dia ao lado) -->
+      <nav class="view-switch-nav">
+        <button class="view-tab-btn active" id="tabProducts" onclick="switchView('products')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m7.5 4.27 9 5.15"/>
+            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+            <path d="m3.3 7 8.7 5 8.7-5"/>
+            <path d="M12 22V12"/>
+          </svg>
+          <span>Produtos</span>
+        </button>
+        <button class="view-tab-btn" id="tabPricesDay" onclick="switchView('prices_of_the_day')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+            <path d="M4 22h16"/>
+            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+          </svg>
+          <span>Preços do dia</span>
+        </button>
+      </nav>
+
+      <!-- Live metrics & Actions -->
+      <div class="header-right-group">
+        <!-- Live Connection Indicator -->
         <div class="live-indicator" id="connectionBadge">
           <span class="pulse-dot" id="connectionDot"></span>
-          <span id="connectionText">TEMPO REAL ATIVO</span>
+          <span id="connectionText">AO VIVO</span>
         </div>
 
-        <div class="metric-pill">
-          <span>USD Comercial:</span>
+        <!-- Dollar Rate -->
+        <div class="metric-pill" title="Cotação Comercial do Dólar">
+          <span class="metric-label">USD:</span>
           <span class="dollar-rate" id="dollarRateText">R$ 5,1253</span>
           <span class="dollar-var" id="dollarVarText">(+0.57%)</span>
         </div>
 
-        <div class="metric-pill">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
-            <line x1="16" x2="16" y1="2" y2="6"/>
-            <line x1="8" x2="8" y1="2" y2="6"/>
-            <line x1="3" x2="21" y1="10" y2="10"/>
-          </svg>
-          <span id="dateText">05-09</span>
-        </div>
-      </div>
-
-      <!-- Actions -->
-      <div class="header-actions">
-        <button class="action-btn" id="themeBtn" title="Alternar Modo Escuro / Claro">
+        <!-- Theme Toggle -->
+        <button class="theme-toggle-btn" id="themeBtn" title="Alternar Modo Escuro / Claro">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="themeIcon">
             <circle cx="12" cy="12" r="4"/>
             <path d="M12 2v2"/>
@@ -63,131 +82,420 @@
           </svg>
           <span id="themeLabel">Modo</span>
         </button>
+
+        <!-- User Info & Logout -->
+        <div class="user-session-info" id="userSessionInfo" style="display: none;">
+          <span class="user-store-badge" id="userStoreBadge">Loja</span>
+          <a href="/admin" class="admin-link-btn" id="adminHeaderBtn" style="display: none;" title="Acessar Painel do Administrador">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+            <span>Admin</span>
+          </a>
+          <button class="logout-header-btn" onclick="handleHeaderLogout()" title="Encerrar sessão">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            <span>Sair</span>
+          </button>
+        </div>
       </div>
     </div>
   </header>
 
-  <!-- Category Nav Pills -->
-  <div class="category-nav-wrapper">
-    <nav class="category-nav" id="categoryNav">
-      <button class="category-pill active" data-category="ALL">TODOS</button>
-      <button class="category-pill" data-category="IPH">IPHONE</button>
-      <button class="category-pill" data-category="MCB">MACBOOK</button>
-      <button class="category-pill" data-category="IPAD">IPAD</button>
-      <button class="category-pill" data-category="RLG">APPLE WATCH</button>
-      <button class="category-pill" data-category="PODS">AIRPODS</button>
-      <button class="category-pill" data-category="ACSS">ACESSÓRIOS</button>
-      <button class="category-pill" data-category="IMAC">IMAC</button>
-    </nav>
-  </div>
+  <!-- =========================================================================
+       VIEW 1: PREÇOS DO DIA (PAINEL OFICIAL AGRUPADO POR MODELO)
+       ========================================================================= -->
+  <div id="viewPricesDay" class="view-container" style="display: none;">
+    
+    <!-- Sub-header Toolbar -->
+    <section class="pod-toolbar-wrapper">
+      <div class="pod-toolbar">
+        
+        <!-- Left: Page Title & Dollar Card -->
+        <div class="pod-title-group">
+          <h1 class="pod-main-title">Preços do dia</h1>
+          <div class="pod-dollar-card">
+            <span class="pod-dollar-icon">$</span>
+            <div class="pod-dollar-data">
+              <span class="pod-dollar-label">Dólar</span>
+              <span class="pod-dollar-val" id="podDollarRate">R$ 5,1253 <small id="podDollarVar">+0.57%</small></span>
+            </div>
+          </div>
+        </div>
 
-  <!-- Search & Filter Controls -->
-  <div class="filter-bar-wrapper">
-    <div class="search-and-controls">
-      <!-- Search Box with Autocomplete -->
-      <div class="search-box">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="m21 21-4.3-4.3"/>
-        </svg>
-        <input type="text" id="searchInput" placeholder="Buscar por modelo (ex: 17 Pro Max, Air M5, S11, 256GB)..." autocomplete="off">
-        <button class="search-clear-btn" id="searchClearBtn" style="display: none;" title="Limpar busca">✕</button>
-        <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
-      </div>
-
-      <div class="secondary-filters">
-        <!-- Storage Filter -->
-        <select class="filter-select" id="storageFilter">
-          <option value="">Capacidade (Todas)</option>
-          <option value="64GB">64GB</option>
-          <option value="128GB">128GB</option>
-          <option value="256GB">256GB</option>
-          <option value="512GB">512GB</option>
-          <option value="1TB">1TB</option>
-          <option value="2TB">2TB</option>
-        </select>
-
-        <!-- Color Filter -->
-        <select class="filter-select" id="colorFilter">
-          <option value="">Cor (Todas as Cores)</option>
-        </select>
-
-        <!-- Supplier Filter -->
-        <select class="filter-select" id="supplierFilter">
-          <option value="">Fornecedor (Todos)</option>
-        </select>
-
-        <!-- Order / Sort -->
-        <select class="filter-select" id="sortFilter">
-          <option value="price_asc">Menor Preço (Padrão)</option>
-          <option value="price_desc">Maior Preço</option>
-          <option value="name_asc">Nome (A-Z)</option>
-          <option value="recent">Mais Recentes</option>
-        </select>
-
-        <!-- Verified Only Toggle -->
-        <label class="toggle-filter">
-          <input type="checkbox" id="verifiedOnly">
-          <span>Verificados</span>
-        </label>
-
-        <!-- Clear Filters Button -->
-        <button class="action-btn" id="clearFiltersBtn" title="Limpar todos os filtros">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
+        <!-- Middle: Search Input with Autocomplete -->
+        <div class="pod-search-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="pod-search-icon">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.3-4.3"/>
           </svg>
-          <span>Limpar</span>
+          <input type="text" id="podSearchInput" placeholder="Buscar modelo Apple (ex: 17 Pro Max, Air M5, 256GB)..." autocomplete="off">
+          <button class="search-clear-btn" id="podSearchClearBtn" style="display: none;" title="Limpar busca">✕</button>
+          <div class="autocomplete-dropdown" id="podAutocompleteDropdown"></div>
+        </div>
+
+        <!-- Right Controls: Date, Region, Verified, Export -->
+        <div class="pod-controls-right">
+          <!-- Date Widget -->
+          <div class="pod-control-pill date-control" id="podDateText">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+              <line x1="16" x2="16" y1="2" y2="6"/>
+              <line x1="8" x2="8" y1="2" y2="6"/>
+              <line x1="3" x2="21" y1="10" y2="10"/>
+            </svg>
+            <span id="podDateLabel">qua 09 de set 2026</span>
+          </div>
+
+          <!-- Region Filter -->
+          <div class="select-wrapper pod-region-wrapper">
+            <select id="podRegionFilter" class="pod-select">
+              <option value="">Todas as regiões</option>
+              <option value="EUA">EUA (Chip Virtual)</option>
+              <option value="BR">Nacional (Anatel)</option>
+              <option value="PY">Paraguai</option>
+              <option value="GLOBAL">Global</option>
+            </select>
+          </div>
+
+          <!-- Verified Checkbox -->
+          <label class="pod-checkbox-label" title="Filtrar apenas fornecedores verificados">
+            <input type="checkbox" id="podVerifiedFilter">
+            <span class="pod-custom-check"></span>
+            <span>Verificados</span>
+          </label>
+
+          <!-- Export Button -->
+          <button class="pod-btn-export" onclick="exportPricesDayTable()" title="Copiar resumo de preços para o WhatsApp">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span>Exportar</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Category Filter Pills (Apple Only) with Counters -->
+    <section class="pod-categories-wrapper">
+      <div class="pod-categories-list" id="podCategoryNav">
+        <button class="pod-cat-pill active" data-category="ALL">
+          <span class="cat-icon-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+            </svg>
+          </span>
+          <span>Todos</span>
+          <span class="pod-cat-count" id="countCatALL">0</span>
+        </button>
+        <button class="pod-cat-pill" data-category="IPH">
+          <span class="cat-icon-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="3.5"/>
+              <line x1="11" y1="5" x2="13" y2="5" stroke-width="2.5"/>
+            </svg>
+          </span>
+          <span>iPhone</span>
+          <span class="pod-cat-count" id="countCatIPH">0</span>
+        </button>
+        <button class="pod-cat-pill" data-category="MCB">
+          <span class="cat-icon-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="12" rx="2"/>
+              <path d="M2 19h20"/>
+              <path d="M10 16h4"/>
+            </svg>
+          </span>
+          <span>Mac</span>
+          <span class="pod-cat-count" id="countCatMCB">0</span>
+        </button>
+        <button class="pod-cat-pill" data-category="IPAD">
+          <span class="cat-icon-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="2" width="16" height="20" rx="3"/>
+              <circle cx="12" cy="19" r="0.75" fill="currentColor"/>
+            </svg>
+          </span>
+          <span>iPad</span>
+          <span class="pod-cat-count" id="countCatIPAD">0</span>
+        </button>
+        <button class="pod-cat-pill" data-category="RLG">
+          <span class="cat-icon-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="6" y="5" width="12" height="14" rx="4"/>
+              <path d="M9 5V2h6v3"/>
+              <path d="M9 19v3h6v-3"/>
+            </svg>
+          </span>
+          <span>Apple Watch</span>
+          <span class="pod-cat-count" id="countCatRLG">0</span>
+        </button>
+        <button class="pod-cat-pill" data-category="PODS">
+          <span class="cat-icon-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="7" r="3"/>
+              <path d="M8 10v7a1.5 1.5 0 0 0 3 0v-2"/>
+              <circle cx="16" cy="7" r="3"/>
+              <path d="M16 10v7a1.5 1.5 0 0 1-3 0v-2"/>
+            </svg>
+          </span>
+          <span>AirPods</span>
+          <span class="pod-cat-count" id="countCatPODS">0</span>
+        </button>
+        <button class="pod-cat-pill" data-category="ACSS">
+          <span class="cat-icon-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m18 2 4 4-14 14H4v-4L18 2z"/>
+              <line x1="14.5" y1="5.5" x2="18.5" y2="9.5"/>
+            </svg>
+          </span>
+          <span>Acessórios</span>
+          <span class="pod-cat-count" id="countCatACSS">0</span>
+        </button>
+        <button class="pod-cat-pill" data-category="IMAC">
+          <span class="cat-icon-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="13" rx="2"/>
+              <path d="M8 21h8"/>
+              <path d="M12 16v5"/>
+            </svg>
+          </span>
+          <span>iMac</span>
+          <span class="pod-cat-count" id="countCatIMAC">0</span>
         </button>
       </div>
+    </section>
+
+    <!-- Summary Count Bar -->
+    <div class="pod-info-summary">
+      <span id="podShownCountText">Mostrando 0 modelos disponíveis</span>
+      <span class="pod-info-suppliers" id="podSupplierCountLabel">100+ fornecedores conectados em tempo real</span>
     </div>
 
-    <!-- Active Selected Model Banner -->
-    <div id="activeModelBanner" style="display: none;" class="active-model-banner">
-      <div class="active-model-info">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-lime);">
-          <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
-          <path d="M12 18h.01"/>
-        </svg>
-        <span>Modelo Isolado: <strong class="active-model-name" id="activeModelNameText">IPHONE 17 PRO MAX</strong> (<span id="activeModelCountText">0</span> opções disponíveis)</span>
+    <!-- Grouped Matrix Grid (4 Columns Desktop / 2 Tablet / 1 Mobile) -->
+    <main class="pod-matrix-container" id="podMatrixGrid">
+      <!-- Populated dynamically via JS -->
+    </main>
+  </div>
+
+  <!-- =========================================================================
+       VIEW 2: PRODUTOS (VISUALIZAÇÃO TRADICIONAL POR CARD INDIVIDUAL)
+       ========================================================================= -->
+  <div id="viewProducts" class="view-container">
+    
+    <!-- Category Nav Pills (Sliding Bar) -->
+    <section class="category-nav-wrapper">
+      <nav class="category-nav" id="categoryNav">
+        <button class="category-pill active" data-category="ALL">
+          <span class="cat-icon-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+            </svg>
+          </span>
+          <span>TODOS</span>
+        </button>
+        <button class="category-pill" data-category="IPH">
+          <span class="cat-icon-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="3.5"/>
+              <line x1="11" y1="5" x2="13" y2="5" stroke-width="2.5"/>
+            </svg>
+          </span>
+          <span>IPHONE</span>
+        </button>
+        <button class="category-pill" data-category="MCB">
+          <span class="cat-icon-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="12" rx="2"/>
+              <path d="M2 19h20"/>
+              <path d="M10 16h4"/>
+            </svg>
+          </span>
+          <span>MACBOOK</span>
+        </button>
+        <button class="category-pill" data-category="IPAD">
+          <span class="cat-icon-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="2" width="16" height="20" rx="3"/>
+              <circle cx="12" cy="19" r="0.75" fill="currentColor"/>
+            </svg>
+          </span>
+          <span>IPAD</span>
+        </button>
+        <button class="category-pill" data-category="RLG">
+          <span class="cat-icon-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="6" y="5" width="12" height="14" rx="4"/>
+              <path d="M9 5V2h6v3"/>
+              <path d="M9 19v3h6v-3"/>
+            </svg>
+          </span>
+          <span>WATCH</span>
+        </button>
+        <button class="category-pill" data-category="PODS">
+          <span class="cat-icon-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="7" r="3"/>
+              <path d="M8 10v7a1.5 1.5 0 0 0 3 0v-2"/>
+              <circle cx="16" cy="7" r="3"/>
+              <path d="M16 10v7a1.5 1.5 0 0 1-3 0v-2"/>
+            </svg>
+          </span>
+          <span>AIRPODS</span>
+        </button>
+        <button class="category-pill" data-category="ACSS">
+          <span class="cat-icon-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m18 2 4 4-14 14H4v-4L18 2z"/>
+              <line x1="14.5" y1="5.5" x2="18.5" y2="9.5"/>
+            </svg>
+          </span>
+          <span>ACESSÓRIOS</span>
+        </button>
+        <button class="category-pill" data-category="IMAC">
+          <span class="cat-icon-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="13" rx="2"/>
+              <path d="M8 21h8"/>
+              <path d="M12 16v5"/>
+            </svg>
+          </span>
+          <span>IMAC</span>
+        </button>
+      </nav>
+    </section>
+
+    <!-- Search & Toolbar -->
+    <section class="filter-bar-wrapper">
+      <div class="search-and-controls">
+        <div class="search-box">
+          <div class="search-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+            </svg>
+          </div>
+          <input type="text" id="searchInput" placeholder="Buscar modelo Apple (ex: 17 Pro Max, Air M5, 256GB, Titânio)..." autocomplete="off">
+          <div class="search-keyboard-hint">⌘K</div>
+          <button class="search-clear-btn" id="searchClearBtn" style="display: none;">✕</button>
+          <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
+        </div>
+
+        <div class="secondary-filters">
+          <div class="select-wrapper">
+            <select class="filter-select" id="storageFilter">
+              <option value="">Capacidade (Todas)</option>
+              <option value="64GB">64GB</option>
+              <option value="128GB">128GB</option>
+              <option value="256GB">256GB</option>
+              <option value="512GB">512GB</option>
+              <option value="1TB">1TB</option>
+              <option value="2TB">2TB</option>
+            </select>
+          </div>
+
+          <div class="select-wrapper">
+            <select class="filter-select" id="colorFilter">
+              <option value="">Cor (Todas)</option>
+            </select>
+          </div>
+
+          <div class="select-wrapper">
+            <select class="filter-select" id="supplierFilter">
+              <option value="">Fornecedor (Todos)</option>
+            </select>
+          </div>
+
+          <div class="select-wrapper">
+            <select class="filter-select" id="sortFilter">
+              <option value="price_asc">Menor Preço (Padrão)</option>
+              <option value="price_desc">Maior Preço</option>
+              <option value="name_asc">Nome (A-Z)</option>
+              <option value="recent">Mais Recentes</option>
+            </select>
+          </div>
+
+          <label class="toggle-filter" title="Apenas fornecedores verificados">
+            <input type="checkbox" id="verifiedOnly">
+            <span class="toggle-check"></span>
+            <span class="toggle-label">Verificados</span>
+          </label>
+
+          <button class="clear-filters-btn" id="clearFiltersBtn" title="Limpar todos os filtros">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+            <span>Limpar</span>
+          </button>
+        </div>
       </div>
-      <button class="remove-model-btn" id="removeModelBtn" title="Remover filtro de modelo">
-        ✕ Ver todos os modelos
-      </button>
+
+      <!-- Active Selected Model Banner -->
+      <div id="activeModelBanner" style="display: none;" class="active-model-banner">
+        <div class="active-model-info">
+          <div class="active-model-badge">MODELO SELECIONADO</div>
+          <div class="active-model-title">
+            <strong class="active-model-name" id="activeModelNameText">IPHONE 17 PRO MAX</strong>
+            <span class="active-model-count">(<span id="activeModelCountText">0</span> opções disponíveis)</span>
+          </div>
+        </div>
+        <button class="remove-model-btn" id="removeModelBtn" title="Remover filtro de modelo">
+          <span>✕</span>
+          <span>Ver todos os modelos</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Live Stats Bar -->
+    <div class="results-info-bar">
+      <div class="results-count-text">
+        Exibindo <span class="count-highlight" id="shownCount">0</span> produtos Apple Novos de <span class="count-highlight" id="totalCount">0</span> cadastrados
+      </div>
+      <div class="results-supplier-text" id="supplierCountLabel">
+        100+ fornecedores ativos
+      </div>
     </div>
+
+    <!-- TÓPICO: MELHORES PREÇOS POR COR -->
+    <div class="best-prices-color-container" id="colorPricesTopic" style="display: none;"></div>
+
+    <!-- Product Grid -->
+    <main class="products-container" id="productsGrid"></main>
   </div>
 
-  <!-- Results Count & Live Stats -->
-  <div class="results-info-bar">
-    <div>
-      Exibindo <span class="count-highlight" id="shownCount">0</span> produtos Apple Novos de <span class="count-highlight" id="totalCount">0</span> disponíveis
-    </div>
-    <div id="supplierCountLabel">
-      100+ fornecedores ativos
-    </div>
-  </div>
-
-  <!-- TÓPICO: MELHORES PREÇOS POR COR -->
-  <div class="best-prices-color-container" id="colorPricesTopic" style="display: none;"></div>
-
-  <!-- Product Grid -->
-  <main class="products-container" id="productsGrid">
-    <!-- Populated dynamically via JS -->
-  </main>
-
-  <!-- Price History Modal -->
-  <div class="modal-overlay" id="historyModal">
-    <div class="modal-content">
+  <!-- =========================================================================
+       MODAL: TODAS AS OFERTAS DO MODELO (AO CLICAR EM "TODAS")
+       ========================================================================= -->
+  <div class="modal-overlay" id="allOffersModal">
+    <div class="modal-content modal-large">
       <div class="modal-header">
-        <h3 id="historyModalTitle">Histórico de Preços</h3>
-        <button class="modal-close" id="closeHistoryModal">✕</button>
+        <div class="modal-title-group">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-green);">
+            <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+            <path d="M12 18h.01"/>
+          </svg>
+          <h3 id="allOffersModalTitle">Ofertas do Modelo</h3>
+        </div>
+        <button class="modal-close" id="closeAllOffersModal">✕</button>
       </div>
-      <div id="historyModalBody" style="font-size: 0.88rem; color: var(--text-secondary); max-height: 350px; overflow-y: auto;">
-        Carregando histórico...
+      <div id="allOffersModalBody" class="modal-body-custom">
+        <!-- Injected dynamically -->
       </div>
     </div>
   </div>
 
-  <script src="/js/app.js"></script>
+  <script src="/js/app.js?v=3.0"></script>
 </body>
 </html>
