@@ -318,6 +318,9 @@ function normalizeSearchText(str) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^\w\s]/g, ' ')
+    // Separa letra→número e número→letra: IPHONE17E → iphone 17 e
+    .replace(/([a-z])(\d)/g, '$1 $2')
+    .replace(/(\d)([a-z])/g, '$1 $2')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -1130,13 +1133,17 @@ function getCategoryIcon(modelName, category) {
 function renderPodAutocomplete(term) {
   const dropdown = document.getElementById('podAutocompleteDropdown');
   if (!dropdown) return;
-  const t = term.trim().toLowerCase();
+  const t = term.trim();
+  if (!t) { dropdown.classList.remove('open'); return; }
+
+  const tokens = normalizeSearchText(t).split(' ').filter(Boolean);
 
   const modelCounts = new Map();
   allProducts.forEach(p => {
     const name = (p.name || '').trim();
     if (!name) return;
-    if (!t || name.toLowerCase().includes(t)) {
+    const normalizedName = normalizeSearchText(name);
+    if (tokens.every(tok => normalizedName.includes(tok))) {
       modelCounts.set(name, (modelCounts.get(name) || 0) + 1);
     }
   });
