@@ -44,6 +44,16 @@ function isCpoProduct(p) {
   return n.includes('CPO') || d.includes('CPO') || r.includes('CPO');
 }
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 let selectedDateMode = 'today';
 
 // 1. Fetch initial dataset from backend API (suporta alternar entre Hoje e Ontem)
