@@ -750,6 +750,86 @@
       </table>
     </div>
 
+    <!-- Margins & Fees Management Section -->
+    <div class="section-header" style="margin-top: 40px;">
+      <div class="section-title">
+        <h2>Margens de Lucro & Taxas (Loja Física / Telão)</h2>
+        <p>Defina o valor em Reais (R$) a ser somado sobre o preço de custo de cada produto para exibição na aba Loja Física</p>
+      </div>
+      <button class="btn-create-lojista" onclick="saveAdminMargins()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        <span>Salvar Margens</span>
+      </button>
+    </div>
+
+    <!-- Category Margins Grid -->
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 24px;">
+      <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 14px; color: var(--accent-green);">Margem Padrão por Categoria (R$)</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">iPhone (IPH)</label>
+          <input type="number" id="margin_IPH" value="200" class="modal-input" placeholder="200">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">MacBook (MCB)</label>
+          <input type="number" id="margin_MCB" value="300" class="modal-input" placeholder="300">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">iPad (IPAD)</label>
+          <input type="number" id="margin_IPAD" value="150" class="modal-input" placeholder="150">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Apple Watch (RLG)</label>
+          <input type="number" id="margin_RLG" value="100" class="modal-input" placeholder="100">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">AirPods (PODS)</label>
+          <input type="number" id="margin_PODS" value="100" class="modal-input" placeholder="100">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Acessórios (ACSS)</label>
+          <input type="number" id="margin_ACSS" value="50" class="modal-input" placeholder="50">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">iMac (IMAC)</label>
+          <input type="number" id="margin_IMAC" value="300" class="modal-input" placeholder="300">
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Specific Margins Override -->
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 20px;">
+      <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 6px; color: var(--accent-yellow);">Exceção por Modelo Específico</h3>
+      <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 14px;">Defina uma margem individual para um modelo específico (ex: iPhone 17 Pro Max com margem de R$ 350)</p>
+      
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
+        <input type="text" id="newProdName" placeholder="Nome Exato do Modelo (ex: IPHONE 17 PRO MAX)" class="modal-input" style="flex: 2; min-width: 220px;">
+        <input type="number" id="newProdMargin" placeholder="Margem em R$ (ex: 350)" class="modal-input" style="flex: 1; min-width: 130px;">
+        <button type="button" class="act-btn renew" onclick="addProductMarginOverride()" style="padding: 10px 16px; font-weight: 700;">+ Adicionar Exceção</button>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Modelo Específico</th>
+              <th>Margem Adicional (R$)</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="productMarginsTableBody">
+            <tr>
+              <td colspan="3" class="empty-state">Nenhuma exceção cadastrada. As margens de categoria serão aplicadas a todos os produtos.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
   </main>
 
   <!-- MODAL: NOVO LOJISTA -->
@@ -1095,6 +1175,121 @@
         window.location.href = '/login.html';
       }
     }
+
+    // =========================================================================
+    // MARGENS DE LUCRO E TAXAS (LOJA FÍSICA)
+    // =========================================================================
+    let adminMargins = {
+      categories: { IPH: 200, MCB: 300, IPAD: 150, RLG: 100, PODS: 100, ACSS: 50, IMAC: 300 },
+      products: {}
+    };
+
+    async function fetchMargins() {
+      try {
+        const resp = await fetch('/api/admin/margins');
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data.success && data.margins) {
+          adminMargins = data.margins;
+          populateMarginsForm();
+        }
+      } catch (err) {
+        console.error('Erro ao carregar margens:', err);
+      }
+    }
+
+    function populateMarginsForm() {
+      const cats = adminMargins.categories || {};
+      ['IPH', 'MCB', 'IPAD', 'RLG', 'PODS', 'ACSS', 'IMAC'].forEach(cat => {
+        const input = document.getElementById(`margin_${cat}`);
+        if (input && cats[cat] !== undefined) {
+          input.value = cats[cat];
+        }
+      });
+      renderProductMarginsTable();
+    }
+
+    function renderProductMarginsTable() {
+      const tbody = document.getElementById('productMarginsTableBody');
+      if (!tbody) return;
+
+      const prods = adminMargins.products || {};
+      const keys = Object.keys(prods);
+
+      if (keys.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="empty-state">Nenhuma exceção cadastrada. As margens de categoria serão aplicadas a todos os produtos.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = keys.map(k => `
+        <tr>
+          <td><strong>${escapeHtml(k)}</strong></td>
+          <td><span style="color: var(--accent-green); font-weight: 700;">+ R$ ${Number(prods[k]).toLocaleString('pt-BR')}</span></td>
+          <td>
+            <button class="act-btn block" onclick="removeProductMarginOverride('${escapeHtml(k)}')">Remover</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function addProductMarginOverride() {
+      const nameInput = document.getElementById('newProdName');
+      const marginInput = document.getElementById('newProdMargin');
+      
+      const name = (nameInput.value || '').trim().toUpperCase();
+      const marginVal = parseFloat(marginInput.value);
+
+      if (!name) {
+        alert('Por favor, informe o nome exato do modelo!');
+        return;
+      }
+      if (isNaN(marginVal)) {
+        alert('Por favor, informe um valor numérico para a margem!');
+        return;
+      }
+
+      if (!adminMargins.products) adminMargins.products = {};
+      adminMargins.products[name] = marginVal;
+
+      nameInput.value = '';
+      marginInput.value = '';
+      renderProductMarginsTable();
+    }
+
+    function removeProductMarginOverride(key) {
+      if (adminMargins.products && adminMargins.products[key] !== undefined) {
+        delete adminMargins.products[key];
+        renderProductMarginsTable();
+      }
+    }
+
+    async function saveAdminMargins() {
+      // Coleta margens de categoria
+      ['IPH', 'MCB', 'IPAD', 'RLG', 'PODS', 'ACSS', 'IMAC'].forEach(cat => {
+        const input = document.getElementById(`margin_${cat}`);
+        if (input) {
+          adminMargins.categories[cat] = parseFloat(input.value) || 0;
+        }
+      });
+
+      try {
+        const resp = await fetch('/api/admin/margins', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(adminMargins)
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+          alert('Margens salvas com sucesso! A aba Loja Física foi atualizada em tempo real.');
+        } else {
+          alert(data.error || 'Erro ao salvar margens.');
+        }
+      } catch (err) {
+        alert('Erro de conexão ao salvar margens.');
+      }
+    }
+
+    fetchMargins();
 
     function escapeHtml(str) {
       if (!str) return '';

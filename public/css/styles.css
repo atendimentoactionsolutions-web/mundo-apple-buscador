@@ -2939,4 +2939,123 @@ body.light-theme .all-offer-item:hover {
   }
 }
 
+/* ==========================================================================
+   LOJA FÍSICA / TELÃO (STOREFRONT MODE)
+   ========================================================================== */
+.storefront-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  padding: 16px 20px 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.storefront-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.storefront-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+.storefront-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.storefront-category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 3px 8px;
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.storefront-model-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.storefront-specs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.storefront-spec-tag {
+  background: var(--bg-pill);
+  border: 1px solid var(--border-subtle);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.storefront-price-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  text-align: right;
+}
+
+.storefront-price-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.storefront-price-val {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--accent-green);
+  letter-spacing: -0.5px;
+}
+
+@media (max-width: 768px) {
+  .storefront-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    padding: 12px;
+  }
+  .storefront-model-title {
+    font-size: 0.98rem;
+  }
+  .storefront-price-val {
+    font-size: 1.35rem;
+  }
+}
+
 

@@ -1050,42 +1050,201 @@ if (themeBtn) {
 }
 
 // =========================================================================
-// 12. VIEW MANAGER: PRODUTOS (DEFAULT) VS PREÇOS DO DIA (AO LADO)
+// 12. MARGENS & TAXAS DA LOJA FÍSICA (TELÃO)
 // =========================================================================
-let currentView = 'products'; // Produtos primeiro por padrão
+let margins = {
+  categories: { IPH: 200, MCB: 300, IPAD: 150, RLG: 100, PODS: 100, ACSS: 50, IMAC: 300 },
+  products: {}
+};
+
+async function loadMargins() {
+  try {
+    const res = await fetch('/api/margins');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.success && data.margins) {
+      margins = data.margins;
+      if (currentView === 'storefront') {
+        renderStoreFront();
+      }
+    }
+  } catch (err) {
+    console.error('Erro ao carregar margens:', err);
+  }
+}
+
+socket.on('margins_updated', (newMargins) => {
+  margins = newMargins;
+  if (currentView === 'storefront') {
+    renderStoreFront();
+  }
+});
+
+function getProductRetailPrice(p) {
+  if (!p || !p.price) return 0;
+  const cost = Number(p.price);
+  const nameUpper = (p.name || '').trim().toUpperCase();
+  const catUpper = (p.category || '').trim().toUpperCase();
+
+  let margin = margins.products ? margins.products[nameUpper] : undefined;
+  if (margin === undefined && margins.categories) {
+    if (catUpper === 'IPH' || nameUpper.includes('IPHONE')) margin = margins.categories.IPH;
+    else if (catUpper === 'MCB' || nameUpper.includes('MACBOOK') || nameUpper.includes('MAC MINI') || nameUpper.includes('MAC STUDIO')) margin = margins.categories.MCB;
+    else if (catUpper === 'IPAD' || catUpper === 'IPD' || nameUpper.includes('IPAD')) margin = margins.categories.IPAD;
+    else if (catUpper === 'RLG' || nameUpper.includes('WATCH') || nameUpper.includes('SERIES') || nameUpper.includes('ULTRA')) margin = margins.categories.RLG;
+    else if (catUpper === 'PODS' || nameUpper.includes('AIRPOD')) margin = margins.categories.PODS;
+    else if (catUpper === 'ACSS' || nameUpper.includes('PENCIL') || nameUpper.includes('MAGIC')) margin = margins.categories.ACSS;
+    else if (catUpper === 'IMAC' || nameUpper.includes('IMAC')) margin = margins.categories.IMAC;
+    else margin = 0;
+  }
+
+  return cost + (Number(margin) || 0);
+}
+
+// =========================================================================
+// VIEW MANAGER: PREÇOS DO DIA (DEFAULT) VS LOJA FÍSICA
+// =========================================================================
+let currentView = 'prices_of_the_day'; // Preços do dia por padrão
 let podCurrentCategory = 'ALL';
 let podSearchQuery = '';
 let podSelectedRegion = '';
 let podOnlyVerified = false;
 
+let sfCurrentCategory = 'ALL';
+let sfSearchQuery = '';
+
 window.switchView = function(viewName) {
   currentView = viewName;
   const viewPricesDay = document.getElementById('viewPricesDay');
-  const viewProducts = document.getElementById('viewProducts');
+  const viewStoreFront = document.getElementById('viewStoreFront');
   const tabPricesDay = document.getElementById('tabPricesDay');
-  const tabProducts = document.getElementById('tabProducts');
+  const tabStoreFront = document.getElementById('tabStoreFront');
 
-  if (viewName === 'prices_of_the_day') {
-    if (viewPricesDay) viewPricesDay.style.display = 'block';
-    if (viewProducts) viewProducts.style.display = 'none';
-    if (tabPricesDay) tabPricesDay.classList.add('active');
-    if (tabProducts) tabProducts.classList.remove('active');
-    renderPricesOfTheDay();
-  } else {
+  if (viewName === 'storefront') {
     if (viewPricesDay) viewPricesDay.style.display = 'none';
-    if (viewProducts) viewProducts.style.display = 'block';
+    if (viewStoreFront) viewStoreFront.style.display = 'block';
     if (tabPricesDay) tabPricesDay.classList.remove('active');
-    if (tabProducts) tabProducts.classList.add('active');
-    render();
+    if (tabStoreFront) tabStoreFront.classList.add('active');
+    renderStoreFront();
+  } else {
+    if (viewPricesDay) viewPricesDay.style.display = 'block';
+    if (viewStoreFront) viewStoreFront.style.display = 'none';
+    if (tabPricesDay) tabPricesDay.classList.add('active');
+    if (tabStoreFront) tabStoreFront.classList.remove('active');
+    renderPricesOfTheDay();
   }
 };
 
 function refreshCurrentView() {
-  if (currentView === 'prices_of_the_day') {
-    renderPricesOfTheDay();
+  if (currentView === 'storefront') {
+    renderStoreFront();
   } else {
-    render();
+    renderPricesOfTheDay();
   }
+}
+
+// Renderizador da View Loja Física (Telão)
+function renderStoreFront() {
+  const container = document.getElementById('storefrontGrid');
+  const countText = document.getElementById('sfShownCountText');
+  if (!container) return;
+
+  const sLower = sfSearchQuery.trim().toLowerCase();
+
+  // Filtrar produtos válidos (exclui CPO)
+  let list = allProducts.filter(p => {
+    if (isCpoProduct(p)) return false;
+    if (!p.price || p.price <= 0) return false;
+
+    // Filtro de Categoria
+    if (sfCurrentCategory !== 'ALL') {
+      const cat = (p.category || '').toUpperCase().trim();
+      const name = (p.name || '').toUpperCase();
+      if (sfCurrentCategory === 'IPH' && (cat !== 'IPH' && !name.includes('IPHONE'))) return false;
+      if (sfCurrentCategory === 'MCB' && (cat !== 'MCB' && !name.includes('MACBOOK') && !name.includes('MAC MINI') && !name.includes('MAC STUDIO'))) return false;
+      if (sfCurrentCategory === 'IPAD' && (cat !== 'IPAD' && cat !== 'IPD' && !name.includes('IPAD'))) return false;
+      if (sfCurrentCategory === 'RLG' && (cat !== 'RLG' && !name.includes('WATCH') && !name.includes('SERIES') && !name.includes('ULTRA'))) return false;
+      if (sfCurrentCategory === 'PODS' && (cat !== 'PODS' && !name.includes('AIRPOD'))) return false;
+      if (sfCurrentCategory === 'ACSS' && (cat !== 'ACSS' && !name.includes('PENCIL') && !name.includes('MAGIC'))) return false;
+      if (sfCurrentCategory === 'IMAC' && (cat !== 'IMAC' && !name.includes('IMAC'))) return false;
+    }
+
+    // Filtro por texto digitado
+    if (sLower) {
+      const tokens = normalizeSearchText(sLower).split(' ').filter(Boolean);
+      if (!matchSearchTokens(p, tokens)) return false;
+    }
+
+    return true;
+  });
+
+  // Agrupar por variação (Modelo + Armazenamento + Cor + RAM) escolhendo menor custo + margem
+  const variantMap = new Map();
+
+  list.forEach(p => {
+    const ram = getMacBookRam(p);
+    const colorClean = (p.color || '').trim().toUpperCase() !== 'PADRÃO' ? (p.color || '').trim().toUpperCase() : '';
+    const key = `${(p.name || '').trim().toUpperCase()}_${(p.storage || '').trim().toUpperCase()}_${colorClean}_${ram.toUpperCase()}`;
+    
+    const retailPrice = getProductRetailPrice(p);
+    
+    if (!variantMap.has(key) || retailPrice < variantMap.get(key).retailPrice) {
+      variantMap.set(key, {
+        product: p,
+        retailPrice,
+        ram
+      });
+    }
+  });
+
+  const variants = Array.from(variantMap.values());
+
+  // Ordenar pela hierarquia de modelos Apple
+  variants.sort((a, b) => {
+    const rankA = getModelOrderRank(a.product.name, a.product.category);
+    const rankB = getModelOrderRank(b.product.name, b.product.category);
+    if (rankA !== rankB) return rankA - rankB;
+    return a.retailPrice - b.retailPrice;
+  });
+
+  if (countText) {
+    countText.textContent = `Mostrando ${variants.length} opções no Catálogo da Loja`;
+  }
+
+  if (variants.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
+        <h3>Nenhum produto encontrado na loja com estes filtros</h3>
+        <p style="margin-top: 6px; font-size: 0.9rem;">Tente buscar por outro termo ou selecione a categoria "Todos".</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = variants.map(v => {
+    const p = v.product;
+    const catLabel = (p.category || 'APPLE').toUpperCase();
+
+    return `
+      <div class="storefront-card">
+        <div class="storefront-card-header">
+          <span class="storefront-category-badge">${escapeHtml(catLabel)}</span>
+          <h3 class="storefront-model-title">${escapeHtml(p.name)}</h3>
+          <div class="storefront-specs">
+            ${p.storage ? `<span class="storefront-spec-tag">💾 ${escapeHtml(p.storage)}</span>` : ''}
+            ${v.ram ? `<span class="storefront-spec-tag">⚡ ${escapeHtml(v.ram)}</span>` : ''}
+            ${p.color && p.color.toUpperCase() !== 'PADRÃO' ? `<span class="storefront-spec-tag">🎨 ${escapeHtml(p.color)}</span>` : ''}
+            ${p.region ? `<span class="storefront-spec-tag">🌐 ${escapeHtml(p.region)}</span>` : ''}
+          </div>
+        </div>
+
+        <div class="storefront-price-block">
+          <span class="storefront-price-label">Preço à Vista</span>
+          <span class="storefront-price-val">${formatBRL(v.retailPrice)}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 // Category Count Badges Updater for Preços do Dia
@@ -1804,9 +1963,43 @@ if (podCategoryNav) {
   });
 }
 
-// Initial boot (Produtos por padrão)
-switchView('products');
+// StoreFront Event Listeners
+const sfSearchInput = document.getElementById('sfSearchInput');
+const sfSearchClearBtn = document.getElementById('sfSearchClearBtn');
+const sfCategoryNav = document.getElementById('sfCategoryNav');
+
+if (sfSearchInput) {
+  sfSearchInput.addEventListener('input', (e) => {
+    sfSearchQuery = e.target.value;
+    if (sfSearchClearBtn) sfSearchClearBtn.style.display = sfSearchQuery ? 'flex' : 'none';
+    renderStoreFront();
+  });
+}
+
+if (sfSearchClearBtn) {
+  sfSearchClearBtn.addEventListener('click', () => {
+    if (sfSearchInput) sfSearchInput.value = '';
+    sfSearchQuery = '';
+    sfSearchClearBtn.style.display = 'none';
+    renderStoreFront();
+  });
+}
+
+if (sfCategoryNav) {
+  sfCategoryNav.addEventListener('click', (e) => {
+    const btn = e.target.closest('.pod-cat-pill');
+    if (!btn) return;
+    sfCategoryNav.querySelectorAll('.pod-cat-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    sfCurrentCategory = btn.dataset.sfCategory || 'ALL';
+    renderStoreFront();
+  });
+}
+
+// Initial boot (Preços do Dia por padrão)
+switchView('prices_of_the_day');
 loadProducts();
+loadMargins();
 checkAuthSession();
 
 // =========================================================================

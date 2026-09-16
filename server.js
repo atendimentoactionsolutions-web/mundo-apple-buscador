@@ -594,31 +594,91 @@ function getHistoricalCatalog(dateParam) {
   return Array.from(productsMap.values()).filter(p => !isCpoProduct(p));
 }
 
-// --- ROTAS DE PRODUTOS (ACESSO DIRETO E HISTÓRICO POR DATA) ---
-app.get('/api/products', async (req, res) => {
-  const { date } = req.query;
+// --- ROTAS E GESTÃO DE MARGENS DE LUCRO / LOJA FÍSICA ---
+const MARGINS_FILE_PATH = path.join(__dirname, 'data', 'margins.json');
 
-  // Se o cliente solicitou histórico por data (ex: date=yesterday ou date=15-09)
-  if (date && date !== 'today' && date !== 'latest' && date !== latestDate) {
-    const historicalProducts = getHistoricalCatalog(date);
-    const todayDate = new Date();
-    const yesterdayDate = new Date(todayDate);
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    const pad = n => String(n).padStart(2, '0');
-    const yesterdayLabel = `${pad(yesterdayDate.getDate())}-${pad(yesterdayDate.getMonth() + 1)}`;
+function getDefaultMargins() {
+  return {
+    categories: {
+      IPH: 200,   // iPhone: +R$ 200 por padrão
+      MCB: 300,   // MacBook: +R$ 300 por padrão
+      IPAD: 150,  // iPad: +R$ 150 por padrão
+      RLG: 100,   // Watch: +R$ 100 por padrão
+      PODS: 100,  // AirPods: +R$ 100 por padrão
+      ACSS: 50,   // Acessórios: +R$ 50 por padrão
+      IMAC: 300   // iMac: +R$ 300 por padrão
+    },
+    products: {}  // Exceções por produto específico: { "IPHONE 17 PRO MAX": 250 }
+  };
+}
 
-    return res.json({
-      success: true,
-      total: historicalProducts.length,
-      dollarRate,
-      dollarVariation,
-      latestDate: date === 'yesterday' ? yesterdayLabel : date,
-      isHistorical: true,
-      data: historicalProducts
-    });
+function loadMargins() {
+  try {
+    if (fs.existsSync(MARGINS_FILE_PATH)) {
+      const data = JSON.parse(fs.readFileSync(MARGINS_FILE_PATH, 'utf-8'));
+      return {
+        categories: { ...getDefaultMargins().categories, ...(data.categories || {}) },
+        products: data.products || {}
+      };
+    }
+  } catch (err) {
+    console.warn('[Margens] Erro ao carregar margens:', err.message);
+  }
+  return getDefaultMargins();
+}
+
+function saveMargins(marginsData) {
+  try {
+    const dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(MARGINS_FILE_PATH, JSON.stringify(marginsData, null, 2), 'utf-8');
+    localIo.emit('margins_updated', marginsData);
+    return true;
+  } catch (err) {
+    console.error('[Margens] Erro ao salvar margens:', err.message);
+    return false;
+  }
+}
+
+// Rota pública de margens ativas
+app.get('/api/margins', (req, res) => {
+  res.json({ success: true, margins: loadMargins() });
+});
+
+// Rotas protegidas de Admin para gerenciar margens
+app.get('/api/admin/margins', async (req, res) => {
+  const token = auth.getSessionTokenFromRequest(req);
+  const user = await auth.findUserBySessionToken(token);
+  if (!user || user.role !== 'admin') {
+    return res.status(403).json({ error: 'Acesso negado' });
+  }
+  res.json({ success: true, margins: loadMargins() });
+});
+
+app.post('/api/admin/margins', async (req, res) => {
+  const token = auth.getSessionTokenFromRequest(req);
+  const user = await auth.findUserBySessionToken(token);
+  if (!user || user.role !== 'admin') {
+    return res.status(403).json({ error: 'Acesso negado' });
   }
 
-  // Catálogo padrão (Produtos atuais / em tempo real)
+  const { categories, products } = req.body || {};
+  const current = loadMargins();
+
+  const updated = {
+    categories: { ...current.categories, ...categories },
+    products: products || current.products
+  };
+
+  if (saveMargins(updated)) {
+    res.json({ success: true, margins: updated });
+  } else {
+    res.status(500).json({ error: 'Falha ao salvar margens de lucro' });
+  }
+});
+
+// --- ROTAS DE PRODUTOS (ACESSO DIRETO) ---
+app.get('/api/products', (req, res) => {
   const products = Array.from(productsMap.values()).filter(p => !isCpoProduct(p));
   res.json({
     success: true,
@@ -626,7 +686,6 @@ app.get('/api/products', async (req, res) => {
     dollarRate,
     dollarVariation,
     latestDate,
-    isHistorical: false,
     data: products
   });
 });
