@@ -772,31 +772,35 @@
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
         <div>
           <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">iPhone (IPH)</label>
-          <input type="number" id="margin_IPH" value="200" class="modal-input" placeholder="200">
+          <input type="number" id="margin_IPH" value="750" class="modal-input" placeholder="750">
         </div>
         <div>
-          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">MacBook (MCB)</label>
-          <input type="number" id="margin_MCB" value="300" class="modal-input" placeholder="300">
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">MacBook Air (MCB_AIR)</label>
+          <input type="number" id="margin_MCB_AIR" value="1000" class="modal-input" placeholder="1000">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Outros Macs / Pro (MCB_PRO)</label>
+          <input type="number" id="margin_MCB_PRO" value="1300" class="modal-input" placeholder="1300">
         </div>
         <div>
           <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">iPad (IPAD)</label>
-          <input type="number" id="margin_IPAD" value="150" class="modal-input" placeholder="150">
+          <input type="number" id="margin_IPAD" value="500" class="modal-input" placeholder="500">
         </div>
         <div>
           <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Apple Watch (RLG)</label>
-          <input type="number" id="margin_RLG" value="100" class="modal-input" placeholder="100">
-        </div>
-        <div>
-          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">AirPods (PODS)</label>
-          <input type="number" id="margin_PODS" value="100" class="modal-input" placeholder="100">
-        </div>
-        <div>
-          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Acessórios (ACSS)</label>
-          <input type="number" id="margin_ACSS" value="50" class="modal-input" placeholder="50">
+          <input type="number" id="margin_RLG" value="500" class="modal-input" placeholder="500">
         </div>
         <div>
           <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">iMac (IMAC)</label>
-          <input type="number" id="margin_IMAC" value="300" class="modal-input" placeholder="300">
+          <input type="number" id="margin_IMAC" value="1500" class="modal-input" placeholder="1500">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">AirPods (PODS)</label>
+          <input type="number" id="margin_PODS" value="200" class="modal-input" placeholder="200">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Acessórios (ACSS)</label>
+          <input type="number" id="margin_ACSS" value="100" class="modal-input" placeholder="100">
         </div>
       </div>
     </div>
@@ -1200,7 +1204,7 @@
 
     function populateMarginsForm() {
       const cats = adminMargins.categories || {};
-      ['IPH', 'MCB', 'IPAD', 'RLG', 'PODS', 'ACSS', 'IMAC'].forEach(cat => {
+      ['IPH', 'MCB_AIR', 'MCB_PRO', 'IPAD', 'RLG', 'IMAC', 'PODS', 'ACSS'].forEach(cat => {
         const input = document.getElementById(`margin_${cat}`);
         if (input && cats[cat] !== undefined) {
           input.value = cats[cat];
@@ -1265,7 +1269,7 @@
 
     async function saveAdminMargins() {
       // Coleta margens de categoria
-      ['IPH', 'MCB', 'IPAD', 'RLG', 'PODS', 'ACSS', 'IMAC'].forEach(cat => {
+      ['IPH', 'MCB_AIR', 'MCB_PRO', 'IPAD', 'RLG', 'IMAC', 'PODS', 'ACSS'].forEach(cat => {
         const input = document.getElementById(`margin_${cat}`);
         if (input) {
           adminMargins.categories[cat] = parseFloat(input.value) || 0;

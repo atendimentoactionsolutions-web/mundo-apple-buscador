@@ -600,15 +600,16 @@ const MARGINS_FILE_PATH = path.join(__dirname, 'data', 'margins.json');
 function getDefaultMargins() {
   return {
     categories: {
-      IPH: 200,   // iPhone: +R$ 200 por padrão
-      MCB: 300,   // MacBook: +R$ 300 por padrão
-      IPAD: 150,  // iPad: +R$ 150 por padrão
-      RLG: 100,   // Watch: +R$ 100 por padrão
-      PODS: 100,  // AirPods: +R$ 100 por padrão
-      ACSS: 50,   // Acessórios: +R$ 50 por padrão
-      IMAC: 300   // iMac: +R$ 300 por padrão
+      IPH: 750,        // iPhone: +R$ 750
+      MCB_AIR: 1000,   // Mac Air: +R$ 1.000
+      MCB_PRO: 1300,   // Outros Modelos Mac / Pro: +R$ 1.300
+      IPAD: 500,       // iPad: +R$ 500
+      RLG: 500,        // Apple Watch: +R$ 500
+      IMAC: 1500,      // iMac: +R$ 1.500
+      PODS: 200,       // AirPods: +R$ 200
+      ACSS: 100        // Acessórios: +R$ 100
     },
-    products: {}  // Exceções por produto específico: { "IPHONE 17 PRO MAX": 250 }
+    products: {}  // Exceções por produto específico: { "IPHONE 17 PRO MAX": 350 }
   };
 }
 

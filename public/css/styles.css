@@ -360,6 +360,29 @@ body.light-theme ::-webkit-scrollbar-thumb {
   color: #ffffff;
 }
 
+.admin-top-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: var(--radius-full);
+  color: var(--accent-green);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: var(--transition);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.admin-top-btn:hover {
+  background: var(--accent-green);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  transform: translateY(-1px);
+}
+
 .logout-header-btn {
   display: inline-flex;
   align-items: center;

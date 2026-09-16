@@ -1072,7 +1072,16 @@ if (themeBtn) {
 // 12. MARGENS & TAXAS DA LOJA FÍSICA (TELÃO)
 // =========================================================================
 let margins = {
-  categories: { IPH: 200, MCB: 300, IPAD: 150, RLG: 100, PODS: 100, ACSS: 50, IMAC: 300 },
+  categories: {
+    IPH: 750,
+    MCB_AIR: 1000,
+    MCB_PRO: 1300,
+    IPAD: 500,
+    RLG: 500,
+    IMAC: 1500,
+    PODS: 200,
+    ACSS: 100
+  },
   products: {}
 };
 
@@ -1105,16 +1114,30 @@ function getProductRetailPrice(p) {
   const nameUpper = (p.name || '').trim().toUpperCase();
   const catUpper = (p.category || '').trim().toUpperCase();
 
+  // 1. Exceção de modelo específico se cadastrada no painel admin
   let margin = margins.products ? margins.products[nameUpper] : undefined;
+
+  // 2. Se não houver margem por produto, usa a margem da categoria
   if (margin === undefined && margins.categories) {
-    if (catUpper === 'IPH' || nameUpper.includes('IPHONE')) margin = margins.categories.IPH;
-    else if (catUpper === 'MCB' || nameUpper.includes('MACBOOK') || nameUpper.includes('MAC MINI') || nameUpper.includes('MAC STUDIO')) margin = margins.categories.MCB;
-    else if (catUpper === 'IPAD' || catUpper === 'IPD' || nameUpper.includes('IPAD')) margin = margins.categories.IPAD;
-    else if (catUpper === 'RLG' || nameUpper.includes('WATCH') || nameUpper.includes('SERIES') || nameUpper.includes('ULTRA')) margin = margins.categories.RLG;
-    else if (catUpper === 'PODS' || nameUpper.includes('AIRPOD')) margin = margins.categories.PODS;
-    else if (catUpper === 'ACSS' || nameUpper.includes('PENCIL') || nameUpper.includes('MAGIC')) margin = margins.categories.ACSS;
-    else if (catUpper === 'IMAC' || nameUpper.includes('IMAC')) margin = margins.categories.IMAC;
-    else margin = 0;
+    if (catUpper === 'IPH' || nameUpper.includes('IPHONE')) {
+      margin = margins.categories.IPH ?? 750;
+    } else if (nameUpper.includes('MACBOOK AIR') || nameUpper.includes('AIR M') || (catUpper === 'MCB' && nameUpper.includes('AIR'))) {
+      margin = margins.categories.MCB_AIR ?? 1000;
+    } else if (catUpper === 'MCB' || nameUpper.includes('MACBOOK') || nameUpper.includes('MAC MINI') || nameUpper.includes('MAC STUDIO') || nameUpper.includes('MAC PRO')) {
+      margin = margins.categories.MCB_PRO ?? 1300;
+    } else if (catUpper === 'IPAD' || catUpper === 'IPD' || nameUpper.includes('IPAD')) {
+      margin = margins.categories.IPAD ?? 500;
+    } else if (catUpper === 'RLG' || nameUpper.includes('WATCH') || nameUpper.includes('SERIES') || nameUpper.includes('ULTRA')) {
+      margin = margins.categories.RLG ?? 500;
+    } else if (catUpper === 'IMAC' || nameUpper.includes('IMAC')) {
+      margin = margins.categories.IMAC ?? 1500;
+    } else if (catUpper === 'PODS' || nameUpper.includes('AIRPOD')) {
+      margin = margins.categories.PODS ?? 200;
+    } else if (catUpper === 'ACSS' || nameUpper.includes('PENCIL') || nameUpper.includes('MAGIC')) {
+      margin = margins.categories.ACSS ?? 100;
+    } else {
+      margin = margins.categories.DEFAULT ?? 500;
+    }
   }
 
   return cost + (Number(margin) || 0);

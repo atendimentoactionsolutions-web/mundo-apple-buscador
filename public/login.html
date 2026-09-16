@@ -435,8 +435,8 @@
 
         if (resp.ok && data.success) {
           btnText.textContent = 'Acesso Autorizado!';
-          // Redireciona para o painel principal (ou para o admin se for admin)
-          if (data.user && data.user.role === 'admin' && window.location.search.includes('redirect=admin')) {
+          // Redireciona para o painel de admin se for administrador
+          if (data.user && (data.user.role === 'admin' || window.location.search.includes('redirect=admin'))) {
             window.location.href = '/admin';
           } else {
             window.location.href = '/';
