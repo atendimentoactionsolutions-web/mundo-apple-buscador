@@ -2553,6 +2553,275 @@ body.light-theme .all-offer-item:hover {
 }
 
 /* ==========================================================================
+   CARD MACHINE SIMULATOR MODAL (LOJA FÍSICA)
+   ========================================================================== */
+.modal-content.modal-simulator {
+  max-width: 920px;
+  width: 95%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.sim-product-header {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.sim-product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sim-product-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  text-transform: uppercase;
+}
+
+.sim-tags-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sim-cash-price-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+}
+
+.sim-cash-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--accent-green);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sim-cash-val {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--accent-green);
+}
+
+.sim-entry-section {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sim-entry-input-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sim-entry-label-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.sim-entry-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.sim-entry-desc {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.sim-entry-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+}
+
+.sim-entry-prefix {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.sim-entry-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  width: 140px;
+}
+
+.sim-quick-entries {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sim-quick-pill {
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: var(--bg-pill);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.sim-quick-pill:hover,
+.sim-quick-pill.active {
+  background: var(--accent-green);
+  color: #ffffff;
+  border-color: var(--accent-green);
+}
+
+.sim-installments-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  max-height: 48vh;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 800px) {
+  .sim-installments-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .sim-installments-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sim-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: var(--transition);
+  position: relative;
+}
+
+.sim-card:hover {
+  border-color: var(--accent-green);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.sim-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sim-card-badge {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  background: var(--bg-pill);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.sim-card-rate-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.sim-card-monthly {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--accent-green);
+}
+
+.sim-card-monthly small {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.sim-card-total {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.sim-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sim-btn-copy-wa {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #25d366;
+  color: #ffffff;
+  border-radius: var(--radius-md);
+  font-size: 0.86rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: 0 3px 10px rgba(37, 211, 102, 0.3);
+}
+
+.sim-btn-copy-wa:hover {
+  background: #20ba5a;
+  transform: translateY(-1px);
+}
+
+.sim-info-note {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
    MASTER MOBILE OVERHAUL (PERFECT ALIGNMENT, NO CROOKED LAYOUTS, APPLE POLISH)
    ========================================================================== */
 

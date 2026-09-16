@@ -406,6 +406,27 @@
     </div>
   </div>
 
-  <script src="/js/app.js?v=6.0"></script>
+  <!-- =========================================================================
+       MODAL: SIMULADOR DE PARCELAMENTO NO CARTÃO (LOJA FÍSICA / MAQUININHA)
+       ========================================================================= -->
+  <div class="modal-overlay" id="cardSimulatorModal">
+    <div class="modal-content modal-simulator">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-green);">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <line x1="2" y1="10" x2="22" y2="10"/>
+          </svg>
+          <h3 id="cardSimulatorTitle">Simulador de Parcelamento no Cartão</h3>
+        </div>
+        <button class="modal-close" id="closeCardSimulatorModal">✕</button>
+      </div>
+      <div id="cardSimulatorBody" class="modal-body-custom">
+        <!-- Injected dynamically via JS -->
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js?v=6.1"></script>
 </body>
 </html>

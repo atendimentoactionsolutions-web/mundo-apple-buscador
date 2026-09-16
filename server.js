@@ -641,6 +641,65 @@ function saveMargins(marginsData) {
   }
 }
 
+// --- CONFIGURAÇÃO DE TAXAS DA MAQUININHA DE CARTÃO (LOJA FÍSICA) ---
+const CARD_RATES_FILE_PATH = path.join(__dirname, 'data', 'card_rates.json');
+
+function getDefaultCardRates() {
+  return {
+    baseRate: 2.69,
+    calculationMode: 'factor', // 'factor' repassa a taxa para receber valor líquido: valor / (1 - taxa/100)
+    installmentRates: {
+      "1": 3.05,
+      "2": 1.50,
+      "3": 2.25,
+      "4": 3.00,
+      "5": 3.75,
+      "6": 4.50,
+      "7": 5.25,
+      "8": 6.00,
+      "9": 6.75,
+      "10": 7.50,
+      "11": 8.25,
+      "12": 9.00,
+      "13": 9.75,
+      "14": 10.50,
+      "15": 11.25,
+      "16": 12.00,
+      "17": 12.75,
+      "18": 13.50
+    }
+  };
+}
+
+function loadCardRates() {
+  try {
+    if (fs.existsSync(CARD_RATES_FILE_PATH)) {
+      const data = JSON.parse(fs.readFileSync(CARD_RATES_FILE_PATH, 'utf-8'));
+      return {
+        baseRate: typeof data.baseRate === 'number' ? data.baseRate : 2.69,
+        calculationMode: data.calculationMode || 'factor',
+        installmentRates: { ...getDefaultCardRates().installmentRates, ...(data.installmentRates || {}) }
+      };
+    }
+  } catch (err) {
+    console.warn('[Taxas Maquininha] Erro ao ler taxas:', err.message);
+  }
+  return getDefaultCardRates();
+}
+
+function saveCardRates(ratesData) {
+  try {
+    const dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(CARD_RATES_FILE_PATH, JSON.stringify(ratesData, null, 2), 'utf-8');
+    localIo.emit('card_rates_updated', ratesData);
+    return true;
+  } catch (err) {
+    console.error('[Taxas Maquininha] Erro ao salvar taxas:', err.message);
+    return false;
+  }
+}
+
 // Rota pública de margens ativas
 app.get('/api/margins', (req, res) => {
   res.json({ success: true, margins: loadMargins() });
@@ -675,6 +734,44 @@ app.post('/api/admin/margins', async (req, res) => {
     res.json({ success: true, margins: updated });
   } else {
     res.status(500).json({ error: 'Falha ao salvar margens de lucro' });
+  }
+});
+
+// Rota pública de taxas da maquininha
+app.get('/api/card-rates', (req, res) => {
+  res.json({ success: true, rates: loadCardRates() });
+});
+
+// Rotas de Admin para taxas da maquininha
+app.get('/api/admin/card-rates', async (req, res) => {
+  const token = auth.getSessionTokenFromRequest(req);
+  const user = await auth.findUserBySessionToken(token);
+  if (!user || user.role !== 'admin') {
+    return res.status(403).json({ error: 'Acesso negado' });
+  }
+  res.json({ success: true, rates: loadCardRates() });
+});
+
+app.post('/api/admin/card-rates', async (req, res) => {
+  const token = auth.getSessionTokenFromRequest(req);
+  const user = await auth.findUserBySessionToken(token);
+  if (!user || user.role !== 'admin') {
+    return res.status(403).json({ error: 'Acesso negado' });
+  }
+
+  const { baseRate, calculationMode, installmentRates } = req.body || {};
+  const current = loadCardRates();
+
+  const updated = {
+    baseRate: typeof baseRate === 'number' ? baseRate : (parseFloat(baseRate) || current.baseRate),
+    calculationMode: calculationMode || current.calculationMode,
+    installmentRates: installmentRates ? { ...current.installmentRates, ...installmentRates } : current.installmentRates
+  };
+
+  if (saveCardRates(updated)) {
+    res.json({ success: true, rates: updated });
+  } else {
+    res.status(500).json({ error: 'Falha ao salvar taxas da maquininha' });
   }
 });
 

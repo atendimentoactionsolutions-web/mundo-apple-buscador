@@ -834,6 +834,40 @@
       </div>
     </div>
 
+    <!-- Card Machine Rates Section -->
+    <div class="section-header" style="margin-top: 40px;">
+      <div class="section-title">
+        <h2>💳 Taxas da Maquininha de Cartão (Loja Física)</h2>
+        <p>Configure as taxas da sua maquininha para o Simulador de Parcelamento (1x a 18x) no balcão</p>
+      </div>
+      <button type="button" class="btn-create-lojista" onclick="saveAdminCardRates()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        <span>Salvar Taxas da Maquininha</span>
+      </button>
+    </div>
+
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 24px;">
+      <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
+        <div style="flex: 1; min-width: 200px;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">Taxa Base de Venda da Maquininha (%)</label>
+          <input type="number" step="0.01" id="rate_base" value="2.69" class="modal-input" oninput="updateRateTotalsPreview()" style="font-weight: 700; color: var(--accent-green);">
+        </div>
+        <div style="flex: 2; min-width: 260px; font-size: 0.82rem; color: var(--text-secondary); background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-md); padding: 12px 16px;">
+          💡 <strong>Fórmula Automática:</strong> Taxa Total = <em>Taxa Base (2,69%)</em> + <em>Taxa da Parcela</em>. O cálculo no simulador repassa a taxa para você receber exatamente o valor líquido à vista.
+        </div>
+      </div>
+
+      <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 14px; color: var(--text-primary);">Tabela de Parcelas (Taxa da Parcela + Total)</h3>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px;" id="cardRatesGridContainer">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
   </main>
 
   <!-- MODAL: NOVO LOJISTA -->
@@ -1294,6 +1328,115 @@
     }
 
     fetchMargins();
+
+    // =========================================================================
+    // GESTÃO DE TAXAS DA MAQUININHA DE CARTÃO (LOJA FÍSICA)
+    // =========================================================================
+    let adminCardRates = {
+      baseRate: 2.69,
+      calculationMode: 'factor',
+      installmentRates: {
+        "1": 3.05, "2": 1.50, "3": 2.25, "4": 3.00, "5": 3.75, "6": 4.50,
+        "7": 5.25, "8": 6.00, "9": 6.75, "10": 7.50, "11": 8.25, "12": 9.00,
+        "13": 9.75, "14": 10.50, "15": 11.25, "16": 12.00, "17": 12.75, "18": 13.50
+      }
+    };
+
+    async function fetchCardRates() {
+      try {
+        const resp = await fetch('/api/admin/card-rates');
+        const data = await resp.json();
+        if (data.success && data.rates) {
+          adminCardRates = data.rates;
+        }
+      } catch (err) {
+        console.error('Erro ao buscar taxas da maquininha:', err);
+      }
+      renderCardRatesGrid();
+    }
+
+    function renderCardRatesGrid() {
+      const container = document.getElementById('cardRatesGridContainer');
+      const baseInput = document.getElementById('rate_base');
+      if (baseInput && adminCardRates.baseRate !== undefined) {
+        baseInput.value = adminCardRates.baseRate;
+      }
+      if (!container) return;
+
+      const base = parseFloat(baseInput?.value) || 2.69;
+      let html = '';
+
+      for (let i = 1; i <= 18; i++) {
+        const key = String(i);
+        const parcelRate = adminCardRates.installmentRates[key] !== undefined ? adminCardRates.installmentRates[key] : (i * 0.75);
+        const totalRate = (base + parcelRate).toFixed(2);
+        const label = i === 1 ? 'À vista (1x)' : `${i}x`;
+
+        html += `
+          <div style="background: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.85rem; font-weight: 800; color: var(--text-primary);">${label}</span>
+              <span id="rate_badge_${i}" style="font-size: 0.75rem; font-weight: 800; color: var(--accent-green); background: rgba(16, 185, 129, 0.12); padding: 2px 7px; border-radius: 4px;">Total: ${totalRate}%</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Taxa:</span>
+              <input type="number" step="0.01" id="rate_parcel_${i}" value="${parcelRate}" class="modal-input" style="padding: 5px 8px; font-size: 0.85rem;" oninput="updateRateTotalsPreview()">
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">%</span>
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    function updateRateTotalsPreview() {
+      const baseInput = document.getElementById('rate_base');
+      const base = parseFloat(baseInput?.value) || 0;
+
+      for (let i = 1; i <= 18; i++) {
+        const input = document.getElementById(`rate_parcel_${i}`);
+        const badge = document.getElementById(`rate_badge_${i}`);
+        if (input && badge) {
+          const parcelRate = parseFloat(input.value) || 0;
+          const total = (base + parcelRate).toFixed(2);
+          badge.textContent = `Total: ${total}%`;
+        }
+      }
+    }
+
+    async function saveAdminCardRates() {
+      const baseInput = document.getElementById('rate_base');
+      const baseRate = parseFloat(baseInput?.value) || 0;
+      const installmentRates = {};
+
+      for (let i = 1; i <= 18; i++) {
+        const input = document.getElementById(`rate_parcel_${i}`);
+        installmentRates[String(i)] = parseFloat(input?.value) || 0;
+      }
+
+      try {
+        const resp = await fetch('/api/admin/card-rates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            baseRate,
+            calculationMode: 'factor',
+            installmentRates
+          })
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+          alert('Taxas da maquininha salvas com sucesso! O Simulador de Parcelamento foi atualizado.');
+        } else {
+          alert(data.error || 'Erro ao salvar taxas da maquininha.');
+        }
+      } catch (err) {
+        alert('Erro de conexão ao salvar taxas da maquininha.');
+      }
+    }
+
+    fetchCardRates();
 
     function escapeHtml(str) {
       if (!str) return '';
