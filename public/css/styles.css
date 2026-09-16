@@ -2553,73 +2553,134 @@ body.light-theme .all-offer-item:hover {
 }
 
 /* ==========================================================================
-   CARD MACHINE SIMULATOR MODAL (LOJA FÍSICA)
+   CARD MACHINE SIMULATOR MODAL (EXECUTIVE CLIENT PROPOSAL)
    ========================================================================== */
 .modal-content.modal-simulator {
-  max-width: 920px;
+  max-width: 980px;
   width: 95%;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
 }
 
-.sim-product-header {
-  background: var(--bg-card);
+.sim-header-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-subtle);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 16px 20px;
   margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   flex-wrap: wrap;
   gap: 14px;
 }
 
-.sim-product-info {
+.sim-hero-product {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.sim-product-title {
-  font-size: 1.15rem;
+.sim-hero-title {
+  font-size: 1.25rem;
   font-weight: 800;
   color: var(--text-primary);
+  letter-spacing: -0.3px;
   text-transform: uppercase;
 }
 
-.sim-tags-row {
+.sim-hero-tags {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.sim-cash-price-box {
+/* Dual Highlight Price Banners */
+.sim-dual-highlights {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 600px) {
+  .sim-dual-highlights {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sim-highlight-card {
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  padding: 8px 16px;
-  border-radius: var(--radius-md);
+  gap: 2px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-subtle);
 }
 
-.sim-cash-label {
+.sim-highlight-card.pix {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.sim-highlight-card.card {
+  background: rgba(41, 151, 255, 0.08);
+  border-color: rgba(41, 151, 255, 0.3);
+}
+
+.sim-highlight-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.68rem;
   font-weight: 800;
-  color: var(--accent-green);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  margin-bottom: 4px;
 }
 
-.sim-cash-val {
-  font-size: 1.45rem;
-  font-weight: 800;
+.sim-highlight-card.pix .sim-highlight-badge {
+  background: rgba(16, 185, 129, 0.18);
   color: var(--accent-green);
 }
 
+.sim-highlight-card.card .sim-highlight-badge {
+  background: rgba(41, 151, 255, 0.18);
+  color: #2997ff;
+}
+
+.sim-highlight-val {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+}
+
+.sim-highlight-card.pix .sim-highlight-val {
+  color: var(--accent-green);
+}
+
+.sim-highlight-card.card .sim-highlight-val {
+  color: #2997ff;
+}
+
+.sim-highlight-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* Entry Section */
 .sim-entry-section {
   background: var(--bg-subtle);
   border: 1px solid var(--border-color);
@@ -2631,7 +2692,7 @@ body.light-theme .all-offer-item:hover {
   gap: 10px;
 }
 
-.sim-entry-input-row {
+.sim-entry-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2639,35 +2700,36 @@ body.light-theme .all-offer-item:hover {
   gap: 12px;
 }
 
-.sim-entry-label-wrap {
-  display: flex;
-  flex-direction: column;
-}
-
-.sim-entry-title {
-  font-size: 0.9rem;
-  font-weight: 700;
+.sim-entry-text h4 {
+  font-size: 0.92rem;
+  font-weight: 800;
   color: var(--text-primary);
+  margin-bottom: 2px;
 }
 
-.sim-entry-desc {
-  font-size: 0.76rem;
+.sim-entry-text p {
+  font-size: 0.78rem;
   color: var(--text-muted);
 }
 
-.sim-entry-input-wrap {
+.sim-entry-input-box {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: var(--bg-card);
   border: 1.5px solid var(--border-color);
-  padding: 6px 12px;
+  padding: 8px 14px;
   border-radius: var(--radius-md);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.sim-entry-input-box:focus-within {
+  border-color: var(--accent-green);
 }
 
 .sim-entry-prefix {
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: 0.95rem;
+  font-weight: 800;
   color: var(--text-muted);
 }
 
@@ -2675,22 +2737,23 @@ body.light-theme .all-offer-item:hover {
   border: none;
   outline: none;
   background: transparent;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: var(--text-primary);
   width: 140px;
 }
 
-.sim-quick-entries {
+.sim-entry-pills {
   display: flex;
+  align-items: center;
   gap: 6px;
   flex-wrap: wrap;
 }
 
-.sim-quick-pill {
-  padding: 4px 10px;
+.sim-pill-btn {
+  padding: 5px 12px;
   border-radius: var(--radius-full);
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 700;
   background: var(--bg-pill);
   border: 1px solid var(--border-color);
@@ -2699,18 +2762,99 @@ body.light-theme .all-offer-item:hover {
   transition: var(--transition);
 }
 
-.sim-quick-pill:hover,
-.sim-quick-pill.active {
+.sim-pill-btn:hover,
+.sim-pill-btn.active {
   background: var(--accent-green);
   color: #ffffff;
   border-color: var(--accent-green);
 }
 
-.sim-installments-grid {
+/* Featured 3-Pack Highlight Plans */
+.sim-featured-plans {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
-  max-height: 48vh;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 700px) {
+  .sim-featured-plans {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sim-featured-card {
+  background: linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+  border: 1.5px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+body.light-theme .sim-featured-card {
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.sim-featured-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: var(--accent-green);
+  color: #ffffff;
+  font-size: 0.64rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-bottom-left-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sim-featured-plan-name {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.sim-featured-monthly {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--accent-green);
+  line-height: 1.1;
+}
+
+.sim-featured-monthly small {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.sim-featured-total {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Full Installments Grid (1x to 18x) */
+.sim-installments-section-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+}
+
+.sim-installments-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  max-height: 38vh;
   overflow-y: auto;
   padding-right: 4px;
   margin-bottom: 16px;
@@ -2732,93 +2876,107 @@ body.light-theme .all-offer-item:hover {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 12px 14px;
+  padding: 10px 14px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  justify-content: space-between;
   transition: var(--transition);
-  position: relative;
 }
 
 .sim-card:hover {
   border-color: var(--accent-green);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
+  background: var(--bg-card-hover);
 }
 
-.sim-card-top {
+.sim-card-left {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
 }
 
 .sim-card-badge {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 800;
   color: var(--text-primary);
   background: var(--bg-pill);
-  padding: 2px 8px;
+  padding: 3px 8px;
   border-radius: var(--radius-sm);
-}
-
-.sim-card-rate-badge {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--text-muted);
+  min-width: 32px;
+  text-align: center;
 }
 
 .sim-card-monthly {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 800;
+  color: var(--text-primary);
+}
+
+.sim-card:hover .sim-card-monthly {
   color: var(--accent-green);
 }
 
-.sim-card-monthly small {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text-muted);
+.sim-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.1;
 }
 
-.sim-card-total {
-  font-size: 0.74rem;
-  font-weight: 600;
+.sim-card-total-label {
+  font-size: 0.60rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.sim-card-total-val {
+  font-size: 0.82rem;
+  font-weight: 700;
   color: var(--text-secondary);
 }
 
+/* Footer Actions */
 .sim-footer-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 12px;
+  padding-top: 14px;
   border-top: 1px solid var(--border-color);
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
 .sim-btn-copy-wa {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
+  gap: 10px;
+  padding: 12px 22px;
   background: #25d366;
   color: #ffffff;
   border-radius: var(--radius-md);
-  font-size: 0.86rem;
-  font-weight: 700;
+  font-size: 0.92rem;
+  font-weight: 800;
   border: none;
   cursor: pointer;
   transition: var(--transition);
-  box-shadow: 0 3px 10px rgba(37, 211, 102, 0.3);
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);
 }
 
 .sim-btn-copy-wa:hover {
   background: #20ba5a;
   transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(37, 211, 102, 0.5);
+}
+
+.sim-btn-copy-wa svg {
+  width: 18px;
+  height: 18px;
 }
 
 .sim-info-note {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
+  font-weight: 500;
 }
 
 /* ==========================================================================

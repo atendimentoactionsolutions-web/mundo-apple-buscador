@@ -2031,56 +2031,81 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
   const colHex = getAppleColorHex(color);
 
   body.innerHTML = `
-    <div class="sim-product-header">
-      <div class="sim-product-info">
-        <h2 class="sim-product-title">${model}</h2>
-        <div class="sim-tags-row">
+    <!-- Top Hero Header -->
+    <div class="sim-header-hero">
+      <div class="sim-hero-product">
+        <h2 class="sim-hero-title">${model}</h2>
+        <div class="sim-hero-tags">
           ${storage ? `<span class="matrix-card-storage">${storage}</span>` : ''}
-          ${ram ? `<span class="matrix-card-ram-badge" style="background: rgba(0, 113, 227, 0.18); color: #2997ff; border: 1px solid rgba(41, 151, 255, 0.35); padding: 1px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 700;">⚡ ${ram} RAM</span>` : ''}
+          ${ram ? `<span class="matrix-card-ram-badge" style="background: rgba(0, 113, 227, 0.18); color: #2997ff; border: 1px solid rgba(41, 151, 255, 0.35); padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700;">⚡ ${ram} RAM</span>` : ''}
           ${color && color.toUpperCase() !== 'PADRÃO' ? `
-            <div class="all-offer-color-tag" style="padding: 2px 8px; font-size: 0.72rem;">
-              <span class="matrix-color-dot" style="background-color: ${colHex}; width: 10px; height: 10px;"></span>
+            <div class="all-offer-color-tag" style="padding: 3px 10px; font-size: 0.74rem;">
+              <span class="matrix-color-dot" style="background-color: ${colHex}; width: 11px; height: 11px;"></span>
               <span>${color}</span>
             </div>
           ` : ''}
+          <span style="font-size: 0.70rem; font-weight: 700; color: var(--accent-green); background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); padding: 2px 8px; border-radius: 4px;">🛡️ 1 Ano de Garantia Apple</span>
         </div>
-      </div>
-      <div class="sim-cash-price-box">
-        <span class="sim-cash-label">À Vista (PIX / Dinheiro)</span>
-        <span class="sim-cash-val">${formatBRL(currentSimData.cashPrice)}</span>
       </div>
     </div>
 
+    <!-- Dual Highlight Price Banners -->
+    <div class="sim-dual-highlights">
+      <div class="sim-highlight-card pix">
+        <div class="sim-highlight-badge">💵 À Vista no PIX / Dinheiro</div>
+        <div class="sim-highlight-val" id="simHeroCashVal">${formatBRL(currentSimData.cashPrice)}</div>
+        <div class="sim-highlight-sub">Melhor condição com desconto aplicado</div>
+      </div>
+      <div class="sim-highlight-card card">
+        <div class="sim-highlight-badge">💳 Saldo a Parcelar no Cartão</div>
+        <div class="sim-highlight-val" id="simHeroCardVal">${formatBRL(currentSimData.cashPrice)}</div>
+        <div class="sim-highlight-sub" id="simHeroCardSub">Parcele em até 18x no cartão de crédito</div>
+      </div>
+    </div>
+
+    <!-- Entry Section (Abatimento) -->
     <div class="sim-entry-section">
-      <div class="sim-entry-input-row">
-        <div class="sim-entry-label-wrap">
-          <span class="sim-entry-title">Entrada / Sinal (PIX ou Dinheiro)</span>
-          <span class="sim-entry-desc">Abata um valor pago na hora e parcele apenas a diferença</span>
+      <div class="sim-entry-row">
+        <div class="sim-entry-text">
+          <h4>💡 Deseja dar uma Entrada no PIX/Dinheiro?</h4>
+          <p>Abata um valor pago no ato e parcele apenas o saldo restante no cartão</p>
         </div>
-        <div class="sim-entry-input-wrap">
+        <div class="sim-entry-input-box">
           <span class="sim-entry-prefix">R$</span>
           <input type="number" id="simEntryInput" class="sim-entry-input" placeholder="0,00" value="" min="0" max="${currentSimData.cashPrice}" oninput="recalculateSimulator()">
         </div>
       </div>
-      <div class="sim-quick-entries">
-        <button class="sim-quick-pill active" onclick="setQuickEntry(0)">Sem Entrada</button>
-        <button class="sim-quick-pill" onclick="setQuickEntry(500)">Entrada R$ 500</button>
-        <button class="sim-quick-pill" onclick="setQuickEntry(1000)">Entrada R$ 1.000</button>
-        <button class="sim-quick-pill" onclick="setQuickEntry(2000)">Entrada R$ 2.000</button>
+      <div class="sim-entry-pills">
+        <button class="sim-pill-btn active" onclick="setQuickEntry(0)">Sem Entrada</button>
+        <button class="sim-pill-btn" onclick="setQuickEntry(500)">Entrada R$ 500</button>
+        <button class="sim-pill-btn" onclick="setQuickEntry(1000)">Entrada R$ 1.000</button>
+        <button class="sim-pill-btn" onclick="setQuickEntry(1500)">Entrada R$ 1.500</button>
+        <button class="sim-pill-btn" onclick="setQuickEntry(2000)">Entrada R$ 2.000</button>
+        <button class="sim-pill-btn" onclick="setQuickEntry(3000)">Entrada R$ 3.000</button>
       </div>
     </div>
 
-    <div class="sim-installments-grid" id="simInstallmentsGrid">
-      <!-- Rendered via recalculateSimulator -->
+    <!-- 3 Featured Popular Plans -->
+    <div class="sim-featured-plans" id="simFeaturedPlans">
+      <!-- Injected via recalculateSimulator -->
     </div>
 
+    <!-- Complete Installment Table Title -->
+    <div class="sim-installments-section-title">Todas as Opções de Parcelamento (1x até 18x)</div>
+
+    <!-- Full 1x to 18x Grid -->
+    <div class="sim-installments-grid" id="simInstallmentsGrid">
+      <!-- Injected via recalculateSimulator -->
+    </div>
+
+    <!-- Footer Actions -->
     <div class="sim-footer-actions">
-      <span class="sim-info-note">Taxas calculadas automaticamente com base na maquininha da loja.</span>
+      <span class="sim-info-note">✓ Parcelas calculadas para aprovação rápida na maquininha da loja.</span>
       <button class="sim-btn-copy-wa" onclick="copyCardSimulationToWhatsApp()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
           <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
         </svg>
-        <span>Copiar Orçamento para WhatsApp</span>
+        <span>📲 Enviar Proposta para WhatsApp</span>
       </button>
     </div>
   `;
@@ -2095,41 +2120,81 @@ window.setQuickEntry = function(val) {
     inp.value = val > 0 ? val : '';
     recalculateSimulator();
   }
-  const pills = document.querySelectorAll('.sim-quick-pill');
+  const pills = document.querySelectorAll('.sim-pill-btn');
   pills.forEach(p => p.classList.toggle('active', p.textContent.includes(String(val)) || (val === 0 && p.textContent.includes('Sem Entrada'))));
 };
 
 window.recalculateSimulator = function() {
   const inp = document.getElementById('simEntryInput');
-  const container = document.getElementById('simInstallmentsGrid');
-  if (!container) return;
+  const featContainer = document.getElementById('simFeaturedPlans');
+  const gridContainer = document.getElementById('simInstallmentsGrid');
+  const heroCardVal = document.getElementById('simHeroCardVal');
+  const heroCardSub = document.getElementById('simHeroCardSub');
+
+  if (!gridContainer) return;
 
   const entryVal = parseFloat(inp?.value) || 0;
   currentSimData.entryAmount = entryVal;
+  const balance = Math.max(0, currentSimData.cashPrice - entryVal);
 
-  let html = '';
+  if (heroCardVal) {
+    heroCardVal.textContent = formatBRL(balance);
+  }
+  if (heroCardSub) {
+    heroCardSub.textContent = entryVal > 0 
+      ? `Entrada de ${formatBRL(entryVal)} + saldo em até 18x`
+      : `Parcele o valor integral em até 18x no cartão`;
+  }
+
+  // 1. Featured Top 3 Plans (10x, 12x, 18x)
+  if (featContainer) {
+    const sim10 = calculateInstallment(currentSimData.cashPrice, entryVal, 10);
+    const sim12 = calculateInstallment(currentSimData.cashPrice, entryVal, 12);
+    const sim18 = calculateInstallment(currentSimData.cashPrice, entryVal, 18);
+
+    featContainer.innerHTML = `
+      <div class="sim-featured-card">
+        <span class="sim-featured-badge" style="background: #2997ff;">Mais Procurado</span>
+        <span class="sim-featured-plan-name">Plano 10x</span>
+        <div class="sim-featured-monthly">${formatBRL(sim10.monthlyAmount)} <small>/mês</small></div>
+        <div class="sim-featured-total">Total: ${formatBRL(sim10.totalAmount + entryVal)}</div>
+      </div>
+      <div class="sim-featured-card" style="border-color: var(--accent-green);">
+        <span class="sim-featured-badge">⭐ Padrão Apple</span>
+        <span class="sim-featured-plan-name">Plano 12x</span>
+        <div class="sim-featured-monthly" style="color: var(--accent-green);">${formatBRL(sim12.monthlyAmount)} <small>/mês</small></div>
+        <div class="sim-featured-total">Total: ${formatBRL(sim12.totalAmount + entryVal)}</div>
+      </div>
+      <div class="sim-featured-card">
+        <span class="sim-featured-badge" style="background: #a855f7;">Menor Parcela</span>
+        <span class="sim-featured-plan-name">Plano 18x</span>
+        <div class="sim-featured-monthly" style="color: #a855f7;">${formatBRL(sim18.monthlyAmount)} <small>/mês</small></div>
+        <div class="sim-featured-total">Total: ${formatBRL(sim18.totalAmount + entryVal)}</div>
+      </div>
+    `;
+  }
+
+  // 2. Full 1x to 18x Grid
+  let gridHtml = '';
   for (let i = 1; i <= 18; i++) {
     const sim = calculateInstallment(currentSimData.cashPrice, entryVal, i);
-    const label = i === 1 ? '1x (À vista no Cartão)' : `${i}x`;
+    const label = i === 1 ? '1x' : `${i}x`;
 
-    html += `
+    gridHtml += `
       <div class="sim-card">
-        <div class="sim-card-top">
+        <div class="sim-card-left">
           <span class="sim-card-badge">${label}</span>
-          <span class="sim-card-rate-badge">${sim.totalRate.toFixed(2)}% taxa</span>
+          <span class="sim-card-monthly">${formatBRL(sim.monthlyAmount)}<span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500;">/mês</span></span>
         </div>
-        <div class="sim-card-monthly">
-          ${formatBRL(sim.monthlyAmount)} <small>/mês</small>
-        </div>
-        <div class="sim-card-total">
-          Total: ${formatBRL(sim.totalAmount + entryVal)}
-          ${entryVal > 0 ? `<span style="color: var(--text-muted); font-size: 0.68rem;"> (incl. entrada)</span>` : ''}
+        <div class="sim-card-right">
+          <span class="sim-card-total-label">Total</span>
+          <span class="sim-card-total-val">${formatBRL(sim.totalAmount + entryVal)}</span>
         </div>
       </div>
     `;
   }
 
-  container.innerHTML = html;
+  gridContainer.innerHTML = gridHtml;
 };
 
 window.copyCardSimulationToWhatsApp = function() {
@@ -2137,34 +2202,38 @@ window.copyCardSimulationToWhatsApp = function() {
   const entryVal = d.entryAmount || 0;
   const balance = Math.max(0, d.cashPrice - entryVal);
 
-  let text = `📱 *ORÇAMENTO OFICIAL — LOJA*\n`;
-  text += `Modelo: *${d.model}* ${d.storage ? `(${d.storage})` : ''} ${d.color ? `\nCor: ${d.color}` : ''}\n`;
-  text += `----------------------------------------\n`;
-  text += `💵 *À VISTA (PIX / Dinheiro):* ${formatBRL(d.cashPrice)}\n`;
+  let text = `🍏 *PROPOSTA COMERCIAL — LOJA OFICIAL*\n\n`;
+  text += `📱 *Produto:* ${d.model} ${d.storage ? `(${d.storage})` : ''} ${d.color ? `\n🎨 *Cor:* ${d.color}` : ''}\n`;
+  text += `🛡️ *Condição:* 100% Lacrado Original com 1 Ano de Garantia Apple\n\n`;
+  text += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  text += `💵 *À VISTA NO PIX / DINHEIRO:* ${formatBRL(d.cashPrice)}\n`;
+  
   if (entryVal > 0) {
-    text += `💰 *Entrada Abatida:* ${formatBRL(entryVal)}\n`;
-    text += `💳 *Saldo a Parcelar no Cartão:* ${formatBRL(balance)}\n`;
+    text += `💰 *Entrada Abatida (PIX):* ${formatBRL(entryVal)}\n`;
+    text += `💳 *Saldo Restante no Cartão:* ${formatBRL(balance)}\n`;
   }
-  text += `----------------------------------------\n`;
-  text += `💳 *OPÇÕES DE PARCELAMENTO NO CARTÃO:*\n`;
+  
+  text += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  text += `💳 *CONDIÇÕES DE PARCELAMENTO NO CARTÃO:*\n\n`;
 
   [1, 2, 3, 4, 6, 8, 10, 12, 14, 18].forEach(n => {
     const sim = calculateInstallment(d.cashPrice, entryVal, n);
-    const label = n === 1 ? '1x no Cartão' : `${n}x`;
-    text += `• *${label}:* ${formatBRL(sim.monthlyAmount)}/mês (Total: ${formatBRL(sim.totalAmount + entryVal)})\n`;
+    const label = n === 1 ? '1x (À vista)' : `${n}x`;
+    text += `• *${label}:* ${formatBRL(sim.monthlyAmount)} / mês  _(Total: ${formatBRL(sim.totalAmount + entryVal)})_\n`;
   });
 
-  text += `----------------------------------------\n`;
-  text += `Valores válidos para fechamento hoje. Consulte disponibilidade!`;
+  text += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  text += `⚡ *Condição válida para fechamento imediato!*\n`;
+  text += `Ficou com alguma dúvida ou deseja reservar o seu aparelho agora?`;
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(() => {
-      alert('Orçamento de parcelamento copiado com sucesso para a área de transferência! Cole no WhatsApp.');
+      alert('✅ Proposta comercial copiada com sucesso para a área de transferência! Cole na conversa do WhatsApp com o cliente.');
     }).catch(() => {
-      prompt('Copie o orçamento abaixo para o WhatsApp:', text);
+      prompt('Copie a proposta abaixo para o WhatsApp:', text);
     });
   } else {
-    prompt('Copie o orçamento abaixo para o WhatsApp:', text);
+    prompt('Copie a proposta abaixo para o WhatsApp:', text);
   }
 };
 
