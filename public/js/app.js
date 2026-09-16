@@ -621,16 +621,17 @@ window.selectColorFromTopic = function(colorName) {
 
 // 6. Render Product Cards, Active Model Banner & Color Prices Topic
 function render() {
+  if (!productsGrid) return;
   const { filtered, lowestMap } = getFilteredProducts();
-  shownCountEl.textContent = filtered.length;
+  if (shownCountEl) shownCountEl.textContent = filtered.length;
 
   // Active Model Banner update
   if (selectedModel) {
-    activeModelBanner.style.display = 'flex';
-    activeModelNameText.textContent = selectedModel;
-    activeModelCountText.textContent = filtered.length;
+    if (activeModelBanner) activeModelBanner.style.display = 'flex';
+    if (activeModelNameText) activeModelNameText.textContent = selectedModel;
+    if (activeModelCountText) activeModelCountText.textContent = filtered.length;
   } else {
-    activeModelBanner.style.display = 'none';
+    if (activeModelBanner) activeModelBanner.style.display = 'none';
   }
 
   // Render Tópico de Melhores Preços por Cor (com proteção try/catch)
@@ -722,6 +723,7 @@ function render() {
 
 // 7. AUTOCOMPLETE SEARCH LOGIC
 function renderAutocomplete(term) {
+  if (!autocompleteDropdown) return;
   const t = term.trim();
   if (!t) {
     autocompleteDropdown.classList.remove('open');
@@ -783,54 +785,57 @@ function renderAutocomplete(term) {
 }
 
 // Search input events (instant model & keyword search)
-searchInput.addEventListener('input', (e) => {
-  const val = e.target.value;
-  searchClearBtn.style.display = val ? 'flex' : 'none';
+if (searchInput) {
+  searchInput.addEventListener('input', (e) => {
+    const val = e.target.value;
+    if (searchClearBtn) searchClearBtn.style.display = val ? 'flex' : 'none';
 
-  if (!val.trim()) {
+    if (!val.trim()) {
+      selectedModel = '';
+      searchQuery = '';
+      if (autocompleteDropdown) autocompleteDropdown.classList.remove('open');
+      updateDynamicFilters();
+      render();
+      return;
+    }
+
     selectedModel = '';
-    searchQuery = '';
-    autocompleteDropdown.classList.remove('open');
+    searchQuery = val.trim();
     updateDynamicFilters();
     render();
-    return;
-  }
 
-  // Real-time search as user types
-  selectedModel = '';
-  searchQuery = val.trim();
-  updateDynamicFilters();
-  render();
+    renderAutocomplete(val);
+  });
 
-  renderAutocomplete(val);
-});
+  searchInput.addEventListener('focus', () => {
+    if (searchInput.value.trim()) {
+      renderAutocomplete(searchInput.value);
+    }
+  });
 
-searchInput.addEventListener('focus', () => {
-  if (searchInput.value.trim()) {
-    renderAutocomplete(searchInput.value);
-  }
-});
-
-searchInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    const firstItem = autocompleteDropdown.querySelector('.autocomplete-item');
-    if (firstItem && autocompleteDropdown.classList.contains('open')) {
-      firstItem.click();
-    } else {
-      autocompleteDropdown.classList.remove('open');
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const firstItem = autocompleteDropdown ? autocompleteDropdown.querySelector('.autocomplete-item') : null;
+      if (firstItem && autocompleteDropdown && autocompleteDropdown.classList.contains('open')) {
+        firstItem.click();
+      } else {
+        if (autocompleteDropdown) autocompleteDropdown.classList.remove('open');
+        searchInput.blur();
+      }
+    } else if (e.key === 'Escape') {
+      if (autocompleteDropdown) autocompleteDropdown.classList.remove('open');
       searchInput.blur();
     }
-  } else if (e.key === 'Escape') {
-    autocompleteDropdown.classList.remove('open');
-    searchInput.blur();
-  }
-});
+  });
+}
 
-searchClearBtn.addEventListener('click', () => {
-  clearSelectedModel();
-  searchInput.focus();
-});
+if (searchClearBtn) {
+  searchClearBtn.addEventListener('click', () => {
+    clearSelectedModel();
+    if (searchInput) searchInput.focus();
+  });
+}
 
 // Shortcut ⌘K / Ctrl+K to focus search & Esc to close
 document.addEventListener('keydown', (e) => {
@@ -963,19 +968,21 @@ socket.on('pxt_connection_status', (status) => {
 });
 
 // 10. Secondary Filter Change Events
-categoryNav.addEventListener('click', (e) => {
-  const btn = e.target.closest('.category-pill');
-  if (!btn) return;
-  categoryNav.querySelectorAll('.category-pill').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentCategory = btn.dataset.category;
-  selectedModel = '';
-  searchInput.value = '';
-  searchClearBtn.style.display = 'none';
-  autocompleteDropdown.classList.remove('open');
-  updateDynamicFilters();
-  render();
-});
+if (categoryNav) {
+  categoryNav.addEventListener('click', (e) => {
+    const btn = e.target.closest('.category-pill');
+    if (!btn) return;
+    categoryNav.querySelectorAll('.category-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentCategory = btn.dataset.category;
+    selectedModel = '';
+    if (searchInput) searchInput.value = '';
+    if (searchClearBtn) searchClearBtn.style.display = 'none';
+    if (autocompleteDropdown) autocompleteDropdown.classList.remove('open');
+    updateDynamicFilters();
+    render();
+  });
+}
 
 if (storageFilter) {
   storageFilter.addEventListener('change', (e) => {
@@ -1015,7 +1022,9 @@ if (dateFilterSelect) {
   });
 }
 
-clearFiltersBtn.addEventListener('click', resetFilters);
+if (clearFiltersBtn) {
+  clearFiltersBtn.addEventListener('click', resetFilters);
+}
 
 // 11. Theme Toggle (Dark / Light)
 const themeBtn = document.getElementById('themeBtn');
