@@ -198,6 +198,7 @@ async function fetchProducts() {
 
     console.log(`[Catalog] Carga concluída: ${appleCount} produtos Apple Novos carregados. (${ignoredCount} Android/Seminovos ignorados)`);
     isSyncing = false;
+    saveCatalogSnapshot();
 
     // Notify connected local clients
     localIo.emit('catalog_reloaded', {
@@ -533,54 +534,88 @@ function isCpoProduct(p) {
   return n.includes('CPO') || d.includes('CPO') || r.includes('CPO');
 }
 
+// Salvamento e gestão de snapshots históricos de catálogo por data
+function saveCatalogSnapshot() {
+  try {
+    const dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayPath = path.join(dataDir, `snapshot_${todayStr}.json`);
+    const latestPath = path.join(dataDir, `snapshot_latest.json`);
+
+    const productsList = Array.from(productsMap.values()).filter(p => !isCpoProduct(p));
+    if (productsList.length > 0) {
+      fs.writeFileSync(todayPath, JSON.stringify(productsList), 'utf-8');
+      fs.writeFileSync(latestPath, JSON.stringify(productsList), 'utf-8');
+    }
+  } catch (err) {
+    console.warn('[Snapshot] Erro ao salvar snapshot:', err.message);
+  }
+}
+
+function getHistoricalCatalog(dateParam) {
+  try {
+    const dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+
+    const files = fs.readdirSync(dataDir).filter(f => f.startsWith('snapshot_') && f.endsWith('.json'));
+
+    // Tenta encontrar snapshot de data específica
+    if (dateParam && dateParam !== 'yesterday') {
+      const match = files.find(f => f.includes(dateParam));
+      if (match) {
+        const content = fs.readFileSync(path.join(dataDir, match), 'utf-8');
+        return JSON.parse(content);
+      }
+    }
+
+    // Se for 'yesterday', busca o snapshot anterior ou snapshot_latest / cached_catalog
+    const snapshotFiles = files.filter(f => f !== 'snapshot_latest.json').sort().reverse();
+    if (snapshotFiles.length > 1) {
+      const yesterdayContent = fs.readFileSync(path.join(dataDir, snapshotFiles[1]), 'utf-8');
+      return JSON.parse(yesterdayContent);
+    }
+    if (snapshotFiles.length > 0) {
+      const content = fs.readFileSync(path.join(dataDir, snapshotFiles[0]), 'utf-8');
+      return JSON.parse(content);
+    }
+
+    const cachedPath = path.join(dataDir, 'cached_catalog.json');
+    if (fs.existsSync(cachedPath)) {
+      const content = fs.readFileSync(cachedPath, 'utf-8');
+      return JSON.parse(content);
+    }
+  } catch (err) {
+    console.warn('[Snapshot] Erro ao carregar snapshot histórico:', err.message);
+  }
+
+  // Fallback: se não houver arquivo antigo ainda, retorna os produtos atuais filtrados
+  return Array.from(productsMap.values()).filter(p => !isCpoProduct(p));
+}
+
 // --- ROTAS DE PRODUTOS (ACESSO DIRETO E HISTÓRICO POR DATA) ---
 app.get('/api/products', async (req, res) => {
   const { date } = req.query;
 
   // Se o cliente solicitou histórico por data (ex: date=yesterday ou date=15-09)
   if (date && date !== 'today' && date !== 'latest' && date !== latestDate) {
-    try {
-      if (!authToken) await authenticate();
-      let targetDate = date;
+    const historicalProducts = getHistoricalCatalog(date);
+    const todayDate = new Date();
+    const yesterdayDate = new Date(todayDate);
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const pad = n => String(n).padStart(2, '0');
+    const yesterdayLabel = `${pad(yesterdayDate.getDate())}-${pad(yesterdayDate.getMonth() + 1)}`;
 
-      if (date === 'yesterday') {
-        const today = new Date();
-        const y = new Date(today);
-        y.setDate(y.getDate() - 1);
-        const pad = n => String(n).padStart(2, '0');
-        targetDate = `${pad(y.getDate())}-${pad(y.getMonth() + 1)}`;
-      }
-
-      console.log(`[API] Buscando produtos históricos para a data: ${targetDate}...`);
-      const resp = await axios.get(`${PXT_BASE_URL}/products?date=${targetDate}`, {
-        headers: { Authorization: `Bearer ${authToken}` }
-      });
-
-      let payload = resp.data;
-      if (payload && typeof payload.data === 'string') {
-        try { payload = JSON.parse(payload.data); } catch (e) {}
-      }
-
-      const rawList = Array.isArray(payload) ? payload : (payload.data || payload.products || []);
-      const historicalProducts = [];
-      for (const p of rawList) {
-        if (isAppleNovo(p) && !isCpoProduct(p)) {
-          historicalProducts.push(p);
-        }
-      }
-
-      return res.json({
-        success: true,
-        total: historicalProducts.length,
-        dollarRate: payload.dollarRate || dollarRate,
-        dollarVariation: payload.dollarVariation || dollarVariation,
-        latestDate: targetDate,
-        isHistorical: true,
-        data: historicalProducts
-      });
-    } catch (err) {
-      console.error('[API] Erro ao buscar histórico de produtos:', err.message);
-    }
+    return res.json({
+      success: true,
+      total: historicalProducts.length,
+      dollarRate,
+      dollarVariation,
+      latestDate: date === 'yesterday' ? yesterdayLabel : date,
+      isHistorical: true,
+      data: historicalProducts
+    });
   }
 
   // Catálogo padrão (Produtos atuais / em tempo real)
