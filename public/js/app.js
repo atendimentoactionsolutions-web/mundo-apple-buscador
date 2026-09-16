@@ -1185,16 +1185,17 @@ function refreshCurrentView() {
   }
 }
 
-// Renderizador da View Loja Física (Telão)
+// Renderizador da View Loja Física (Telão - Catálogo para Clientes)
 function renderStoreFront() {
   const container = document.getElementById('storefrontGrid');
   const countText = document.getElementById('sfShownCountText');
   if (!container) return;
 
   const sLower = sfSearchQuery.trim().toLowerCase();
+  const searchTokens = normalizeSearchText(sLower).split(' ').filter(Boolean);
 
   // Filtrar produtos válidos (exclui CPO)
-  let list = allProducts.filter(p => {
+  const filtered = allProducts.filter(p => {
     if (isCpoProduct(p)) return false;
     if (!p.price || p.price <= 0) return false;
 
@@ -1202,91 +1203,151 @@ function renderStoreFront() {
     if (sfCurrentCategory !== 'ALL') {
       const cat = (p.category || '').toUpperCase().trim();
       const name = (p.name || '').toUpperCase();
-      if (sfCurrentCategory === 'IPH' && (cat !== 'IPH' && !name.includes('IPHONE'))) return false;
-      if (sfCurrentCategory === 'MCB' && (cat !== 'MCB' && !name.includes('MACBOOK') && !name.includes('MAC MINI') && !name.includes('MAC STUDIO'))) return false;
-      if (sfCurrentCategory === 'IPAD' && (cat !== 'IPAD' && cat !== 'IPD' && !name.includes('IPAD'))) return false;
-      if (sfCurrentCategory === 'RLG' && (cat !== 'RLG' && !name.includes('WATCH') && !name.includes('SERIES') && !name.includes('ULTRA'))) return false;
-      if (sfCurrentCategory === 'PODS' && (cat !== 'PODS' && !name.includes('AIRPOD'))) return false;
-      if (sfCurrentCategory === 'ACSS' && (cat !== 'ACSS' && !name.includes('PENCIL') && !name.includes('MAGIC'))) return false;
-      if (sfCurrentCategory === 'IMAC' && (cat !== 'IMAC' && !name.includes('IMAC'))) return false;
+      if (sfCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
+      if (sfCurrentCategory === 'MCB' && !(cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO') || name.includes('IMAC'))) return false;
+      if (sfCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
+      if (sfCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
+      if (sfCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
+      if (sfCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR'))) return false;
+      if (sfCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
     }
 
     // Filtro por texto digitado
-    if (sLower) {
-      const tokens = normalizeSearchText(sLower).split(' ').filter(Boolean);
-      if (!matchSearchTokens(p, tokens)) return false;
+    if (searchTokens.length > 0) {
+      if (!matchSearchTokens(p, searchTokens)) return false;
     }
 
     return true;
   });
 
-  // Agrupar por variação (Modelo + Armazenamento + Cor + RAM) escolhendo menor custo + margem
-  const variantMap = new Map();
+  // Agrupamento por Modelo e Variante
+  const modelFamilies = new Map();
 
-  list.forEach(p => {
+  filtered.forEach(p => {
+    const modelKey = (p.name || 'Apple').trim().toUpperCase();
     const ram = getMacBookRam(p);
-    const colorClean = (p.color || '').trim().toUpperCase() !== 'PADRÃO' ? (p.color || '').trim().toUpperCase() : '';
-    const key = `${(p.name || '').trim().toUpperCase()}_${(p.storage || '').trim().toUpperCase()}_${colorClean}_${ram.toUpperCase()}`;
-    
+    const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
+    const variantKey = ram ? `${storageKey}__${ram}` : storageKey;
     const retailPrice = getProductRetailPrice(p);
-    
-    if (!variantMap.has(key) || retailPrice < variantMap.get(key).retailPrice) {
-      variantMap.set(key, {
-        product: p,
-        retailPrice,
-        ram
+
+    if (!modelFamilies.has(modelKey)) {
+      modelFamilies.set(modelKey, {
+        modelName: (p.name || 'Apple').trim(),
+        category: p.category,
+        storagesMap: new Map()
+      });
+    }
+
+    const fam = modelFamilies.get(modelKey);
+    if (!fam.storagesMap.has(variantKey)) {
+      fam.storagesMap.set(variantKey, {
+        model: fam.modelName,
+        storage: (p.storage || '').trim(),
+        ram: ram,
+        colors: new Map()
+      });
+    }
+
+    const stGrp = fam.storagesMap.get(variantKey);
+    const colorName = (p.color || 'Padrão').trim();
+    const colorKey = colorName.toUpperCase();
+    const curColor = stGrp.colors.get(colorKey);
+
+    if (!curColor || retailPrice < curColor.minRetailPrice) {
+      stGrp.colors.set(colorKey, {
+        color: colorName,
+        minRetailPrice: retailPrice,
+        ram: ram
       });
     }
   });
 
-  const variants = Array.from(variantMap.values());
-
-  // Ordenar pela hierarquia de modelos Apple
-  variants.sort((a, b) => {
-    const rankA = getModelOrderRank(a.product.name, a.product.category);
-    const rankB = getModelOrderRank(b.product.name, b.product.category);
+  // Ordenar famílias de modelos
+  const sortedFamilies = Array.from(modelFamilies.values()).sort((a, b) => {
+    const rankA = getModelOrderRank(a.modelName, a.category);
+    const rankB = getModelOrderRank(b.modelName, b.category);
     if (rankA !== rankB) return rankA - rankB;
-    return a.retailPrice - b.retailPrice;
+    return a.modelName.localeCompare(b.modelName);
   });
 
   if (countText) {
-    countText.textContent = `Mostrando ${variants.length} opções no Catálogo da Loja`;
+    countText.textContent = `Mostrando ${sortedFamilies.length} modelos na Loja Física`;
   }
 
-  if (variants.length === 0) {
+  if (sortedFamilies.length === 0) {
     container.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
-        <h3>Nenhum produto encontrado na loja com estes filtros</h3>
-        <p style="margin-top: 6px; font-size: 0.9rem;">Tente buscar por outro termo ou selecione a categoria "Todos".</p>
+        <h3 style="font-size: 1.25rem; color: var(--text-primary); margin-bottom: 8px;">Nenhum produto encontrado na loja com estes filtros.</h3>
+        <p style="font-size: 0.9rem;">Tente buscar por outro termo ou selecione a categoria "Todos".</p>
       </div>
     `;
     return;
   }
 
-  container.innerHTML = variants.map(v => {
-    const p = v.product;
-    const catLabel = (p.category || 'APPLE').toUpperCase();
+  let html = '';
+  sortedFamilies.forEach(fam => {
+    const storages = Array.from(fam.storagesMap.values()).sort((a, b) => {
+      const rA = getStorageRank(a.storage);
+      const rB = getStorageRank(b.storage);
+      if (rA !== rB) return rA - rB;
+      return (parseInt(a.ram) || 0) - (parseInt(b.ram) || 0);
+    });
 
-    return `
-      <div class="storefront-card">
-        <div class="storefront-card-header">
-          <span class="storefront-category-badge">${escapeHtml(catLabel)}</span>
-          <h3 class="storefront-model-title">${escapeHtml(p.name)}</h3>
-          <div class="storefront-specs">
-            ${p.storage ? `<span class="storefront-spec-tag">💾 ${escapeHtml(p.storage)}</span>` : ''}
-            ${v.ram ? `<span class="storefront-spec-tag">⚡ ${escapeHtml(v.ram)}</span>` : ''}
-            ${p.color && p.color.toUpperCase() !== 'PADRÃO' ? `<span class="storefront-spec-tag">🎨 ${escapeHtml(p.color)}</span>` : ''}
-            ${p.region ? `<span class="storefront-spec-tag">🌐 ${escapeHtml(p.region)}</span>` : ''}
-          </div>
-        </div>
+    const catIcon = getCategoryIcon(fam.modelName, fam.category);
+    const storagesCount = storages.length;
 
-        <div class="storefront-price-block">
-          <span class="storefront-price-label">Preço à Vista</span>
-          <span class="storefront-price-val">${formatBRL(v.retailPrice)}</span>
+    html += `
+      <div class="pod-model-section">
+        <div class="pod-model-section-left">
+          <span class="pod-model-section-icon">${catIcon}</span>
+          <h2 class="pod-model-section-title">${fam.modelName}</h2>
         </div>
+        <span class="pod-model-section-badge">${storagesCount} ${storagesCount === 1 ? 'configuração' : 'configurações'}</span>
       </div>
     `;
-  }).join('');
+
+    storages.forEach(grp => {
+      const colorsArr = Array.from(grp.colors.values()).sort((a, b) => a.minRetailPrice - b.minRetailPrice);
+
+      const colorRowsHtml = colorsArr.map(col => {
+        const hex = getAppleColorHex(col.color);
+
+        return `
+          <div class="matrix-color-row">
+            <div class="matrix-color-left">
+              <span class="matrix-color-dot" style="background-color: ${hex};" title="Cor: ${col.color}"></span>
+              <span class="matrix-color-name" title="${col.color}">${col.color}</span>
+            </div>
+            <div class="matrix-color-right">
+              <div class="matrix-cost-group">
+                <span class="matrix-cost-label">À VISTA</span>
+                <span class="matrix-retail-val">${formatBRL(col.minRetailPrice)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      html += `
+        <article class="matrix-card">
+          <div class="matrix-card-header">
+            <div class="matrix-card-title-wrap">
+              <h3 class="matrix-card-title" title="${grp.model}">${grp.model}</h3>
+              <div style="display: flex; gap: 6px; align-items: center; margin-top: 3px; flex-wrap: wrap;">
+                ${grp.ram ? `<span class="matrix-card-ram-badge" style="background: rgba(0, 113, 227, 0.18); color: #2997ff; border: 1px solid rgba(41, 151, 255, 0.35); padding: 1px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;">⚡ ${grp.ram} RAM</span>` : ''}
+                ${grp.storage ? `<span class="matrix-card-storage">${grp.storage}</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="matrix-card-body">
+            ${colorRowsHtml}
+          </div>
+        </article>
+      `;
+    });
+  });
+
+  container.innerHTML = html;
 }
 
 // Category Count Badges Updater for Preços do Dia

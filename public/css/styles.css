@@ -1707,9 +1707,10 @@ body.light-theme .product-card:hover {
 }
 
 .pod-toolbar {
-  max-width: 1440px;
+  max-width: 1780px;
+  width: 96%;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1962,9 +1963,10 @@ body.light-theme .product-card:hover {
 
 /* Category Filter Bar */
 .pod-categories-wrapper {
-  max-width: 1440px;
+  max-width: 1780px;
+  width: 96%;
   margin: 0 auto 16px;
-  padding: 0 24px;
+  padding: 0 16px;
 }
 
 .pod-categories-list {
@@ -2037,9 +2039,10 @@ body.light-theme .pod-cat-pill.active .pod-cat-count {
 
 /* Info Summary Bar */
 .pod-info-summary {
-  max-width: 1440px;
+  max-width: 1780px;
+  width: 96%;
   margin: 0 auto 16px;
-  padding: 0 24px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2057,47 +2060,79 @@ body.light-theme .pod-cat-pill.active .pod-cat-count {
 }
 
 /* ==========================================================================
-   MATRIX GRID (4 COLUMNS DESKTOP / EXACT PXT REPLICATION)
+   MATRIX GRID (6 COLUMNS DESKTOP / EXACT PXT REPLICATION)
    ========================================================================== */
 
-.pod-matrix-container {
-  max-width: 1440px;
+.pod-matrix-container,
+.storefront-grid {
+  max-width: 1780px;
+  width: 96%;
   margin: 0 auto 60px;
-  padding: 0 24px;
+  padding: 0 16px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
   align-items: start;
 }
 
-@media (max-width: 1200px) {
-  .pod-matrix-container {
+@media (min-width: 1540px) {
+  .pod-matrix-container,
+  .storefront-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 1539px) and (min-width: 1260px) {
+  .pod-matrix-container,
+  .storefront-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 1259px) and (min-width: 1020px) {
+  .pod-matrix-container,
+  .storefront-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 1019px) and (min-width: 760px) {
+  .pod-matrix-container,
+  .storefront-grid {
     grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
   }
 }
 
-@media (max-width: 900px) {
-  .pod-matrix-container {
+@media (max-width: 759px) and (min-width: 500px) {
+  .pod-matrix-container,
+  .storefront-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
   }
 }
 
-@media (max-width: 620px) {
-  .pod-matrix-container {
+@media (max-width: 499px) {
+  .pod-matrix-container,
+  .storefront-grid {
     grid-template-columns: 1fr;
-    padding: 0 12px;
+    gap: 8px;
+    padding: 0 10px;
   }
 }
 
-/* Model Section Header in Preços do Dia */
+/* Model Section Header in Preços do Dia & Loja Física */
 .pod-model-section {
   grid-column: 1 / -1;
-  margin-top: 32px;
-  margin-bottom: 4px;
+  margin-top: 24px;
+  margin-bottom: 2px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 18px;
+  padding: 10px 16px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-left: 4px solid var(--accent-green);
@@ -2120,9 +2155,9 @@ body.light-theme .pod-cat-pill.active .pod-cat-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
   background: var(--bg-pill);
   border: 1px solid var(--border-subtle);
   color: var(--accent-green);
@@ -2130,13 +2165,13 @@ body.light-theme .pod-cat-pill.active .pod-cat-count {
 }
 
 .pod-model-section-svg {
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
   stroke: currentColor;
 }
 
 .pod-model-section-title {
-  font-size: 0.98rem;
+  font-size: 0.92rem;
   font-weight: 800;
   color: var(--text-primary);
   letter-spacing: 0.3px;
@@ -2144,12 +2179,12 @@ body.light-theme .pod-cat-pill.active .pod-cat-count {
 }
 
 .pod-model-section-badge {
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--accent-green);
   background: rgba(16, 185, 129, 0.1);
   border: 1px solid rgba(16, 185, 129, 0.25);
-  padding: 3px 10px;
+  padding: 3px 9px;
   border-radius: var(--radius-full);
 }
 
@@ -2166,13 +2201,13 @@ body.light-theme .pod-cat-pill.active .pod-cat-count {
 }
 
 .matrix-card:hover {
-  border-color: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.22);
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
 
 body.light-theme .matrix-card:hover {
-  border-color: rgba(0, 0, 0, 0.15);
+  border-color: rgba(0, 0, 0, 0.2);
 }
 
 /* Card Header */
@@ -2180,26 +2215,26 @@ body.light-theme .matrix-card:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.02);
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.025);
   border-bottom: 1px solid var(--border-subtle);
-  gap: 8px;
+  gap: 6px;
 }
 
 body.light-theme .matrix-card-header {
-  background: rgba(0, 0, 0, 0.015);
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .matrix-card-title-wrap {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 2px;
   flex: 1;
   min-width: 0;
 }
 
 .matrix-card-title {
-  font-size: 0.86rem;
+  font-size: 0.78rem;
   font-weight: 800;
   color: var(--text-primary);
   text-transform: uppercase;
@@ -2210,23 +2245,24 @@ body.light-theme .matrix-card-header {
 }
 
 .matrix-card-storage {
-  font-size: 0.72rem;
+  font-size: 0.70rem;
   font-weight: 800;
   color: var(--accent-green);
-  background: rgba(16, 185, 129, 0.1);
+  background: rgba(16, 185, 129, 0.12);
   border: 1px solid rgba(16, 185, 129, 0.25);
-  padding: 2px 6px;
+  padding: 1px 6px;
   border-radius: var(--radius-sm);
   white-space: nowrap;
+  align-self: flex-start;
 }
 
 .matrix-card-all-btn {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: var(--radius-full);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   color: var(--text-secondary);
   background: var(--bg-pill);
@@ -2257,10 +2293,10 @@ body.light-theme .matrix-card-all-btn:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 9px 14px;
+  padding: 7px 11px;
   border-bottom: 1px solid var(--border-subtle);
   transition: var(--transition);
-  gap: 10px;
+  gap: 8px;
 }
 
 .matrix-color-row:last-child {
@@ -2268,25 +2304,25 @@ body.light-theme .matrix-card-all-btn:hover {
 }
 
 .matrix-color-row:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 body.light-theme .matrix-color-row:hover {
-  background: rgba(0, 0, 0, 0.02);
+  background: rgba(0, 0, 0, 0.03);
 }
 
 .matrix-color-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   min-width: 0;
   flex: 1;
   cursor: pointer;
 }
 
 .matrix-color-dot {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   border: 1.5px solid rgba(255, 255, 255, 0.25);
   flex-shrink: 0;
@@ -2298,18 +2334,19 @@ body.light-theme .matrix-color-dot {
 }
 
 .matrix-color-name {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.74rem;
+  font-weight: 700;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-transform: uppercase;
 }
 
 .matrix-color-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -2322,22 +2359,28 @@ body.light-theme .matrix-color-dot {
 }
 
 .matrix-cost-label {
-  font-size: 0.58rem;
+  font-size: 0.54rem;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
 }
 
 .matrix-cost-val {
-  font-size: 0.92rem;
+  font-size: 0.86rem;
   font-weight: 800;
   color: var(--text-primary);
 }
 
+.matrix-retail-val {
+  font-size: 0.90rem;
+  font-weight: 800;
+  color: var(--accent-green);
+}
+
 .matrix-wa-btn {
-  width: 28px;
-  height: 28px;
+  width: 25px;
+  height: 25px;
   border-radius: 50%;
   background: #25d366;
   color: #ffffff;
@@ -2348,6 +2391,11 @@ body.light-theme .matrix-color-dot {
   text-decoration: none;
   flex-shrink: 0;
   box-shadow: 0 2px 6px rgba(37, 211, 102, 0.3);
+}
+
+.matrix-wa-btn svg {
+  width: 13px;
+  height: 13px;
 }
 
 .matrix-wa-btn:hover {
