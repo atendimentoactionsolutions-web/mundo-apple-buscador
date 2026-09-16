@@ -128,15 +128,12 @@
 
         <!-- Right Controls: Date, Region, Verified, Export -->
         <div class="pod-controls-right">
-          <!-- Date Widget -->
-          <div class="pod-control-pill date-control" id="podDateText">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
-              <line x1="16" x2="16" y1="2" y2="6"/>
-              <line x1="8" x2="8" y1="2" y2="6"/>
-              <line x1="3" x2="21" y1="10" y2="10"/>
-            </svg>
-            <span id="podDateLabel">qua 09 de set 2026</span>
+          <!-- Date Selection Dropdown (Hoje vs Ontem) -->
+          <div class="select-wrapper pod-region-wrapper date-select-wrapper" title="Alternar entre a tabela de Hoje e do Dia Anterior">
+            <select id="dateFilterSelect" class="pod-select date-select">
+              <option value="today">📅 Tabela de Hoje (Ao vivo)</option>
+              <option value="yesterday">🕒 Tabela de Ontem (Dia Anterior)</option>
+            </select>
           </div>
 
           <!-- Region Filter -->

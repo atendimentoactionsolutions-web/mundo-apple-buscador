@@ -533,8 +533,57 @@ function isCpoProduct(p) {
   return n.includes('CPO') || d.includes('CPO') || r.includes('CPO');
 }
 
-// --- ROTAS DE PRODUTOS (ACESSO DIRETO) ---
-app.get('/api/products', (req, res) => {
+// --- ROTAS DE PRODUTOS (ACESSO DIRETO E HISTÓRICO POR DATA) ---
+app.get('/api/products', async (req, res) => {
+  const { date } = req.query;
+
+  // Se o cliente solicitou histórico por data (ex: date=yesterday ou date=15-09)
+  if (date && date !== 'today' && date !== 'latest' && date !== latestDate) {
+    try {
+      if (!authToken) await authenticate();
+      let targetDate = date;
+
+      if (date === 'yesterday') {
+        const today = new Date();
+        const y = new Date(today);
+        y.setDate(y.getDate() - 1);
+        const pad = n => String(n).padStart(2, '0');
+        targetDate = `${pad(y.getDate())}-${pad(y.getMonth() + 1)}`;
+      }
+
+      console.log(`[API] Buscando produtos históricos para a data: ${targetDate}...`);
+      const resp = await axios.get(`${PXT_BASE_URL}/products?date=${targetDate}`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      });
+
+      let payload = resp.data;
+      if (payload && typeof payload.data === 'string') {
+        try { payload = JSON.parse(payload.data); } catch (e) {}
+      }
+
+      const rawList = Array.isArray(payload) ? payload : (payload.data || payload.products || []);
+      const historicalProducts = [];
+      for (const p of rawList) {
+        if (isAppleNovo(p) && !isCpoProduct(p)) {
+          historicalProducts.push(p);
+        }
+      }
+
+      return res.json({
+        success: true,
+        total: historicalProducts.length,
+        dollarRate: payload.dollarRate || dollarRate,
+        dollarVariation: payload.dollarVariation || dollarVariation,
+        latestDate: targetDate,
+        isHistorical: true,
+        data: historicalProducts
+      });
+    } catch (err) {
+      console.error('[API] Erro ao buscar histórico de produtos:', err.message);
+    }
+  }
+
+  // Catálogo padrão (Produtos atuais / em tempo real)
   const products = Array.from(productsMap.values()).filter(p => !isCpoProduct(p));
   res.json({
     success: true,
@@ -542,7 +591,7 @@ app.get('/api/products', (req, res) => {
     dollarRate,
     dollarVariation,
     latestDate,
-    isSyncing,
+    isHistorical: false,
     data: products
   });
 });

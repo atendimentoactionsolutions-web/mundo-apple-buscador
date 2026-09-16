@@ -44,37 +44,35 @@ function isCpoProduct(p) {
   return n.includes('CPO') || d.includes('CPO') || r.includes('CPO');
 }
 
-// 1. Fetch initial dataset from backend API
-async function loadProducts() {
+let selectedDateMode = 'today';
+
+// 1. Fetch initial dataset from backend API (suporta alternar entre Hoje e Ontem)
+async function loadProducts(dateParam) {
   try {
-    const res = await fetch('/api/products');
+    const target = dateParam || selectedDateMode || 'today';
+    const res = await fetch(`/api/products?date=${target}`);
     if (!res.ok) return;
     const json = await res.json();
     if (json.success && Array.isArray(json.data)) {
       allProducts = json.data.filter(p => !isCpoProduct(p));
-      if (dollarRateText) dollarRateText.textContent = `R$ ${Number(json.dollarRate).toFixed(4)}`;
-      if (dollarVarText) dollarVarText.textContent = `(${Number(json.dollarVariation) >= 0 ? '+' : ''}${Number(json.dollarVariation).toFixed(2)}%)`;
-      if (json.latestDate && dateText) dateText.textContent = json.latestDate;
       if (totalCountEl) totalCountEl.textContent = allProducts.length;
 
-      // Update Toolbar Dollar & Date in Preços do Dia
-      const podDollarRate = document.getElementById('podDollarRate');
-      const podDateLabel = document.getElementById('podDateLabel');
-      if (podDollarRate) {
-        const dVal = Number(json.dollarRate || 5.1253).toFixed(4);
-        const dVar = Number(json.dollarVariation || 0.57);
-        const sign = dVar >= 0 ? '+' : '';
-        podDollarRate.innerHTML = `R$ ${dVal} <small id="podDollarVar">${sign}${dVar.toFixed(2)}%</small>`;
-      }
-      if (podDateLabel && json.latestDate) {
-        podDateLabel.textContent = json.latestDate;
+      // Status Badge e indicador de data ativa
+      const badgeText = document.getElementById('connectionText');
+      const badgeDot = document.getElementById('connectionDot');
+      if (json.isHistorical) {
+        if (badgeText) badgeText.textContent = `TABELA DE ONTEM (${json.latestDate})`;
+        if (badgeDot) badgeDot.style.backgroundColor = '#f59e0b';
+      } else {
+        if (badgeText) badgeText.textContent = 'TEMPO REAL ATIVO';
+        if (badgeDot) badgeDot.style.backgroundColor = 'var(--accent-green)';
       }
 
       updateDynamicFilters();
       refreshCurrentView();
     }
   } catch (err) {
-    console.error('Erro ao carregar produtos:', err);
+    console.error('Erro ao carregar produtos por data:', err);
   }
 }
 
@@ -1006,6 +1004,14 @@ if (supplierFilter) {
   supplierFilter.addEventListener('change', (e) => {
     selectedSupplier = e.target.value;
     render();
+  });
+}
+
+const dateFilterSelect = document.getElementById('dateFilterSelect');
+if (dateFilterSelect) {
+  dateFilterSelect.addEventListener('change', (e) => {
+    selectedDateMode = e.target.value;
+    loadProducts(selectedDateMode);
   });
 }
 
