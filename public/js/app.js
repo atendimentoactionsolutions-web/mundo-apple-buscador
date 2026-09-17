@@ -2044,7 +2044,6 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
               <span>${color}</span>
             </div>
           ` : ''}
-          <span style="font-size: 0.70rem; font-weight: 700; color: var(--accent-green); background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); padding: 2px 8px; border-radius: 4px;">🛡️ 1 Ano de Garantia Apple</span>
         </div>
       </div>
     </div>
@@ -2087,7 +2086,7 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
 
     <!-- Footer Actions -->
     <div class="sim-footer-actions">
-      <span class="sim-info-note">✓ Parcelas calculadas para aprovação rápida na maquininha da loja.</span>
+      <span class="sim-info-note">✓ Parcelas calculadas para a maquininha da loja.</span>
       <button class="sim-btn-copy-wa" onclick="copyCardSimulationToWhatsApp()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
           <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
@@ -2127,11 +2126,9 @@ window.recalculateSimulator = function() {
   for (let i = 1; i <= 18; i++) {
     const sim = calculateInstallment(currentSimData.cashPrice, entryVal, i);
     const label = i === 1 ? '1x' : `${i}x`;
-    const isHighlight = i === 10 || i === 12 || i === 18;
-    const highlightClass = isHighlight ? ' sim-row-highlight' : '';
 
     listHtml += `
-      <div class="sim-row${highlightClass}">
+      <div class="sim-row">
         <div class="sim-row-left">
           <span class="sim-row-badge">${label}</span>
           <div class="sim-row-main">
@@ -2139,9 +2136,8 @@ window.recalculateSimulator = function() {
           </div>
         </div>
         <div class="sim-row-right">
-          <span class="sim-row-total-label">${entryVal > 0 ? 'Total no cartão' : 'Total parcelado'}</span>
+          <span class="sim-row-total-label">Total no cartão</span>
           <span class="sim-row-total-val">${formatBRL(sim.totalAmount)}</span>
-          ${entryVal > 0 ? `<span class="sim-row-total-sub">Total c/ entrada: ${formatBRL(sim.totalAmount + entryVal)}</span>` : ''}
         </div>
       </div>
     `;
@@ -2155,9 +2151,8 @@ window.copyCardSimulationToWhatsApp = function() {
   const entryVal = d.entryAmount || 0;
   const balance = Math.max(0, d.cashPrice - entryVal);
 
-  let text = `🍏 *PROPOSTA COMERCIAL — LOJA OFICIAL*\n\n`;
-  text += `📱 *Produto:* ${d.model} ${d.storage ? `(${d.storage})` : ''} ${d.color ? `\n🎨 *Cor:* ${d.color}` : ''}\n`;
-  text += `🛡️ *Condição:* 100% Lacrado Original com 1 Ano de Garantia Apple\n\n`;
+  let text = `🍏 *SIMULAÇÃO DE PARCELAMENTO*\n\n`;
+  text += `📱 *Produto:* ${d.model} ${d.storage ? `(${d.storage})` : ''} ${d.color ? `\n🎨 *Cor:* ${d.color}` : ''}\n\n`;
   text += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   text += `💵 *À VISTA NO PIX / DINHEIRO:* ${formatBRL(d.cashPrice)}\n`;
   
@@ -2172,11 +2167,7 @@ window.copyCardSimulationToWhatsApp = function() {
   [1, 2, 3, 4, 6, 8, 10, 12, 14, 18].forEach(n => {
     const sim = calculateInstallment(d.cashPrice, entryVal, n);
     const label = n === 1 ? '1x (À vista no cartão)' : `${n}x`;
-    if (entryVal > 0) {
-      text += `• *${label}:* ${n}x de ${formatBRL(sim.monthlyAmount)} _(Cartão: ${formatBRL(sim.totalAmount)} | Total geral: ${formatBRL(sim.totalAmount + entryVal)})_\n`;
-    } else {
-      text += `• *${label}:* ${n}x de ${formatBRL(sim.monthlyAmount)} _(Total: ${formatBRL(sim.totalAmount)})_\n`;
-    }
+    text += `• *${label}:* ${n}x de ${formatBRL(sim.monthlyAmount)} _(Total no cartão: ${formatBRL(sim.totalAmount)})_\n`;
   });
 
   text += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
