@@ -2085,16 +2085,11 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
       </div>
     </div>
 
-    <!-- 3 Featured Popular Plans -->
-    <div class="sim-featured-plans" id="simFeaturedPlans">
-      <!-- Injected via recalculateSimulator -->
-    </div>
+    <!-- Complete Installment List Title -->
+    <div class="sim-installments-section-title">💳 Opções de Parcelamento no Cartão (1x até 18x)</div>
 
-    <!-- Complete Installment Table Title -->
-    <div class="sim-installments-section-title">Todas as Opções de Parcelamento (1x até 18x)</div>
-
-    <!-- Full 1x to 18x Grid -->
-    <div class="sim-installments-grid" id="simInstallmentsGrid">
+    <!-- Full 1x to 18x List -->
+    <div class="sim-installments-list" id="simInstallmentsGrid">
       <!-- Injected via recalculateSimulator -->
     </div>
 
@@ -2126,7 +2121,6 @@ window.setQuickEntry = function(val) {
 
 window.recalculateSimulator = function() {
   const inp = document.getElementById('simEntryInput');
-  const featContainer = document.getElementById('simFeaturedPlans');
   const gridContainer = document.getElementById('simInstallmentsGrid');
   const heroCardVal = document.getElementById('simHeroCardVal');
   const heroCardSub = document.getElementById('simHeroCardSub');
@@ -2146,55 +2140,31 @@ window.recalculateSimulator = function() {
       : `Parcele o valor integral em até 18x no cartão`;
   }
 
-  // 1. Featured Top 3 Plans (10x, 12x, 18x)
-  if (featContainer) {
-    const sim10 = calculateInstallment(currentSimData.cashPrice, entryVal, 10);
-    const sim12 = calculateInstallment(currentSimData.cashPrice, entryVal, 12);
-    const sim18 = calculateInstallment(currentSimData.cashPrice, entryVal, 18);
-
-    featContainer.innerHTML = `
-      <div class="sim-featured-card">
-        <span class="sim-featured-badge" style="background: #2997ff;">Mais Procurado</span>
-        <span class="sim-featured-plan-name">Plano 10x</span>
-        <div class="sim-featured-monthly">${formatBRL(sim10.monthlyAmount)} <small>/mês</small></div>
-        <div class="sim-featured-total">Total: ${formatBRL(sim10.totalAmount + entryVal)}</div>
-      </div>
-      <div class="sim-featured-card" style="border-color: var(--accent-green);">
-        <span class="sim-featured-badge">⭐ Padrão Apple</span>
-        <span class="sim-featured-plan-name">Plano 12x</span>
-        <div class="sim-featured-monthly" style="color: var(--accent-green);">${formatBRL(sim12.monthlyAmount)} <small>/mês</small></div>
-        <div class="sim-featured-total">Total: ${formatBRL(sim12.totalAmount + entryVal)}</div>
-      </div>
-      <div class="sim-featured-card">
-        <span class="sim-featured-badge" style="background: #a855f7;">Menor Parcela</span>
-        <span class="sim-featured-plan-name">Plano 18x</span>
-        <div class="sim-featured-monthly" style="color: #a855f7;">${formatBRL(sim18.monthlyAmount)} <small>/mês</small></div>
-        <div class="sim-featured-total">Total: ${formatBRL(sim18.totalAmount + entryVal)}</div>
-      </div>
-    `;
-  }
-
-  // 2. Full 1x to 18x Grid
-  let gridHtml = '';
+  // Full 1x to 18x list (single column, clean rows)
+  let listHtml = '';
   for (let i = 1; i <= 18; i++) {
     const sim = calculateInstallment(currentSimData.cashPrice, entryVal, i);
     const label = i === 1 ? '1x' : `${i}x`;
+    const isHighlight = i === 10 || i === 12 || i === 18;
+    const highlightClass = isHighlight ? ' sim-row-highlight' : '';
 
-    gridHtml += `
-      <div class="sim-card">
-        <div class="sim-card-left">
-          <span class="sim-card-badge">${label}</span>
-          <span class="sim-card-monthly">${formatBRL(sim.monthlyAmount)}<span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500;">/mês</span></span>
+    listHtml += `
+      <div class="sim-row${highlightClass}">
+        <div class="sim-row-left">
+          <span class="sim-row-badge">${label}</span>
+          <div class="sim-row-main">
+            <span class="sim-row-monthly">${formatBRL(sim.monthlyAmount)}<span class="sim-row-per-month">/mês</span></span>
+          </div>
         </div>
-        <div class="sim-card-right">
-          <span class="sim-card-total-label">Total</span>
-          <span class="sim-card-total-val">${formatBRL(sim.totalAmount + entryVal)}</span>
+        <div class="sim-row-right">
+          <span class="sim-row-total-label">Total no cartão</span>
+          <span class="sim-row-total-val">${formatBRL(sim.totalAmount + entryVal)}</span>
         </div>
       </div>
     `;
   }
 
-  gridContainer.innerHTML = gridHtml;
+  gridContainer.innerHTML = listHtml;
 };
 
 window.copyCardSimulationToWhatsApp = function() {
