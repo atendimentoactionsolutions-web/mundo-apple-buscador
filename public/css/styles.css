@@ -360,6 +360,40 @@ body.light-theme ::-webkit-scrollbar-thumb {
   color: #ffffff;
 }
 
+.calc-top-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: rgba(41, 151, 255, 0.12);
+  border: 1px solid rgba(41, 151, 255, 0.35);
+  border-radius: var(--radius-full);
+  color: #2997ff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+.calc-top-btn:hover {
+  background: rgba(41, 151, 255, 0.22);
+  border-color: #2997ff;
+  transform: translateY(-1px);
+  color: #ffffff;
+}
+
+body.light-theme .calc-top-btn {
+  background: rgba(0, 113, 227, 0.1);
+  color: #0071e3;
+  border-color: rgba(0, 113, 227, 0.3);
+}
+
+body.light-theme .calc-top-btn:hover {
+  background: #0071e3;
+  color: #ffffff;
+}
+
 .admin-top-btn {
   display: inline-flex;
   align-items: center;
@@ -2682,6 +2716,33 @@ body.light-theme .all-offer-item:hover {
 
 .sim-highlight-card.card .sim-highlight-val {
   color: #2997ff;
+}
+
+.sim-cash-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sim-cash-prefix {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--accent-green);
+}
+
+.sim-cash-input {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--accent-green);
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  letter-spacing: -0.5px;
+}
+
+.sim-cash-input::placeholder {
+  color: rgba(16, 185, 129, 0.4);
 }
 
 .sim-highlight-sub {

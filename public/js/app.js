@@ -1329,7 +1329,6 @@ function renderStoreFront() {
           <span class="pod-model-section-icon">${catIcon}</span>
           <h2 class="pod-model-section-title">${fam.modelName}</h2>
         </div>
-        <span class="pod-model-section-badge">${storagesCount} ${storagesCount === 1 ? 'configuração' : 'configurações'}</span>
       </div>
     `;
 
@@ -1784,7 +1783,6 @@ function renderPricesOfTheDay() {
           <span class="pod-model-section-icon">${catIcon}</span>
           <h2 class="pod-model-section-title">${fam.modelName}</h2>
         </div>
-        <span class="pod-model-section-badge">${storagesCount} ${storagesCount === 1 ? 'configuração disponível' : 'configurações disponíveis'}</span>
       </div>
     `;
 
@@ -2009,6 +2007,20 @@ function calculateInstallment(cashPrice, entryAmount, installmentCount) {
   };
 }
 
+window.openFreeCalculator = function(initialAmount = 0) {
+  openCardSimulator('Calculadora de Taxas', '', '', initialAmount, '');
+};
+
+window.onSimCashPriceChange = function(val) {
+  const price = parseFloat(val) || 0;
+  currentSimData.cashPrice = price;
+  const entryInp = document.getElementById('simEntryInput');
+  if (entryInp) {
+    entryInp.max = String(price);
+  }
+  recalculateSimulator();
+};
+
 window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, cashPrice, encodedRam) {
   const model = decodeURIComponent(encodedModel || '');
   const storage = decodeURIComponent(encodedStorage || '');
@@ -2016,7 +2028,7 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
   const ram = decodeURIComponent(encodedRam || '');
 
   currentSimData = {
-    model,
+    model: model || 'Calculadora de Taxas',
     storage,
     color,
     cashPrice: Number(cashPrice) || 0,
@@ -2034,7 +2046,7 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
     <!-- Top Hero Header -->
     <div class="sim-header-hero">
       <div class="sim-hero-product">
-        <h2 class="sim-hero-title">${model}</h2>
+        <h2 class="sim-hero-title">${currentSimData.model}</h2>
         <div class="sim-hero-tags">
           ${storage ? `<span class="matrix-card-storage">${storage}</span>` : ''}
           ${ram ? `<span class="matrix-card-ram-badge" style="background: rgba(0, 113, 227, 0.18); color: #2997ff; border: 1px solid rgba(41, 151, 255, 0.35); padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700;">⚡ ${ram} RAM</span>` : ''}
@@ -2051,9 +2063,12 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
     <!-- Dual Highlight Price Banners -->
     <div class="sim-dual-highlights">
       <div class="sim-highlight-card pix">
-        <div class="sim-highlight-badge">💵 À Vista no PIX / Dinheiro</div>
-        <div class="sim-highlight-val" id="simHeroCashVal">${formatBRL(currentSimData.cashPrice)}</div>
-        <div class="sim-highlight-sub">Melhor condição com desconto aplicado</div>
+        <div class="sim-highlight-badge">💵 Valor À Vista (PIX / Dinheiro)</div>
+        <div class="sim-cash-input-wrap">
+          <span class="sim-cash-prefix">R$</span>
+          <input type="number" id="simCashInput" class="sim-cash-input" placeholder="0,00" value="${currentSimData.cashPrice > 0 ? currentSimData.cashPrice : ''}" min="0" oninput="onSimCashPriceChange(this.value)">
+        </div>
+        <div class="sim-highlight-sub">Digite ou ajuste o valor da venda</div>
       </div>
       <div class="sim-highlight-card card">
         <div class="sim-highlight-badge">💳 Saldo a Parcelar no Cartão</div>
