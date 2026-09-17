@@ -2961,6 +2961,13 @@ body.light-theme .sim-row-highlight {
   white-space: nowrap;
 }
 
+.sim-row-total-sub {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 /* Footer Actions */
 .sim-footer-actions {
   display: flex;

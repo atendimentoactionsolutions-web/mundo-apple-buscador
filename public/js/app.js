@@ -2068,20 +2068,12 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
       <div class="sim-entry-row">
         <div class="sim-entry-text">
           <h4>💡 Deseja dar uma Entrada no PIX/Dinheiro?</h4>
-          <p>Abata um valor pago no ato e parcele apenas o saldo restante no cartão</p>
+          <p>Digite o valor pago no ato e o sistema calcula as parcelas do saldo restante</p>
         </div>
         <div class="sim-entry-input-box">
           <span class="sim-entry-prefix">R$</span>
           <input type="number" id="simEntryInput" class="sim-entry-input" placeholder="0,00" value="" min="0" max="${currentSimData.cashPrice}" oninput="recalculateSimulator()">
         </div>
-      </div>
-      <div class="sim-entry-pills">
-        <button class="sim-pill-btn active" onclick="setQuickEntry(0)">Sem Entrada</button>
-        <button class="sim-pill-btn" onclick="setQuickEntry(500)">Entrada R$ 500</button>
-        <button class="sim-pill-btn" onclick="setQuickEntry(1000)">Entrada R$ 1.000</button>
-        <button class="sim-pill-btn" onclick="setQuickEntry(1500)">Entrada R$ 1.500</button>
-        <button class="sim-pill-btn" onclick="setQuickEntry(2000)">Entrada R$ 2.000</button>
-        <button class="sim-pill-btn" onclick="setQuickEntry(3000)">Entrada R$ 3.000</button>
       </div>
     </div>
 
@@ -2107,16 +2099,6 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
 
   recalculateSimulator();
   modal.classList.add('active');
-};
-
-window.setQuickEntry = function(val) {
-  const inp = document.getElementById('simEntryInput');
-  if (inp) {
-    inp.value = val > 0 ? val : '';
-    recalculateSimulator();
-  }
-  const pills = document.querySelectorAll('.sim-pill-btn');
-  pills.forEach(p => p.classList.toggle('active', p.textContent.includes(String(val)) || (val === 0 && p.textContent.includes('Sem Entrada'))));
 };
 
 window.recalculateSimulator = function() {
@@ -2157,8 +2139,9 @@ window.recalculateSimulator = function() {
           </div>
         </div>
         <div class="sim-row-right">
-          <span class="sim-row-total-label">Total no cartão</span>
-          <span class="sim-row-total-val">${formatBRL(sim.totalAmount + entryVal)}</span>
+          <span class="sim-row-total-label">${entryVal > 0 ? 'Total no cartão' : 'Total parcelado'}</span>
+          <span class="sim-row-total-val">${formatBRL(sim.totalAmount)}</span>
+          ${entryVal > 0 ? `<span class="sim-row-total-sub">Total c/ entrada: ${formatBRL(sim.totalAmount + entryVal)}</span>` : ''}
         </div>
       </div>
     `;
@@ -2179,17 +2162,21 @@ window.copyCardSimulationToWhatsApp = function() {
   text += `💵 *À VISTA NO PIX / DINHEIRO:* ${formatBRL(d.cashPrice)}\n`;
   
   if (entryVal > 0) {
-    text += `💰 *Entrada Abatida (PIX):* ${formatBRL(entryVal)}\n`;
-    text += `💳 *Saldo Restante no Cartão:* ${formatBRL(balance)}\n`;
+    text += `💰 *Entrada no PIX/Dinheiro:* ${formatBRL(entryVal)}\n`;
+    text += `💳 *Saldo no Cartão:* ${formatBRL(balance)}\n`;
   }
   
   text += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-  text += `💳 *CONDIÇÕES DE PARCELAMENTO NO CARTÃO:*\n\n`;
+  text += `💳 *OPÇÕES DE PARCELAMENTO NO CARTÃO:*\n\n`;
 
   [1, 2, 3, 4, 6, 8, 10, 12, 14, 18].forEach(n => {
     const sim = calculateInstallment(d.cashPrice, entryVal, n);
-    const label = n === 1 ? '1x (À vista)' : `${n}x`;
-    text += `• *${label}:* ${formatBRL(sim.monthlyAmount)} / mês  _(Total: ${formatBRL(sim.totalAmount + entryVal)})_\n`;
+    const label = n === 1 ? '1x (À vista no cartão)' : `${n}x`;
+    if (entryVal > 0) {
+      text += `• *${label}:* ${n}x de ${formatBRL(sim.monthlyAmount)} _(Cartão: ${formatBRL(sim.totalAmount)} | Total geral: ${formatBRL(sim.totalAmount + entryVal)})_\n`;
+    } else {
+      text += `• *${label}:* ${n}x de ${formatBRL(sim.monthlyAmount)} _(Total: ${formatBRL(sim.totalAmount)})_\n`;
+    }
   });
 
   text += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
