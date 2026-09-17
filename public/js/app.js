@@ -1350,7 +1350,10 @@ function renderStoreFront() {
                 <span class="matrix-retail-val">${formatBRL(col.minRetailPrice)}</span>
               </div>
               <button class="matrix-card-all-btn" style="color: var(--accent-green); border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.08); padding: 3px 8px; font-size: 0.68rem;" title="Simular parcelas">
-                <span>💳</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="5" width="20" height="14" rx="2.5"/>
+                  <line x1="2" y1="10" x2="22" y2="10"/>
+                </svg>
               </button>
             </div>
           </div>
@@ -1367,16 +1370,16 @@ function renderStoreFront() {
             <div class="matrix-card-title-wrap">
               <h3 class="matrix-card-title" title="${grp.model}">${grp.model}</h3>
               <div style="display: flex; gap: 6px; align-items: center; margin-top: 3px; flex-wrap: wrap;">
-                ${grp.ram ? `<span class="matrix-card-ram-badge" style="background: rgba(0, 113, 227, 0.18); color: #2997ff; border: 1px solid rgba(41, 151, 255, 0.35); padding: 1px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;">⚡ ${grp.ram} RAM</span>` : ''}
+                ${grp.ram ? `<span class="matrix-card-ram-badge" style="background: rgba(0, 113, 227, 0.18); color: #2997ff; border: 1px solid rgba(41, 151, 255, 0.35); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/></svg>${grp.ram} RAM</span>` : ''}
                 ${grp.storage ? `<span class="matrix-card-storage">${grp.storage}</span>` : ''}
               </div>
             </div>
             <button class="matrix-card-all-btn" onclick="openCardSimulator('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(simLowestColor)}', ${simLowestPrice}, '${encodeURIComponent(grp.ram || '')}')" title="Simular parcelamento deste modelo">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="5" width="20" height="14" rx="2"/>
+                <rect x="2" y="5" width="20" height="14" rx="2.5"/>
                 <line x1="2" y1="10" x2="22" y2="10"/>
               </svg>
-              <span>💳 Simular</span>
+              <span>Simular</span>
             </button>
           </div>
           <div class="matrix-card-body">
@@ -2049,7 +2052,7 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
         <h2 class="sim-hero-title">${currentSimData.model}</h2>
         <div class="sim-hero-tags">
           ${storage ? `<span class="matrix-card-storage">${storage}</span>` : ''}
-          ${ram ? `<span class="matrix-card-ram-badge" style="background: rgba(0, 113, 227, 0.18); color: #2997ff; border: 1px solid rgba(41, 151, 255, 0.35); padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700;">⚡ ${ram} RAM</span>` : ''}
+          ${ram ? `<span class="matrix-card-ram-badge" style="background: rgba(0, 113, 227, 0.18); color: #2997ff; border: 1px solid rgba(41, 151, 255, 0.35); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/></svg>${ram} RAM</span>` : ''}
           ${color && color.toUpperCase() !== 'PADRÃO' ? `
             <div class="all-offer-color-tag" style="padding: 3px 10px; font-size: 0.74rem;">
               <span class="matrix-color-dot" style="background-color: ${colHex}; width: 11px; height: 11px;"></span>
@@ -2071,7 +2074,13 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
         <div class="sim-highlight-sub">Digite ou ajuste o valor da venda</div>
       </div>
       <div class="sim-highlight-card card">
-        <div class="sim-highlight-badge">💳 Saldo a Parcelar no Cartão</div>
+        <div class="sim-highlight-badge">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+            <rect x="2" y="5" width="20" height="14" rx="2.5"/>
+            <line x1="2" y1="10" x2="22" y2="10"/>
+          </svg>
+          Saldo a Parcelar no Cartão
+        </div>
         <div class="sim-highlight-val" id="simHeroCardVal">${formatBRL(currentSimData.cashPrice)}</div>
         <div class="sim-highlight-sub" id="simHeroCardSub">Parcele em até 18x no cartão de crédito</div>
       </div>
@@ -2092,7 +2101,13 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
     </div>
 
     <!-- Complete Installment List Title -->
-    <div class="sim-installments-section-title">💳 Opções de Parcelamento no Cartão (1x até 18x)</div>
+    <div class="sim-installments-section-title">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px; color: var(--accent-green);">
+        <rect x="2" y="5" width="20" height="14" rx="2.5"/>
+        <line x1="2" y1="10" x2="22" y2="10"/>
+      </svg>
+      Opções de Parcelamento no Cartão (1x até 18x)
+    </div>
 
     <!-- Full 1x to 18x List -->
     <div class="sim-installments-list" id="simInstallmentsGrid">
