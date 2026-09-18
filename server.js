@@ -249,6 +249,12 @@ async function fetchProducts() {
     dollarVariation = payload.dollarVariation || dollarVariation;
     totalSuppliers = payload.totalSuppliers || totalSuppliers;
 
+    if (!rawList || rawList.length === 0) {
+      console.warn('[Catalog] ⚠️ Resposta vazia recebida do PXT. Preservando catálogo em memória intacto.');
+      isSyncing = false;
+      return Array.from(productsMap.values());
+    }
+
     productsMap.clear();
     let novosCount = 0;
     let seminovosCount = 0;
@@ -432,13 +438,17 @@ function connectPxtWebSocket() {
     const updated = delta.updated || [];
     const deleted = delta.deleted || [];
 
-    // Se veio data nova ou é snapshot, atualiza a data e limpa catálogo antigo
+    // Se veio data nova ou é snapshot, atualiza a data e limpa catálogo antigo somente se houver dados a inserir
     if (delta.date && delta.date !== latestDate) {
       console.log(`[Tempo Real] 📅 Nova data de catálogo recebida via delta: ${latestDate} -> ${delta.date}`);
       latestDate = delta.date;
-      productsMap.clear();
+      if (created.length > 0 || updated.length > 0) {
+        productsMap.clear();
+      }
     } else if (delta.snapshot === true) {
-      productsMap.clear();
+      if (created.length > 0 || updated.length > 0) {
+        productsMap.clear();
+      }
     }
 
     if (delta.dollarRate) dollarRate = delta.dollarRate;

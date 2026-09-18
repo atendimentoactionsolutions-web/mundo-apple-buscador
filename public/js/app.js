@@ -1541,6 +1541,11 @@ function getModelOrderRank(modelName, category) {
   const m = (modelName || '').toUpperCase();
 
   // 1. iPhones (Flagships mais novos primeiro)
+  if (m.includes('IPHONE 18 PRO MAX')) return 10;
+  if (m.includes('IPHONE 18 PRO')) return 20;
+  if (m.includes('IPHONE 18 AIR') || m.includes('IPHONE 18 PLUS') || m.includes('IPHONE 18 SLIM') || m.includes('IPHONE 18 FOLD')) return 30;
+  if (m.includes('IPHONE 18')) return 40;
+
   if (m.includes('IPHONE 17 PRO MAX')) return 100;
   if (m.includes('IPHONE 17 PRO')) return 110;
   if (m.includes('IPHONE 17 AIR') || m.includes('IPHONE 17 PLUS') || m.includes('IPHONE 17 SLIM')) return 120;
