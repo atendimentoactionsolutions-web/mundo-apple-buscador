@@ -1292,9 +1292,12 @@ function getProductRetailPrice(p) {
 }
 
 // =========================================================================
-// VIEW MANAGER: PREÇOS DO DIA (DEFAULT) VS LOJA FÍSICA
+// VIEW MANAGER: LOJA FÍSICA (PÚBLICO DEFAULT) VS PREÇOS DE CUSTO (PIN 102030)
 // =========================================================================
-let currentView = 'prices_of_the_day'; // Preços do dia por padrão
+let currentView = 'storefront'; // Loja Física por padrão (Preço de Venda Final + Cartão)
+let isLojistaUnlocked = sessionStorage.getItem('lojista_pin_unlocked') === 'true';
+let pendingViewSwitch = null;
+
 let podCurrentCategory = 'ALL';
 let podSearchQuery = '';
 let podSelectedRegion = '';
@@ -1303,7 +1306,84 @@ let podOnlyVerified = false;
 let sfCurrentCategory = 'ALL';
 let sfSearchQuery = '';
 
+window.openPinModal = function(targetView = 'prices_of_the_day') {
+  pendingViewSwitch = targetView;
+  const modal = document.getElementById('pinAuthModal');
+  const input = document.getElementById('inputLojistaPin');
+  const errEl = document.getElementById('pinErrorMessage');
+  if (errEl) errEl.style.display = 'none';
+  if (input) input.value = '';
+  if (modal) modal.style.display = 'flex';
+  setTimeout(() => input?.focus(), 100);
+};
+
+window.closePinModal = function() {
+  const modal = document.getElementById('pinAuthModal');
+  if (modal) modal.style.display = 'none';
+  pendingViewSwitch = null;
+};
+
+window.submitLojistaPin = async function() {
+  const pinInput = document.getElementById('inputLojistaPin');
+  const errEl = document.getElementById('pinErrorMessage');
+  const pin = (pinInput?.value || '').trim();
+
+  if (pin === '102030') {
+    sessionStorage.setItem('lojista_pin_unlocked', 'true');
+    isLojistaUnlocked = true;
+    closePinModal();
+    updateLojistaLockUI();
+    if (pendingViewSwitch === 'admin') {
+      window.location.href = '/admin';
+    } else {
+      switchView('prices_of_the_day');
+    }
+  } else {
+    if (errEl) {
+      errEl.style.display = 'block';
+      errEl.textContent = 'PIN incorreto. Digite 102030.';
+    }
+  }
+};
+
+window.lockLojistaMode = function() {
+  sessionStorage.removeItem('lojista_pin_unlocked');
+  isLojistaUnlocked = false;
+  updateLojistaLockUI();
+  switchView('storefront');
+};
+
+function updateLojistaLockUI() {
+  const tabPricesDay = document.getElementById('tabPricesDay');
+  if (tabPricesDay) {
+    if (isLojistaUnlocked) {
+      tabPricesDay.innerHTML = `
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+          <path d="M4 22h16"/>
+          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+        </svg>
+        <span>Preços de Custo (🔓)</span>
+      `;
+    } else {
+      tabPricesDay.innerHTML = `
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: #f59e0b;">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        <span>🔒 Preços do Dia (Custo)</span>
+      `;
+    }
+  }
+}
+
 window.switchView = function(viewName) {
+  if (viewName === 'prices_of_the_day' && !isLojistaUnlocked) {
+    openPinModal('prices_of_the_day');
+    return;
+  }
+
   currentView = viewName;
   const viewPricesDay = document.getElementById('viewPricesDay');
   const viewStoreFront = document.getElementById('viewStoreFront');
