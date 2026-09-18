@@ -64,7 +64,7 @@ async function loadProducts(dateParam) {
     if (!res.ok) return;
     const json = await res.json();
     if (json.success && Array.isArray(json.data)) {
-      allProducts = json.data.filter(p => !isCpoProduct(p));
+      allProducts = json.data.filter(p => !isCpoProduct(p) && !isAsIsProduct(p));
       if (totalCountEl) totalCountEl.textContent = allProducts.length;
 
       // Status Badge e indicador de data ativa
@@ -1095,9 +1095,30 @@ if (themeBtn) {
 // =========================================================================
 // 12. MARGENS & TAXAS DA MAQUININHA (LOJA FÍSICA)
 // =========================================================================
+function isAsIsProduct(p) {
+  if (!p) return false;
+  const cat = (p.category || '').toUpperCase().trim();
+  const name = (p.name || '').toUpperCase();
+  const desc = (p.description || '').toUpperCase();
+  const reg = (p.region || '').toUpperCase();
+  return (
+    name.includes('AS IS') ||
+    name.includes('AS-IS') ||
+    name.includes('ASIS') ||
+    desc.includes('AS IS') ||
+    desc.includes('AS-IS') ||
+    desc.includes('ASIS') ||
+    cat.includes('AS IS') ||
+    cat.includes('AS-IS') ||
+    reg.includes('AS IS') ||
+    reg.includes('AS-IS')
+  );
+}
+
 // Helper to detect if a product is an Apple Seminovo
 function isSeminovoProduct(p) {
   if (!p) return false;
+  if (isAsIsProduct(p)) return false;
   if (p.isSeminovo === true || p.condition === 'SEMINOVO') return true;
   const cat = (p.category || '').toUpperCase().trim();
   const name = (p.name || '').toLowerCase();
@@ -1111,8 +1132,6 @@ function isSeminovoProduct(p) {
     name.includes('vitrine') ||
     name.includes('grade a') ||
     name.includes('grade b') ||
-    name.includes('as is') ||
-    name.includes('as-is') ||
     name.includes('recondicionado') ||
     name.includes('swp') ||
     name.includes('swap') ||

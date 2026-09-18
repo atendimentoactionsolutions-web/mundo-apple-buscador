@@ -88,9 +88,31 @@ let latestDate = '';
 let totalSuppliers = 0;
 let isSyncing = false;
 
+function isAsIsProduct(p) {
+  if (!p) return false;
+  const cat = (p.category || '').toUpperCase().trim();
+  const name = (p.name || '').toUpperCase();
+  const desc = (p.description || '').toUpperCase();
+  const reg = (p.region || '').toUpperCase();
+  return (
+    name.includes('AS IS') ||
+    name.includes('AS-IS') ||
+    name.includes('ASIS') ||
+    desc.includes('AS IS') ||
+    desc.includes('AS-IS') ||
+    desc.includes('ASIS') ||
+    cat.includes('AS IS') ||
+    cat.includes('AS-IS') ||
+    reg.includes('AS IS') ||
+    reg.includes('AS-IS')
+  );
+}
+
 // Filter & Classification for Apple Products (New and Seminovos)
 function isAppleSeminovo(p) {
   if (!p) return false;
+  if (isAsIsProduct(p)) return false;
+
   const cat = (p.category || '').toUpperCase().trim();
   const name = (p.name || '').toLowerCase();
   const desc = (p.description || '').toLowerCase();
@@ -118,8 +140,6 @@ function isAppleSeminovo(p) {
     name.includes('vitrine') ||
     name.includes('grade a') ||
     name.includes('grade b') ||
-    name.includes('as is') ||
-    name.includes('as-is') ||
     name.includes('recondicionado') ||
     name.includes('swp') ||
     name.includes('swap') ||
@@ -149,6 +169,8 @@ function isAppleSeminovo(p) {
 
 function isAppleNovo(p) {
   if (!p) return false;
+  if (isAsIsProduct(p)) return false;
+
   const cat = (p.category || '').toUpperCase().trim();
   const name = (p.name || '').toLowerCase();
   const desc = (p.description || '').toLowerCase();
@@ -188,6 +210,7 @@ function isAppleNovo(p) {
 
 function processAppleProduct(p) {
   if (!p) return null;
+  if (isAsIsProduct(p)) return null; // Exclui modelos AS IS conforme solicitação
   if (isAppleSeminovo(p)) {
     return { ...p, isSeminovo: true, condition: 'SEMINOVO' };
   }
