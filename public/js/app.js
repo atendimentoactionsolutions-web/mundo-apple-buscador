@@ -2661,32 +2661,32 @@ window.copyCardSimulationToWhatsApp = function() {
   const cashVal = d.cashPrice || 0;
   const entryVal = d.entryAmount || 0;
   const balance = Math.max(0, cashVal - entryVal);
+  const fmtNum = (val) => formatBRL(val).replace('R$', '').trim();
 
-  let text = `*SIMULAÇÃO DE PARCELAMENTO — MUNDO APPLE*\n\n`;
-  text += `*Produto:* ${d.model} ${d.storage ? `(${d.storage})` : ''}\n`;
-  if (d.ram) text += `*RAM:* ${d.ram}\n`;
-  if (d.color) text += `*Cor:* ${d.color}\n`;
+  let text = `SIMULAÇÃO DE PARCELAMENTO — MUNDO APPLE\n\n`;
+  text += `Produto: ${d.model} ${d.storage ? `(${d.storage})` : ''}\n`;
+  if (d.ram) text += `RAM: ${d.ram}\n`;
+  if (d.color) text += `Cor: ${d.color}\n`;
   text += `\n`;
-  text += `*Valor À Vista (PIX / Dinheiro):* ${formatBRL(cashVal)}\n`;
+  text += `Valor À Vista (PIX / Dinheiro): ${formatBRL(cashVal)}\n`;
   
   if (entryVal > 0) {
-    text += `*Entrada em PIX / Dinheiro:* ${formatBRL(entryVal)}\n`;
-    text += `*Saldo Financiado no Cartão:* ${formatBRL(balance)}\n`;
+    text += `Entrada em PIX / Dinheiro: ${formatBRL(entryVal)}\n`;
+    text += `Saldo Financiado no Cartão: ${formatBRL(balance)}\n`;
   }
   
-  text += `\n*OPÇÕES DE PARCELAMENTO NO CARTÃO:*\n\n`;
+  text += `\nOPÇÕES DE PARCELAMENTO NO CARTÃO:\n\n`;
 
   const installmentOptions = [1, 2, 3, 4, 6, 8, 10, 12, 14, 18];
   
   const installmentRows = installmentOptions.map(n => {
     const sim = calculateInstallment(cashVal, entryVal, n);
     const grandTotal = entryVal + sim.totalAmount;
-    const label = n === 1 ? '1x (À vista no cartão)' : `${n}x`;
     
     if (entryVal > 0) {
-      return `*${label}:* ${n}x de ${formatBRL(sim.monthlyAmount)} _(Cartão: ${formatBRL(sim.totalAmount)} | Total PIX+Cartão: ${formatBRL(grandTotal)})_`;
+      return `${n}x de ${fmtNum(sim.monthlyAmount)}\n(Cartao: ${fmtNum(sim.totalAmount)} | Total PIX+Cartao: ${fmtNum(grandTotal)})`;
     } else {
-      return `*${label}:* ${n}x de ${formatBRL(sim.monthlyAmount)} _(Total no cartão: ${formatBRL(sim.totalAmount)})_`;
+      return `${n}x de ${fmtNum(sim.monthlyAmount)}\n(Total no cartao: ${fmtNum(sim.totalAmount)})`;
     }
   });
 
