@@ -1575,39 +1575,123 @@ function getModelOrderRank(modelName, category) {
   if (m.includes('IPHONE 11')) return 700;
   if (m.includes('IPHONE')) return 800;
 
-  // 2. MacBooks & Macs
-  if (m.includes('MACBOOK PRO 16')) return 1000;
-  if (m.includes('MACBOOK PRO 14')) return 1010;
-  if (m.includes('MACBOOK PRO')) return 1020;
-  if (m.includes('MACBOOK AIR 15')) return 1030;
-  if (m.includes('MACBOOK AIR 13')) return 1040;
-  if (m.includes('MACBOOK AIR')) return 1050;
-  if (m.includes('MACBOOK')) return 1060;
-  if (m.includes('MAC MINI')) return 1070;
-  if (m.includes('MAC STUDIO')) return 1080;
-  if (m.includes('IMAC')) return 1090;
-  if (m.includes('MAC')) return 1100;
+  // 2. MacBooks & Macs (Classificação rigorosa por Geração de Lançamento: M5 > M4 > M3 > M2 > M1)
+  if (m.includes('M5')) {
+    if (m.includes('MACBOOK PRO 16') || m.includes('PRO 16')) return 1000;
+    if (m.includes('MACBOOK PRO 14') || m.includes('PRO 14')) return 1010;
+    if (m.includes('MACBOOK PRO') || m.includes('PRO')) return 1020;
+    if (m.includes('MACBOOK AIR 15') || m.includes('AIR 15')) return 1030;
+    if (m.includes('MACBOOK AIR 13') || m.includes('AIR 13')) return 1040;
+    if (m.includes('MACBOOK AIR') || m.includes('AIR')) return 1050;
+    if (m.includes('MACBOOK')) return 1060;
+    if (m.includes('MAC MINI')) return 1070;
+    if (m.includes('MAC STUDIO')) return 1080;
+    if (m.includes('IMAC')) return 1090;
+    if (m.includes('MAC')) return 1100;
+    return 1110;
+  }
 
-  // 3. iPads
-  if (m.includes('IPAD PRO 13')) return 2000;
-  if (m.includes('IPAD PRO 11')) return 2010;
-  if (m.includes('IPAD PRO')) return 2020;
-  if (m.includes('IPAD AIR 13')) return 2030;
-  if (m.includes('IPAD AIR 11')) return 2040;
-  if (m.includes('IPAD AIR')) return 2050;
-  if (m.includes('IPAD MINI')) return 2060;
-  if (m.includes('IPAD 10') || m.includes('IPAD 11')) return 2070;
-  if (m.includes('IPAD 9')) return 2080;
-  if (m.includes('IPAD')) return 2090;
+  if (m.includes('M4')) {
+    if (m.includes('MACBOOK PRO 16') || m.includes('PRO 16')) return 1200;
+    if (m.includes('MACBOOK PRO 14') || m.includes('PRO 14')) return 1210;
+    if (m.includes('MACBOOK PRO') || m.includes('PRO')) return 1220;
+    if (m.includes('MACBOOK AIR 15') || m.includes('AIR 15')) return 1230;
+    if (m.includes('MACBOOK AIR 13') || m.includes('AIR 13')) return 1240;
+    if (m.includes('MACBOOK AIR') || m.includes('AIR')) return 1250;
+    if (m.includes('MACBOOK')) return 1260;
+    if (m.includes('MAC MINI')) return 1270;
+    if (m.includes('MAC STUDIO')) return 1280;
+    if (m.includes('IMAC')) return 1290;
+    if (m.includes('MAC')) return 1300;
+    return 1310;
+  }
 
-  // 4. Apple Watches
-  if (m.includes('ULTRA 2') || m.includes('ULTRA 3')) return 3000;
-  if (m.includes('ULTRA')) return 3010;
-  if (m.includes('SERIES 10') || m.includes('SERIE 10') || m.includes('S10')) return 3020;
-  if (m.includes('SERIES 9') || m.includes('SERIE 9') || m.includes('S9')) return 3030;
-  if (m.includes('SERIES 8') || m.includes('SERIE 8') || m.includes('S8')) return 3040;
-  if (m.includes('WATCH SE')) return 3050;
-  if (m.includes('WATCH')) return 3060;
+  if (m.includes('M3')) {
+    if (m.includes('MACBOOK PRO 16') || m.includes('PRO 16')) return 1400;
+    if (m.includes('MACBOOK PRO 14') || m.includes('PRO 14')) return 1410;
+    if (m.includes('MACBOOK PRO') || m.includes('PRO')) return 1420;
+    if (m.includes('MACBOOK AIR 15') || m.includes('AIR 15')) return 1430;
+    if (m.includes('MACBOOK AIR 13') || m.includes('AIR 13')) return 1440;
+    if (m.includes('MACBOOK AIR') || m.includes('AIR')) return 1450;
+    if (m.includes('MACBOOK')) return 1460;
+    if (m.includes('MAC MINI')) return 1470;
+    if (m.includes('MAC STUDIO')) return 1480;
+    if (m.includes('IMAC')) return 1490;
+    if (m.includes('MAC')) return 1500;
+    return 1510;
+  }
+
+  if (m.includes('M2')) {
+    if (m.includes('MACBOOK PRO 16') || m.includes('PRO 16')) return 1600;
+    if (m.includes('MACBOOK PRO 14') || m.includes('PRO 14')) return 1610;
+    if (m.includes('MACBOOK PRO') || m.includes('PRO')) return 1620;
+    if (m.includes('MACBOOK AIR 15') || m.includes('AIR 15')) return 1630;
+    if (m.includes('MACBOOK AIR 13') || m.includes('AIR 13')) return 1640;
+    if (m.includes('MACBOOK AIR') || m.includes('AIR')) return 1650;
+    if (m.includes('MACBOOK')) return 1660;
+    if (m.includes('MAC MINI')) return 1670;
+    if (m.includes('MAC STUDIO')) return 1680;
+    if (m.includes('IMAC')) return 1690;
+    if (m.includes('MAC')) return 1700;
+    return 1710;
+  }
+
+  if (m.includes('M1')) {
+    if (m.includes('MACBOOK PRO 16') || m.includes('PRO 16')) return 1800;
+    if (m.includes('MACBOOK PRO 14') || m.includes('PRO 14')) return 1810;
+    if (m.includes('MACBOOK PRO') || m.includes('PRO')) return 1820;
+    if (m.includes('MACBOOK AIR 15') || m.includes('AIR 15')) return 1830;
+    if (m.includes('MACBOOK AIR 13') || m.includes('AIR 13')) return 1840;
+    if (m.includes('MACBOOK AIR') || m.includes('AIR')) return 1850;
+    if (m.includes('MACBOOK')) return 1860;
+    if (m.includes('MAC MINI')) return 1870;
+    if (m.includes('MAC STUDIO')) return 1880;
+    if (m.includes('IMAC')) return 1890;
+    if (m.includes('MAC')) return 1900;
+    return 1910;
+  }
+
+  if (m.includes('MACBOOK PRO')) return 1920;
+  if (m.includes('MACBOOK AIR')) return 1930;
+  if (m.includes('MACBOOK')) return 1940;
+  if (m.includes('MAC MINI')) return 1950;
+  if (m.includes('MAC STUDIO')) return 1960;
+  if (m.includes('IMAC')) return 1970;
+  if (m.includes('MAC')) return 1980;
+
+  // 3. iPads (Do mais recente para o mais antigo)
+  if (m.includes('IPAD PRO')) {
+    if (m.includes('M5')) return 2000;
+    if (m.includes('M4')) return 2010;
+    if (m.includes('M2')) return 2020;
+    if (m.includes('M1')) return 2030;
+    return 2040;
+  }
+  if (m.includes('IPAD AIR')) {
+    if (m.includes('M3')) return 2100;
+    if (m.includes('M2')) return 2110;
+    if (m.includes('M1')) return 2120;
+    return 2130;
+  }
+  if (m.includes('IPAD MINI')) {
+    if (m.includes('7') || m.includes('A17')) return 2140;
+    if (m.includes('6')) return 2150;
+    return 2160;
+  }
+  if (m.includes('IPAD 11')) return 2170;
+  if (m.includes('IPAD 10')) return 2180;
+  if (m.includes('IPAD 9')) return 2190;
+  if (m.includes('IPAD')) return 2200;
+
+  // 4. Apple Watches (Ultra 3 > Ultra 2 > Series 10 > Series 9)
+  if (m.includes('ULTRA 3')) return 3000;
+  if (m.includes('ULTRA 2')) return 3010;
+  if (m.includes('ULTRA')) return 3020;
+  if (m.includes('SERIES 10') || m.includes('SERIE 10') || m.includes('S10')) return 3030;
+  if (m.includes('SERIES 9') || m.includes('SERIE 9') || m.includes('S9')) return 3040;
+  if (m.includes('SERIES 8') || m.includes('SERIE 8') || m.includes('S8')) return 3050;
+  if (m.includes('WATCH SE')) return 3060;
+  if (m.includes('WATCH')) return 3070;
 
   // 5. AirPods
   if (m.includes('AIRPODS MAX')) return 4000;
@@ -2351,8 +2435,11 @@ window.downloadSimulationImage = async function() {
     // Create a dedicated off-screen high-res card element with perfect layout
     const exportDiv = document.createElement('div');
     exportDiv.style.position = 'fixed';
-    exportDiv.style.left = '-9999px';
     exportDiv.style.top = '0';
+    exportDiv.style.left = '0';
+    exportDiv.style.zIndex = '-99999';
+    exportDiv.style.opacity = '1';
+    exportDiv.style.pointerEvents = 'none';
     exportDiv.style.width = '600px';
     exportDiv.style.backgroundColor = '#0f172a';
     exportDiv.style.color = '#f8fafc';
@@ -2430,21 +2517,53 @@ window.downloadSimulationImage = async function() {
 
     // Render with html2canvas
     const canvas = await html2canvas(exportDiv, {
-      scale: 2.5, // High-DPI crystal clear quality
+      scale: 2,
       backgroundColor: '#0f172a',
       useCORS: true,
-      logging: false
+      logging: false,
+      allowTaint: true
     });
 
     document.body.removeChild(exportDiv);
 
-    // Download as JPEG
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-    const link = document.createElement('a');
-    const safeName = (d.model || 'simulacao-taxas').toLowerCase().replace(/[^a-z0-9]/g, '-');
-    link.download = `${safeName}-taxas.jpeg`;
-    link.href = imgData;
-    link.click();
+    // Download/Share Blob handler (compatível com iOS Mobile, Android e Desktop)
+    await new Promise((resolve, reject) => {
+      canvas.toBlob(async (blob) => {
+        try {
+          if (!blob) throw new Error('Falha ao gerar o arquivo de imagem.');
+          const safeName = (d.model || 'simulacao-taxas').toLowerCase().replace(/[^a-z0-9]/g, '-');
+          const fileName = `${safeName}-taxas.jpg`;
+          const file = new File([blob], fileName, { type: 'image/jpeg' });
+
+          // Tenta usar Web Share API se suportado (Nativo no iPhone / Mobile)
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: 'Simulação de Parcelamento',
+                text: `Proposta: ${d.model}`
+              });
+              return resolve();
+            } catch (shareErr) {
+              if (shareErr.name === 'AbortError') return resolve();
+            }
+          }
+
+          // Fallback padrão de Download (Desktop / Android)
+          const blobUrl = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.download = fileName;
+          link.href = blobUrl;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      }, 'image/jpeg', 0.95);
+    });
 
   } catch (err) {
     console.error('Erro ao gerar imagem:', err);
