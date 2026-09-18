@@ -2620,9 +2620,7 @@ window.downloadSimulationImage = async function() {
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
               await navigator.share({
-                files: [file],
-                title: 'Simulação de Parcelamento',
-                text: `Proposta: ${d.model}`
+                files: [file]
               });
               return resolve();
             } catch (shareErr) {
@@ -2663,7 +2661,7 @@ window.copyCardSimulationToWhatsApp = function() {
   const balance = Math.max(0, cashVal - entryVal);
   const fmtNum = (val) => formatBRL(val).replace('R$', '').trim();
 
-  let text = `SIMULAÇÃO DE PARCELAMENTO — MUNDO APPLE\n\n`;
+  let text = `SIMULAÇÃO DE PARCELAMENTO\n\n`;
   text += `Produto: ${d.model} ${d.storage ? `(${d.storage})` : ''}\n`;
   if (d.ram) text += `RAM: ${d.ram}\n`;
   if (d.color) text += `Cor: ${d.color}\n`;
