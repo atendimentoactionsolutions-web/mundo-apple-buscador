@@ -2344,13 +2344,13 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
     <div class="sim-header-hero">
       <div class="sim-hero-product">
         <h2 class="sim-hero-title">${currentSimData.model}</h2>
-        <div class="sim-hero-tags">
+        <div class="sim-hero-tags" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px;">
           ${storage ? `<span class="matrix-card-storage">${storage}</span>` : ''}
           ${ram ? `<span class="matrix-card-ram-badge" style="background: rgba(0, 113, 227, 0.18); color: #2997ff; border: 1px solid rgba(41, 151, 255, 0.35); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/></svg>${ram} RAM</span>` : ''}
           ${color && color.toUpperCase() !== 'PADRÃO' ? `
-            <div class="all-offer-color-tag" style="padding: 3px 10px; font-size: 0.74rem;">
-              <span class="matrix-color-dot" style="background-color: ${colHex}; width: 11px; height: 11px;"></span>
-              <span>${color}</span>
+            <div class="all-offer-color-tag" style="padding: 3px 10px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 5px; background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-color); border-radius: 6px; font-weight: 700;">
+              <span class="matrix-color-dot" style="background-color: ${colHex}; width: 11px; height: 11px; border-radius: 50%; display: inline-block;"></span>
+              <span>🎨 Cor: ${color}</span>
             </div>
           ` : ''}
         </div>
@@ -2365,7 +2365,7 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
           <span class="sim-cash-prefix">R$</span>
           <input type="number" id="simCashInput" class="sim-cash-input" placeholder="0,00" value="${currentSimData.cashPrice > 0 ? currentSimData.cashPrice : ''}" min="0" oninput="onSimCashPriceChange(this.value)">
         </div>
-        <div class="sim-highlight-sub">Digite ou ajuste o valor da venda</div>
+        <div class="sim-highlight-sub">Preço base da venda à vista</div>
       </div>
       <div class="sim-highlight-card card">
         <div class="sim-highlight-badge">
@@ -2373,19 +2373,19 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
             <rect x="2" y="5" width="20" height="14" rx="2.5"/>
             <line x1="2" y1="10" x2="22" y2="10"/>
           </svg>
-          Saldo a Parcelar no Cartão
+          Saldo a Financiar no Cartão
         </div>
         <div class="sim-highlight-val" id="simHeroCardVal">${formatBRL(currentSimData.cashPrice)}</div>
         <div class="sim-highlight-sub" id="simHeroCardSub">Parcele em até 18x no cartão de crédito</div>
       </div>
     </div>
 
-    <!-- Entry Section (Abatimento) -->
+    <!-- Entry Section (Abatimento PIX) -->
     <div class="sim-entry-section">
       <div class="sim-entry-row">
         <div class="sim-entry-text">
           <h4>💡 Deseja dar uma Entrada no PIX/Dinheiro?</h4>
-          <p>Digite o valor pago no ato e o sistema calcula as parcelas do saldo restante</p>
+          <p>O valor digitado será abatido do total à vista e o saldo restante será financiado na maquininha</p>
         </div>
         <div class="sim-entry-input-box">
           <span class="sim-entry-prefix">R$</span>
@@ -2433,31 +2433,41 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
 };
 
 window.recalculateSimulator = function() {
-  const inp = document.getElementById('simEntryInput');
+  const cashInp = document.getElementById('simCashInput');
+  const entryInp = document.getElementById('simEntryInput');
   const gridContainer = document.getElementById('simInstallmentsGrid');
   const heroCardVal = document.getElementById('simHeroCardVal');
   const heroCardSub = document.getElementById('simHeroCardSub');
 
   if (!gridContainer) return;
 
-  const entryVal = parseFloat(inp?.value) || 0;
+  const cashVal = parseFloat(cashInp?.value) || currentSimData.cashPrice || 0;
+  currentSimData.cashPrice = cashVal;
+
+  let entryVal = parseFloat(entryInp?.value) || 0;
+  if (entryVal < 0) entryVal = 0;
+  if (entryVal > cashVal) {
+    entryVal = cashVal;
+    if (entryInp) entryInp.value = cashVal > 0 ? cashVal : '';
+  }
   currentSimData.entryAmount = entryVal;
-  const balance = Math.max(0, currentSimData.cashPrice - entryVal);
+
+  const balance = Math.max(0, cashVal - entryVal);
 
   if (heroCardVal) {
     heroCardVal.textContent = formatBRL(balance);
   }
   if (heroCardSub) {
     heroCardSub.textContent = entryVal > 0 
-      ? `Entrada de ${formatBRL(entryVal)} + saldo em até 18x`
-      : `Parcele o valor integral em até 18x no cartão`;
+      ? `Entrada de ${formatBRL(entryVal)} no PIX + saldo a parcelar`
+      : `Parcele o valor integral de ${formatBRL(cashVal)} em até 18x no cartão`;
   }
 
-  // Full 1x to 18x list (single column, clean rows)
   let listHtml = '';
   for (let i = 1; i <= 18; i++) {
-    const sim = calculateInstallment(currentSimData.cashPrice, entryVal, i);
-    const label = i === 1 ? '1x' : `${i}x`;
+    const sim = calculateInstallment(cashVal, entryVal, i);
+    const label = i === 1 ? '1x (À vista no cartão)' : `${i}x`;
+    const grandTotal = entryVal + sim.totalAmount;
 
     listHtml += `
       <div class="sim-row">
@@ -2468,8 +2478,8 @@ window.recalculateSimulator = function() {
           </div>
         </div>
         <div class="sim-row-right">
-          <span class="sim-row-total-label">Total no cartão</span>
-          <span class="sim-row-total-val">${formatBRL(sim.totalAmount)}</span>
+          <span class="sim-row-total-label">Saldo no cartão: <strong>${formatBRL(sim.totalAmount)}</strong></span>
+          ${entryVal > 0 ? `<span style="font-size: 0.73rem; color: #10b981; font-weight: 800; display: block; margin-top: 2px;">Total (PIX + Cartão): ${formatBRL(grandTotal)}</span>` : ''}
         </div>
       </div>
     `;
@@ -2488,8 +2498,10 @@ window.downloadSimulationImage = async function() {
 
   try {
     const d = currentSimData;
+    const cashVal = d.cashPrice || 0;
     const entryVal = d.entryAmount || 0;
-    const balance = Math.max(0, d.cashPrice - entryVal);
+    const balance = Math.max(0, cashVal - entryVal);
+    const colHex = getAppleColorHex(d.color);
 
     // Create a dedicated off-screen high-res card element with perfect layout
     const exportDiv = document.createElement('div');
@@ -2499,7 +2511,7 @@ window.downloadSimulationImage = async function() {
     exportDiv.style.zIndex = '-99999';
     exportDiv.style.opacity = '1';
     exportDiv.style.pointerEvents = 'none';
-    exportDiv.style.width = '600px';
+    exportDiv.style.width = '640px';
     exportDiv.style.backgroundColor = '#0f172a';
     exportDiv.style.color = '#f8fafc';
     exportDiv.style.fontFamily = "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
@@ -2510,8 +2522,10 @@ window.downloadSimulationImage = async function() {
 
     let rowsHtml = '';
     for (let i = 1; i <= 18; i++) {
-      const sim = calculateInstallment(d.cashPrice, entryVal, i);
+      const sim = calculateInstallment(cashVal, entryVal, i);
+      const grandTotal = entryVal + sim.totalAmount;
       const label = i === 1 ? '1x' : `${i}x`;
+      
       rowsHtml += `
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; margin-bottom: 4px;">
           <div style="display: flex; align-items: center; gap: 10px;">
@@ -2519,8 +2533,8 @@ window.downloadSimulationImage = async function() {
             <span style="font-size: 15px; font-weight: 800; color: #ffffff;">${formatBRL(sim.monthlyAmount)}<span style="font-size: 11px; color: #94a3b8; font-weight: 500; margin-left: 2px;">/mês</span></span>
           </div>
           <div style="text-align: right;">
-            <div style="font-size: 9px; text-transform: uppercase; color: #94a3b8; font-weight: 700; letter-spacing: 0.5px;">Total no cartão</div>
-            <div style="font-size: 13px; font-weight: 700; color: #e2e8f0;">${formatBRL(sim.totalAmount)}</div>
+            <div style="font-size: 9px; text-transform: uppercase; color: #94a3b8; font-weight: 700; letter-spacing: 0.5px;">Cartão: ${formatBRL(sim.totalAmount)}</div>
+            ${entryVal > 0 ? `<div style="font-size: 11px; font-weight: 800; color: #10b981;">Total (PIX+Cartão): ${formatBRL(grandTotal)}</div>` : ''}
           </div>
         </div>
       `;
@@ -2531,34 +2545,43 @@ window.downloadSimulationImage = async function() {
       <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 14px; margin-bottom: 14px;">
         <div>
           <div style="font-size: 18px; font-weight: 800; color: #ffffff; text-transform: uppercase; letter-spacing: -0.3px;">${d.model || 'SIMULAÇÃO DE PARCELAMENTO'}</div>
-          <div style="display: flex; gap: 6px; margin-top: 4px; align-items: center;">
+          <div style="display: flex; gap: 8px; margin-top: 6px; align-items: center; flex-wrap: wrap;">
             ${d.storage ? `<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${d.storage}</span>` : ''}
             ${d.ram ? `<span style="background: rgba(41, 151, 255, 0.15); color: #2997ff; border: 1px solid rgba(41, 151, 255, 0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${d.ram} RAM</span>` : ''}
-            ${d.color && d.color.toUpperCase() !== 'PADRÃO' ? `<span style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; color: #cbd5e1;">${d.color}</span>` : ''}
+            ${d.color ? `
+              <span style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); padding: 2px 9px; border-radius: 4px; font-size: 11px; font-weight: 700; color: #f8fafc; display: inline-flex; align-items: center; gap: 5px;">
+                <span style="width: 10px; height: 10px; border-radius: 50%; background-color: ${colHex}; display: inline-block; border: 1px solid rgba(255,255,255,0.3);"></span>
+                🎨 Cor: ${d.color}
+              </span>
+            ` : ''}
           </div>
         </div>
         <div style="text-align: right;">
           <div style="font-size: 11px; font-weight: 800; color: #10b981; letter-spacing: 0.8px; text-transform: uppercase;">PROPOSTA OFICIAL</div>
-          <div style="font-size: 10px; color: #64748b; margin-top: 2px;">${new Date().toLocaleDateString('pt-BR')}</div>
+          <div style="font-size: 10px; color: #64748b; margin-top: 2px;">Data: ${new Date().toLocaleDateString('pt-BR')}</div>
         </div>
       </div>
 
-      <!-- Price Highlights -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
-        <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 10px 14px; border-radius: 10px;">
+      <!-- Price Highlights Banners -->
+      <div style="display: grid; grid-template-columns: ${entryVal > 0 ? '1fr 1fr 1fr' : '1fr 1fr'}; gap: 10px; margin-bottom: 14px;">
+        <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 10px 12px; border-radius: 10px;">
           <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: #10b981; margin-bottom: 2px;">💵 Valor À Vista (PIX)</div>
-          <div style="font-size: 18px; font-weight: 800; color: #10b981;">${formatBRL(d.cashPrice)}</div>
-          ${entryVal > 0 ? `<div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Entrada PIX: ${formatBRL(entryVal)}</div>` : ''}
+          <div style="font-size: 17px; font-weight: 800; color: #10b981;">${formatBRL(cashVal)}</div>
         </div>
-        <div style="background: rgba(41, 151, 255, 0.1); border: 1px solid rgba(41, 151, 255, 0.3); padding: 10px 14px; border-radius: 10px;">
-          <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: #2997ff; margin-bottom: 2px;">💳 Saldo a Parcelar</div>
-          <div style="font-size: 18px; font-weight: 800; color: #2997ff;">${formatBRL(balance)}</div>
-          <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Até 18x no Cartão</div>
+        ${entryVal > 0 ? `
+          <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 10px 12px; border-radius: 10px;">
+            <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: #f59e0b; margin-bottom: 2px;">💰 Entrada em PIX</div>
+            <div style="font-size: 17px; font-weight: 800; color: #f59e0b;">${formatBRL(entryVal)}</div>
+          </div>
+        ` : ''}
+        <div style="background: rgba(41, 151, 255, 0.1); border: 1px solid rgba(41, 151, 255, 0.3); padding: 10px 12px; border-radius: 10px;">
+          <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: #2997ff; margin-bottom: 2px;">💳 Saldo no Cartão</div>
+          <div style="font-size: 17px; font-weight: 800; color: #2997ff;">${formatBRL(balance)}</div>
         </div>
       </div>
 
       <!-- Title -->
-      <div style="font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Opções de Parcelamento no Cartão (1x a 18x)</div>
+      <div style="font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Opções de Parcelamento (1x até 18x)</div>
 
       <!-- Rows -->
       <div style="display: flex; flex-direction: column;">
@@ -2585,7 +2608,7 @@ window.downloadSimulationImage = async function() {
 
     document.body.removeChild(exportDiv);
 
-    // Download/Share Blob handler (compatível com iOS Mobile, Android e Desktop)
+    // Download/Share Blob handler
     await new Promise((resolve, reject) => {
       canvas.toBlob(async (blob) => {
         try {
@@ -2594,7 +2617,6 @@ window.downloadSimulationImage = async function() {
           const fileName = `${safeName}-taxas.jpg`;
           const file = new File([blob], fileName, { type: 'image/jpeg' });
 
-          // Tenta usar Web Share API se suportado (Nativo no iPhone / Mobile)
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
               await navigator.share({
@@ -2608,7 +2630,6 @@ window.downloadSimulationImage = async function() {
             }
           }
 
-          // Fallback padrão de Download (Desktop / Android)
           const blobUrl = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.download = fileName;
@@ -2637,26 +2658,35 @@ window.downloadSimulationImage = async function() {
 
 window.copyCardSimulationToWhatsApp = function() {
   const d = currentSimData;
+  const cashVal = d.cashPrice || 0;
   const entryVal = d.entryAmount || 0;
-  const balance = Math.max(0, d.cashPrice - entryVal);
+  const balance = Math.max(0, cashVal - entryVal);
 
-  let text = `🍏 *SIMULAÇÃO DE PARCELAMENTO*\n\n`;
-  text += `📱 *Produto:* ${d.model} ${d.storage ? `(${d.storage})` : ''} ${d.color ? `\n🎨 *Cor:* ${d.color}` : ''}\n\n`;
-  text += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-  text += `💵 *À VISTA NO PIX / DINHEIRO:* ${formatBRL(d.cashPrice)}\n`;
+  let text = `🍏 *SIMULAÇÃO DE PARCELAMENTO — MUNDO APPLE*\n\n`;
+  text += `📱 *Produto:* ${d.model} ${d.storage ? `(${d.storage})` : ''}\n`;
+  if (d.ram) text += `💻 *RAM:* ${d.ram}\n`;
+  if (d.color) text += `🎨 *Cor:* ${d.color}\n`;
+  text += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  text += `💵 *Valor À Vista (PIX / Dinheiro):* ${formatBRL(cashVal)}\n`;
   
   if (entryVal > 0) {
-    text += `💰 *Entrada no PIX/Dinheiro:* ${formatBRL(entryVal)}\n`;
-    text += `💳 *Saldo no Cartão:* ${formatBRL(balance)}\n`;
+    text += `💰 *Entrada em PIX / Dinheiro:* ${formatBRL(entryVal)}\n`;
+    text += `💳 *Saldo Financiado no Cartão:* ${formatBRL(balance)}\n`;
   }
   
   text += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   text += `💳 *OPÇÕES DE PARCELAMENTO NO CARTÃO:*\n\n`;
 
   [1, 2, 3, 4, 6, 8, 10, 12, 14, 18].forEach(n => {
-    const sim = calculateInstallment(d.cashPrice, entryVal, n);
+    const sim = calculateInstallment(cashVal, entryVal, n);
+    const grandTotal = entryVal + sim.totalAmount;
     const label = n === 1 ? '1x (À vista no cartão)' : `${n}x`;
-    text += `• *${label}:* ${n}x de ${formatBRL(sim.monthlyAmount)} _(Total no cartão: ${formatBRL(sim.totalAmount)})_\n`;
+    
+    if (entryVal > 0) {
+      text += `• *${label}:* ${n}x de ${formatBRL(sim.monthlyAmount)} _(Cartão: ${formatBRL(sim.totalAmount)} | Total PIX+Cartão: ${formatBRL(grandTotal)})_\n`;
+    } else {
+      text += `• *${label}:* ${n}x de ${formatBRL(sim.monthlyAmount)} _(Total no cartão: ${formatBRL(sim.totalAmount)})_\n`;
+    }
   });
 
   text += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
