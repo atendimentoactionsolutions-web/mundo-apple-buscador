@@ -3531,6 +3531,32 @@ body.light-theme .sim-btn-save-img:hover {
   }
 }
 
+/* MODO CLIENTE / APRESENTAÇÃO DE CATÁLOGO */
+body.client-mode-active #viewPricesDay,
+body.client-mode-active #adminHeaderBtn,
+body.client-mode-active .app-header-nav-btn,
+body.client-mode-active #userSessionInfo {
+  display: none !important;
+}
+
+body.client-mode-active #viewStoreFront {
+  display: block !important;
+}
+
+body.client-mode-active #btnClientModeToggle {
+  background: rgba(16, 185, 129, 0.2) !important;
+  border-color: rgba(16, 185, 129, 0.5) !important;
+  color: #10b981 !important;
+}
+
+body.client-mode-active #sfMainTitleText::after {
+  content: " • Catálogo Digital";
+  font-size: 0.85rem;
+  color: #10b981;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
 
 
 

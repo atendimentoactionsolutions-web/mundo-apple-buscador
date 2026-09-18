@@ -59,6 +59,10 @@ app.get('/index.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+app.get('/catalogo', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 app.get('/admin', async (req, res) => {
   const token = auth.getSessionTokenFromRequest(req);
   const user = await auth.findUserBySessionToken(token);

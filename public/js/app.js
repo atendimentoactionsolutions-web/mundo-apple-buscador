@@ -2927,4 +2927,59 @@ socket.on('session_terminated', (data) => {
   window.location.href = '/login.html';
 });
 
+// =========================================================================
+// MODO CLIENTE & COMPARTILHAMENTO DE CATÁLOGO LIMPO (SEM CUSTOS/FORNECEDORES)
+// =========================================================================
+let isClientMode = window.location.pathname.includes('/catalogo') || window.location.search.includes('mode=cliente');
+
+function initClientModeCheck() {
+  if (isClientMode) {
+    document.body.classList.add('client-mode-active');
+    switchView('store_front');
+    const txtBtn = document.getElementById('txtClientModeBtn');
+    if (txtBtn) txtBtn.textContent = 'Modo Lojista';
+  }
+}
+
+window.toggleClientMode = function() {
+  isClientMode = !isClientMode;
+  if (isClientMode) {
+    document.body.classList.add('client-mode-active');
+    switchView('store_front');
+    const txtBtn = document.getElementById('txtClientModeBtn');
+    if (txtBtn) txtBtn.textContent = 'Modo Lojista';
+  } else {
+    document.body.classList.remove('client-mode-active');
+    const txtBtn = document.getElementById('txtClientModeBtn');
+    if (txtBtn) txtBtn.textContent = 'Modo Cliente';
+  }
+};
+
+window.shareClientCatalogLink = async function() {
+  const catalogUrl = `${window.location.origin}/catalogo`;
+  const shareData = {
+    title: 'Catálogo Oficial - Produtos Apple',
+    text: 'Confira nossa lista atualizada de iPhones, Macs e iPads com valores à vista e simulação de parcelamento no cartão:',
+    url: catalogUrl
+  };
+
+  if (navigator.canShare && navigator.canShare(shareData)) {
+    try {
+      await navigator.share(shareData);
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+    }
+  }
+
+  try {
+    await navigator.clipboard.writeText(catalogUrl);
+    alert(`✅ Link do Catálogo do Cliente Copiado com Sucesso!\n\n${catalogUrl}\n\nEnvie este link no WhatsApp do seu cliente para ele visualizar a vitrine limpa sem preços de custo.`);
+  } catch (err) {
+    prompt('Copie o link do catálogo para enviar ao cliente:', catalogUrl);
+  }
+};
+
+initClientModeCheck();
+
 
