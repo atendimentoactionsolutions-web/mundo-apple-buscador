@@ -2916,53 +2916,66 @@ window.generateSelectedPdf = function() {
   <meta charset="UTF-8">
   <title>Catálogo Loja Física — MUNDO APPLE</title>
   <style>
-    @page { size: A4 portrait; margin: 8mm 6mm; }
+    @page { size: A4 portrait; margin: 10mm 10mm; }
     * { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       color: #0f172a;
       background: #ffffff;
       margin: 0;
-      padding: 6px;
+      padding: 0;
+      width: 100%;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+
+    .pdf-container {
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 10px;
+    }
+
+    /* Top Bar */
     .pdf-header-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 14px;
+      padding: 12px 18px;
       background: #f8fafc;
       border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      margin-bottom: 12px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      width: 100%;
     }
     .pdf-header-title {
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 800;
       color: #0f172a;
       margin: 0;
       letter-spacing: -0.3px;
     }
     .pdf-header-subtitle {
-      font-size: 9.5px;
+      font-size: 10px;
       color: #64748b;
-      margin-top: 2px;
+      margin-top: 3px;
       font-weight: 500;
     }
     .pdf-header-date {
-      font-size: 9.5px;
+      font-size: 10px;
       font-weight: 800;
       color: #059669;
       background: #ecfdf5;
-      padding: 4px 10px;
+      padding: 5px 12px;
       border-radius: 20px;
       border: 1px solid #a7f3d0;
       white-space: nowrap;
     }
 
+    /* Model Group Section */
     .model-group {
-      margin-bottom: 14px;
+      margin-bottom: 18px;
+      width: 100%;
       page-break-inside: avoid;
       break-inside: avoid;
     }
@@ -2970,92 +2983,93 @@ window.generateSelectedPdf = function() {
       background: #ffffff;
       border: 1px solid #cbd5e1;
       border-left: 5px solid #10b981;
-      border-radius: 8px;
-      padding: 6px 12px;
-      margin-bottom: 8px;
-      font-size: 12px;
+      border-radius: 10px;
+      padding: 8px 14px;
+      margin-bottom: 10px;
+      font-size: 13px;
       font-weight: 800;
       color: #0f172a;
       text-transform: uppercase;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.5px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      width: 100%;
     }
     .model-group-badge {
-      font-size: 8px;
+      font-size: 8.5px;
       font-weight: 800;
-      padding: 2px 6px;
-      border-radius: 5px;
+      padding: 2px 8px;
+      border-radius: 6px;
       text-transform: uppercase;
     }
     .badge-semi { background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
     .badge-lacrado { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
 
+    /* CSS Grid 3 Columns filling 100% width like the website */
     .cards-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
       width: 100%;
-      margin: 0;
-      padding: 0;
     }
+
     .matrix-card {
-      width: 48.8%;
-      display: inline-block;
-      vertical-align: top;
-      margin-right: 1.8%;
-      margin-bottom: 10px;
+      width: 100%;
       background: #ffffff;
       border: 1.5px solid #cbd5e1;
-      border-radius: 10px;
-      padding: 8px 10px;
+      border-radius: 12px;
+      padding: 10px 12px;
       page-break-inside: avoid;
       break-inside: avoid;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-    }
-    .matrix-card:nth-child(2n) {
-      margin-right: 0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
 
     .card-top {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      padding-bottom: 5px;
-      margin-bottom: 5px;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
       border-bottom: 1px dashed #e2e8f0;
     }
     .card-title {
-      font-size: 10.5px;
+      font-size: 11px;
       font-weight: 800;
       color: #0f172a;
       text-transform: uppercase;
-      line-height: 1.2;
+      line-height: 1.25;
     }
     .card-storage {
       display: inline-block;
       background: #ecfdf5;
       color: #059669;
       border: 1px solid #a7f3d0;
-      font-size: 9px;
+      font-size: 9.5px;
       font-weight: 800;
-      padding: 1px 6px;
+      padding: 2px 7px;
       border-radius: 8px;
-      margin-top: 2px;
+      margin-top: 3px;
     }
     .card-simular {
-      font-size: 8px;
+      font-size: 8.5px;
       font-weight: 700;
       color: #475569;
       background: #f1f5f9;
-      padding: 2px 6px;
-      border-radius: 5px;
+      padding: 3px 7px;
+      border-radius: 6px;
       border: 1px solid #cbd5e1;
+      white-space: nowrap;
     }
 
     .color-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 3.5px 0;
+      padding: 4px 0;
       border-bottom: 1px solid #f8fafc;
     }
     .color-row:last-child {
@@ -3064,17 +3078,17 @@ window.generateSelectedPdf = function() {
     .color-info {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
     }
     .color-dot {
-      width: 9px;
-      height: 9px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
       border: 1px solid rgba(0,0,0,0.2);
       display: inline-block;
     }
     .color-name {
-      font-size: 9px;
+      font-size: 9.5px;
       font-weight: 700;
       color: #334155;
       text-transform: uppercase;
@@ -3083,7 +3097,7 @@ window.generateSelectedPdf = function() {
       text-align: right;
     }
     .price-label {
-      font-size: 6.5px;
+      font-size: 7px;
       color: #94a3b8;
       font-weight: 800;
       text-transform: uppercase;
@@ -3091,35 +3105,38 @@ window.generateSelectedPdf = function() {
       line-height: 1;
     }
     .price-val {
-      font-size: 11.5px;
+      font-size: 12px;
       font-weight: 800;
       color: #059669;
       letter-spacing: -0.2px;
     }
 
     .pdf-footer {
-      margin-top: 14px;
+      margin-top: 20px;
       text-align: center;
-      font-size: 8.5px;
+      font-size: 9px;
       color: #94a3b8;
-      padding-top: 6px;
+      padding-top: 10px;
       border-top: 1px solid #e2e8f0;
+      width: 100%;
     }
 
     @media print {
       body { background: #fff; padding: 0; }
-      .matrix-card { width: 48.8%; }
+      .pdf-container { padding: 0; }
+      .cards-container { grid-template-columns: repeat(3, 1fr); gap: 10px; }
     }
   </style>
 </head>
 <body>
-  <div class="pdf-header-bar">
-    <div>
-      <h1 class="pdf-header-title">📱 CATÁLOGO DE PREÇOS — LOJA FÍSICA</h1>
-      <div class="pdf-header-subtitle">Tabela Oficial de Venda ao Consumidor (Valores à vista e simulação no cartão)</div>
-    </div>
-    <div class="pdf-header-date">Data: ${currentDate}</div>
-  </div>`;
+  <div class="pdf-container">
+    <div class="pdf-header-bar">
+      <div>
+        <h1 class="pdf-header-title">📱 CATÁLOGO DE PREÇOS — LOJA FÍSICA</h1>
+        <div class="pdf-header-subtitle">Tabela Oficial de Venda ao Consumidor (Valores à vista e simulação no cartão)</div>
+      </div>
+      <div class="pdf-header-date">Data: ${currentDate}</div>
+    </div>`;
 
   pdfCachedFamilies.forEach(fam => {
     let cardsHtml = '';
