@@ -1292,11 +1292,9 @@ function getProductRetailPrice(p) {
 }
 
 // =========================================================================
-// VIEW MANAGER: LOJA FÍSICA (PÚBLICO DEFAULT) VS PREÇOS DE CUSTO (PIN 102030)
+// VIEW MANAGER: PREÇOS DO DIA VS LOJA FÍSICA
 // =========================================================================
-let currentView = 'storefront'; // Loja Física por padrão (Preço de Venda Final + Cartão)
-let isLojistaUnlocked = sessionStorage.getItem('lojista_pin_unlocked') === 'true';
-let pendingViewSwitch = null;
+let currentView = 'prices_of_the_day'; // Preços do Dia por padrão
 
 let podCurrentCategory = 'ALL';
 let podSearchQuery = '';
@@ -1306,84 +1304,7 @@ let podOnlyVerified = false;
 let sfCurrentCategory = 'ALL';
 let sfSearchQuery = '';
 
-window.openPinModal = function(targetView = 'prices_of_the_day') {
-  pendingViewSwitch = targetView;
-  const modal = document.getElementById('pinAuthModal');
-  const input = document.getElementById('inputLojistaPin');
-  const errEl = document.getElementById('pinErrorMessage');
-  if (errEl) errEl.style.display = 'none';
-  if (input) input.value = '';
-  if (modal) modal.style.display = 'flex';
-  setTimeout(() => input?.focus(), 100);
-};
-
-window.closePinModal = function() {
-  const modal = document.getElementById('pinAuthModal');
-  if (modal) modal.style.display = 'none';
-  pendingViewSwitch = null;
-};
-
-window.submitLojistaPin = async function() {
-  const pinInput = document.getElementById('inputLojistaPin');
-  const errEl = document.getElementById('pinErrorMessage');
-  const pin = (pinInput?.value || '').trim();
-
-  if (pin === '102030') {
-    sessionStorage.setItem('lojista_pin_unlocked', 'true');
-    isLojistaUnlocked = true;
-    closePinModal();
-    updateLojistaLockUI();
-    if (pendingViewSwitch === 'admin') {
-      window.location.href = '/admin';
-    } else {
-      switchView('prices_of_the_day');
-    }
-  } else {
-    if (errEl) {
-      errEl.style.display = 'block';
-      errEl.textContent = 'PIN incorreto. Digite 102030.';
-    }
-  }
-};
-
-window.lockLojistaMode = function() {
-  sessionStorage.removeItem('lojista_pin_unlocked');
-  isLojistaUnlocked = false;
-  updateLojistaLockUI();
-  switchView('storefront');
-};
-
-function updateLojistaLockUI() {
-  const tabPricesDay = document.getElementById('tabPricesDay');
-  if (tabPricesDay) {
-    if (isLojistaUnlocked) {
-      tabPricesDay.innerHTML = `
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
-          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-          <path d="M4 22h16"/>
-          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
-        </svg>
-        <span>Preços de Custo (🔓)</span>
-      `;
-    } else {
-      tabPricesDay.innerHTML = `
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: #f59e0b;">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-        </svg>
-        <span>🔒 Preços do Dia (Custo)</span>
-      `;
-    }
-  }
-}
-
 window.switchView = function(viewName) {
-  if (viewName === 'prices_of_the_day' && !isLojistaUnlocked) {
-    openPinModal('prices_of_the_day');
-    return;
-  }
-
   currentView = viewName;
   const viewPricesDay = document.getElementById('viewPricesDay');
   const viewStoreFront = document.getElementById('viewStoreFront');
@@ -2795,6 +2716,327 @@ window.exportPricesDayTable = function() {
     });
   } else {
     prompt('Copie o texto abaixo para o WhatsApp:', text);
+  }
+};
+
+// 17.2 Export Storefront (Loja Física) Catalog to PDF
+window.exportStorefrontPDF = function() {
+  const sLower = sfSearchQuery.trim().toLowerCase();
+  const searchTokens = normalizeSearchText(sLower).split(' ').filter(Boolean);
+
+  const filtered = allProducts.filter(p => {
+    if (isCpoProduct(p)) return false;
+    if (!p.price || p.price <= 0) return false;
+
+    const isSemi = isSeminovoProduct(p);
+
+    if (sfCurrentCategory !== 'ALL') {
+      if (sfCurrentCategory === 'SEMI') {
+        if (!isSemi) return false;
+      } else {
+        if (isSemi) return false;
+        const cat = (p.category || '').toUpperCase().trim();
+        const name = (p.name || '').toUpperCase();
+        if (sfCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
+        if (sfCurrentCategory === 'MCB' && !(cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO') || name.includes('IMAC'))) return false;
+        if (sfCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
+        if (sfCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
+        if (sfCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
+        if (sfCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR'))) return false;
+        if (sfCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
+      }
+    }
+
+    if (searchTokens.length > 0) {
+      if (!matchSearchTokens(p, searchTokens)) return false;
+    }
+
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    alert('Nenhum produto encontrado para gerar o PDF com os filtros atuais.');
+    return;
+  }
+
+  const modelFamilies = new Map();
+
+  filtered.forEach(p => {
+    const isSemi = isSeminovoProduct(p);
+    const baseModelName = cleanModelName(p.name);
+    const modelKey = isSemi ? `${baseModelName.toUpperCase()} [SEMINOVO]` : baseModelName.toUpperCase();
+    const displayName = isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
+    const ram = getMacBookRam(p);
+    const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
+    const variantKey = ram ? `${storageKey}__${ram}` : storageKey;
+
+    if (!modelFamilies.has(modelKey)) {
+      modelFamilies.set(modelKey, {
+        modelName: displayName,
+        rawModelName: baseModelName,
+        category: p.category,
+        isSeminovo: isSemi,
+        storagesMap: new Map()
+      });
+    }
+
+    const fam = modelFamilies.get(modelKey);
+    if (!fam.storagesMap.has(variantKey)) {
+      fam.storagesMap.set(variantKey, {
+        model: displayName,
+        rawModel: baseModelName,
+        storage: (p.storage || '').trim(),
+        ram: ram,
+        isSeminovo: isSemi,
+        colors: new Map()
+      });
+    }
+
+    const stGrp = fam.storagesMap.get(variantKey);
+    const colorName = (p.color || 'Padrão').trim();
+    const colorKey = colorName.toUpperCase();
+    
+    if (!stGrp.colors.has(colorKey)) {
+      stGrp.colors.set(colorKey, {
+        color: colorName,
+        offers: [p],
+        ram: ram
+      });
+    } else {
+      stGrp.colors.get(colorKey).offers.push(p);
+    }
+  });
+
+  const sortedFamilies = Array.from(modelFamilies.values()).sort((a, b) => {
+    const rankA = getModelOrderRank(a.rawModelName || a.modelName, a.category);
+    const rankB = getModelOrderRank(b.rawModelName || b.modelName, b.category);
+    if (rankA !== rankB) return rankA - rankB;
+    if (a.isSeminovo !== b.isSeminovo) return a.isSeminovo ? 1 : -1;
+    return a.modelName.localeCompare(b.modelName);
+  });
+
+  const currentDate = new Date().toLocaleDateString('pt-BR');
+
+  let pdfHtml = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Catálogo Loja Física — MUNDO APPLE</title>
+  <style>
+    @page { size: A4 portrait; margin: 10mm; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #1d1d1f;
+      background: #fff;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .pdf-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #10b981;
+      margin-bottom: 16px;
+    }
+    .pdf-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #000;
+      margin: 0;
+    }
+    .pdf-subtitle {
+      font-size: 11px;
+      color: #6e6e73;
+      margin-top: 3px;
+      font-weight: 500;
+    }
+    .pdf-date-badge {
+      text-align: right;
+    }
+    .pdf-date {
+      font-size: 11px;
+      color: #1d1d1f;
+      font-weight: 600;
+    }
+    .pdf-badge {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+      font-weight: 800;
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-top: 4px;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .family-block {
+      margin-bottom: 14px;
+      page-break-inside: avoid;
+    }
+    .family-header {
+      background: #f5f5f7;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 13px;
+      color: #1d1d1f;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      border: 1px solid #e5e5e7;
+    }
+    .family-tag {
+      font-size: 9px;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #0071e3;
+      color: #fff;
+      font-weight: 700;
+    }
+    .family-tag.semi {
+      background: #f59e0b;
+    }
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    .items-table th {
+      background: #fafafa;
+      text-align: left;
+      padding: 5px 8px;
+      color: #86868b;
+      font-weight: 700;
+      font-size: 10px;
+      text-transform: uppercase;
+      border-bottom: 1px solid #e5e5e7;
+    }
+    .items-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #f2f2f5;
+      vertical-align: middle;
+    }
+    .col-storage { font-weight: 600; color: #1d1d1f; width: 30%; }
+    .col-color { color: #6e6e73; width: 30%; }
+    .col-price { text-align: right; font-weight: 800; font-size: 12px; color: #10b981; width: 40%; }
+    .col-card { font-size: 10px; color: #6e6e73; font-weight: 500; margin-left: 6px; }
+    .pdf-footer {
+      margin-top: 20px;
+      padding-top: 10px;
+      border-top: 1px solid #e5e5e7;
+      text-align: center;
+      font-size: 10px;
+      color: #86868b;
+    }
+  </style>
+</head>
+<body>
+  <div class="pdf-header">
+    <div>
+      <h1 class="pdf-title"> CATÁLOGO DE PREÇOS — LOJA FÍSICA</h1>
+      <div class="pdf-subtitle">Tabela Oficial de Venda ao Consumidor (Valores à vista e 12x no Cartão)</div>
+    </div>
+    <div class="pdf-date-badge">
+      <div class="pdf-date">Data: ${currentDate}</div>
+      <div class="pdf-badge">LOJA FÍSICA PRO</div>
+    </div>
+  </div>`;
+
+  sortedFamilies.forEach(fam => {
+    pdfHtml += `
+  <div class="family-block">
+    <div class="family-header">
+      <span>${fam.modelName}</span>
+      <span class="family-tag ${fam.isSeminovo ? 'semi' : ''}">${fam.isSeminovo ? 'SEMINOVO' : 'LACRADO'}</span>
+    </div>
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Armazenamento / RAM</th>
+          <th>Cor</th>
+          <th style="text-align: right;">Preço à Vista / Cartão</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+    const storages = Array.from(fam.storagesMap.values()).sort((a, b) => {
+      const rA = getStorageRank(a.storage);
+      const rB = getStorageRank(b.storage);
+      if (rA !== rB) return rA - rB;
+      return (parseInt(a.ram) || 0) - (parseInt(b.ram) || 0);
+    });
+
+    storages.forEach(grp => {
+      const colorsArr = Array.from(grp.colors.values()).map(colObj => {
+        const isSemi = grp.isSeminovo;
+        const offers = colObj.offers || [];
+        const refCost = calculateSupplierReferencePrice(offers, isSemi);
+        
+        let marginVal = margins.products ? margins.products[grp.rawModel.toUpperCase()] : undefined;
+        if (marginVal === undefined && isSemi) {
+          marginVal = (margins.categories && margins.categories.SEMINOVOS !== undefined) ? margins.categories.SEMINOVOS : 600;
+        }
+        if (marginVal === undefined) {
+          const dummyProd = { name: grp.rawModel, category: fam.category, price: refCost };
+          marginVal = getProductRetailPrice(dummyProd) - refCost;
+        }
+        const retailPrice = refCost + (Number(marginVal) || 0);
+
+        return {
+          color: colObj.color,
+          retailPrice: retailPrice,
+          ram: colObj.ram
+        };
+      }).sort((a, b) => a.retailPrice - b.retailPrice);
+
+      colorsArr.forEach(col => {
+        const capLabel = grp.ram ? `${grp.storage} (${grp.ram} RAM)` : grp.storage;
+        const rate12x = (cardRates && cardRates['12x']) ? cardRates['12x'] : 0.12;
+        const total12x = col.retailPrice * (1 + rate12x);
+        const parcel12x = total12x / 12;
+
+        pdfHtml += `
+        <tr>
+          <td class="col-storage">${capLabel}</td>
+          <td class="col-color">${col.color}</td>
+          <td class="col-price">
+            ${formatBRL(col.retailPrice)}
+            <span class="col-card">(12x de ${formatBRL(parcel12x)})</span>
+          </td>
+        </tr>`;
+      });
+    });
+
+    pdfHtml += `
+      </tbody>
+    </table>
+  </div>`;
+  });
+
+  pdfHtml += `
+  <div class="pdf-footer">
+    Valores sujeitos a alteração sem aviso prévio. Consulte disponibilidade em loja.
+  </div>
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 250);
+    };
+  </script>
+</body>
+</html>`;
+
+  const printWin = window.open('', '_blank');
+  if (printWin) {
+    printWin.document.write(pdfHtml);
+    printWin.document.close();
+  } else {
+    alert('Por favor, permita pop-ups para gerar o PDF.');
   }
 };
 

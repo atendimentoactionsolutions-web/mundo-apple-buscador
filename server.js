@@ -576,19 +576,6 @@ async function requireAdminApi(req, res, next) {
 }
 
 // --- ROTAS DE AUTENTICAÇÃO ---
-app.post('/api/auth/pin-login', async (req, res) => {
-  const { pin } = req.body || {};
-  if (pin === '102030') {
-    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    const result = await auth.loginUser('admin', 'admin123', clientIp, localIo).catch(() => null);
-    if (result && result.success) {
-      setSessionCookie(res, result.sessionToken);
-      return res.json({ success: true, user: result.user });
-    }
-    return res.json({ success: true, isPinUnlocked: true });
-  }
-  return res.status(401).json({ error: 'PIN incorreto. Digite 102030.', code: 'INVALID_PIN' });
-});
 
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body || {};
