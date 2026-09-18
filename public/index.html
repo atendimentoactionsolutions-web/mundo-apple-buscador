@@ -471,8 +471,57 @@
     </div>
   </div>
 
+  <!-- =========================================================================
+       MODAL: SELEÇÃO DE PRODUTOS PARA GERAR PDF (LOJA FÍSICA)
+       ========================================================================= -->
+  <div class="modal-overlay" id="pdfSelectionModal" style="display: none;">
+    <div class="modal-content" style="max-width: 650px; width: 92%; max-height: 85vh; display: flex; flex-direction: column; padding: 0; border-radius: 16px; background: var(--bg-card); border: 1px solid var(--border-color); overflow: hidden;">
+      
+      <!-- Modal Header -->
+      <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: var(--bg-card-header);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--accent-green);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+          </div>
+          <div>
+            <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin: 0;">Selecione os Produtos para o PDF</h3>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin: 2px 0 0 0;">Marque os modelos que deseja enviar ao seu cliente no catálogo</p>
+          </div>
+        </div>
+        <button onclick="closePdfSelectionModal()" style="background: none; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; padding: 4px;">✕</button>
+      </div>
 
+      <!-- Quick Action Controls & Search -->
+      <div style="padding: 12px 20px; background: rgba(0,0,0,0.02); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 8px;">
+          <button type="button" onclick="toggleAllPdfSelections(true)" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; cursor: pointer;">☑️ Selecionar Todos</button>
+          <button type="button" onclick="toggleAllPdfSelections(false)" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; cursor: pointer;">☐ Desmarcar Todos</button>
+        </div>
+        <span id="pdfSelectedCountBadge" style="font-size: 0.8rem; font-weight: 800; color: var(--accent-green);">0 selecionados</span>
+      </div>
 
-  <script src="/js/app.js?v=8.6"></script>
+      <!-- Scrollable Product Selection Checklist Body -->
+      <div id="pdfSelectionListBody" style="padding: 16px 20px; overflow-y: auto; flex: 1; max-height: 450px;">
+        <!-- Injected dynamically via JS -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div style="padding: 14px 20px; border-top: 1px solid var(--border-color); background: var(--bg-card-header); display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" onclick="closePdfSelectionModal()" style="padding: 10px 18px; background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; font-weight: 700; cursor: pointer;">Cancelar</button>
+        <button type="button" onclick="generateSelectedPdf()" style="padding: 10px 22px; background: var(--accent-green); color: #fff; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <span>Gerar PDF Agora</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="/js/app.js?v=8.7"></script>
 </body>
 </html>
