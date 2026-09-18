@@ -2662,40 +2662,39 @@ window.copyCardSimulationToWhatsApp = function() {
   const entryVal = d.entryAmount || 0;
   const balance = Math.max(0, cashVal - entryVal);
 
-  let text = `🍏 *SIMULAÇÃO DE PARCELAMENTO — MUNDO APPLE*\n\n`;
-  text += `📱 *Produto:* ${d.model} ${d.storage ? `(${d.storage})` : ''}\n`;
-  if (d.ram) text += `💻 *RAM:* ${d.ram}\n`;
-  if (d.color) text += `🎨 *Cor:* ${d.color}\n`;
-  text += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-  text += `💵 *Valor À Vista (PIX / Dinheiro):* ${formatBRL(cashVal)}\n`;
+  let text = `*SIMULAÇÃO DE PARCELAMENTO — MUNDO APPLE*\n\n`;
+  text += `*Produto:* ${d.model} ${d.storage ? `(${d.storage})` : ''}\n`;
+  if (d.ram) text += `*RAM:* ${d.ram}\n`;
+  if (d.color) text += `*Cor:* ${d.color}\n`;
+  text += `\n`;
+  text += `*Valor À Vista (PIX / Dinheiro):* ${formatBRL(cashVal)}\n`;
   
   if (entryVal > 0) {
-    text += `💰 *Entrada em PIX / Dinheiro:* ${formatBRL(entryVal)}\n`;
-    text += `💳 *Saldo Financiado no Cartão:* ${formatBRL(balance)}\n`;
+    text += `*Entrada em PIX / Dinheiro:* ${formatBRL(entryVal)}\n`;
+    text += `*Saldo Financiado no Cartão:* ${formatBRL(balance)}\n`;
   }
   
-  text += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-  text += `💳 *OPÇÕES DE PARCELAMENTO NO CARTÃO:*\n\n`;
+  text += `\n*OPÇÕES DE PARCELAMENTO NO CARTÃO:*\n\n`;
 
-  [1, 2, 3, 4, 6, 8, 10, 12, 14, 18].forEach(n => {
+  const installmentOptions = [1, 2, 3, 4, 6, 8, 10, 12, 14, 18];
+  
+  const installmentRows = installmentOptions.map(n => {
     const sim = calculateInstallment(cashVal, entryVal, n);
     const grandTotal = entryVal + sim.totalAmount;
     const label = n === 1 ? '1x (À vista no cartão)' : `${n}x`;
     
     if (entryVal > 0) {
-      text += `• *${label}:* ${n}x de ${formatBRL(sim.monthlyAmount)} _(Cartão: ${formatBRL(sim.totalAmount)} | Total PIX+Cartão: ${formatBRL(grandTotal)})_\n`;
+      return `*${label}:* ${n}x de ${formatBRL(sim.monthlyAmount)} _(Cartão: ${formatBRL(sim.totalAmount)} | Total PIX+Cartão: ${formatBRL(grandTotal)})_`;
     } else {
-      text += `• *${label}:* ${n}x de ${formatBRL(sim.monthlyAmount)} _(Total no cartão: ${formatBRL(sim.totalAmount)})_\n`;
+      return `*${label}:* ${n}x de ${formatBRL(sim.monthlyAmount)} _(Total no cartão: ${formatBRL(sim.totalAmount)})_`;
     }
   });
 
-  text += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-  text += `⚡ *Condição válida para fechamento imediato!*\n`;
-  text += `Ficou com alguma dúvida ou deseja reservar o seu aparelho agora?`;
+  text += installmentRows.join('\n\n');
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(() => {
-      alert('✅ Proposta comercial copiada com sucesso para a área de transferência! Cole na conversa do WhatsApp com o cliente.');
+      alert('Proposta comercial copiada com sucesso para a área de transferência! Cole no WhatsApp.');
     }).catch(() => {
       prompt('Copie a proposta abaixo para o WhatsApp:', text);
     });
