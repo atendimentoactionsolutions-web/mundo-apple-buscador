@@ -1115,6 +1115,16 @@ function isAsIsProduct(p) {
   );
 }
 
+// Limpa o nome do produto removendo redundâncias como SEMI-NOVO, SEMINOVO, USADO, etc.
+function cleanModelName(name) {
+  if (!name) return 'Apple';
+  let cleaned = name.replace(/\b(SEMI-NOVO|SEMI NOVO|SEMINOVO|USADO|VITRINE|GRADE A\+?|GRADE B|SWAP|SWP|RECONDICIONADO)\b/gi, '')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+  if (!cleaned) return 'Apple';
+  return cleaned;
+}
+
 // Helper to detect if a product is an Apple Seminovo
 function isSeminovoProduct(p) {
   if (!p) return false;
@@ -1365,7 +1375,7 @@ function renderStoreFront() {
 
   filtered.forEach(p => {
     const isSemi = isSeminovoProduct(p);
-    const baseModelName = (p.name || 'Apple').trim();
+    const baseModelName = cleanModelName(p.name);
     const modelKey = isSemi ? `${baseModelName.toUpperCase()} [SEMINOVO]` : baseModelName.toUpperCase();
     const displayName = isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
     const ram = getMacBookRam(p);
@@ -1934,7 +1944,7 @@ function renderPricesOfTheDay() {
     if (p.supplier?.name) suppliersSet.add(p.supplier.name);
 
     const isSemi = isSeminovoProduct(p);
-    const baseModelName = (p.name || 'Apple').trim();
+    const baseModelName = cleanModelName(p.name);
     const modelKey = isSemi ? `${baseModelName.toUpperCase()} [SEMINOVO]` : baseModelName.toUpperCase();
     const displayName = isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
     const ram = getMacBookRam(p);
@@ -2142,7 +2152,7 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
     if (isCpoProduct(p)) return false;
     const pIsSemi = isSeminovoProduct(p);
     if (isSeminovo ? !pIsSemi : pIsSemi) return false;
-    if ((p.name || '').trim().toUpperCase() !== model.trim().toUpperCase()) return false;
+    if (cleanModelName(p.name).toUpperCase() !== model.trim().toUpperCase()) return false;
     if (storage && (p.storage || '').trim().toUpperCase() !== storage.trim().toUpperCase()) return false;
     if (selectedRam && getMacBookRam(p) !== selectedRam) return false;
     if (selectedColor && (p.color || '').trim().toUpperCase() !== selectedColor.trim().toUpperCase()) return false;
@@ -2175,7 +2185,7 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
     const colHex = getAppleColorHex(p.color);
     const ram = getMacBookRam(p);
 
-    const orderMsg = buildSupplierWhatsAppMessage(p.name + (isSeminovo ? ' (Seminovo)' : ''), p.storage, p.color, p.price, ram);
+    const orderMsg = buildSupplierWhatsAppMessage(cleanModelName(p.name) + (isSeminovo ? ' (Seminovo)' : ''), p.storage, p.color, p.price, ram);
     const waLink = whatsapp ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(orderMsg)}` : '#';
 
     return `
