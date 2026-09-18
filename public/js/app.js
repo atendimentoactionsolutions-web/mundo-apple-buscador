@@ -2823,148 +2823,236 @@ window.exportStorefrontPDF = function() {
   <meta charset="UTF-8">
   <title>Catálogo Loja Física — MUNDO APPLE</title>
   <style>
-    @page { size: A4 portrait; margin: 10mm; }
+    @page { size: A4 portrait; margin: 8mm; }
+    * { box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: #1d1d1f;
-      background: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      background: #f8fafc;
       margin: 0;
-      padding: 0;
+      padding: 10px;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    .pdf-header {
+    .pdf-top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-bottom: 12px;
-      border-bottom: 2px solid #10b981;
-      margin-bottom: 16px;
+      padding: 10px 14px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      margin-bottom: 14px;
     }
-    .pdf-title {
-      font-size: 20px;
+    .pdf-top-title {
+      font-size: 16px;
       font-weight: 800;
-      letter-spacing: -0.5px;
-      color: #000;
+      color: #0f172a;
       margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-    .pdf-subtitle {
-      font-size: 11px;
-      color: #6e6e73;
-      margin-top: 3px;
+    .pdf-top-subtitle {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 2px;
       font-weight: 500;
     }
-    .pdf-date-badge {
-      text-align: right;
-    }
-    .pdf-date {
-      font-size: 11px;
-      color: #1d1d1f;
-      font-weight: 600;
-    }
-    .pdf-badge {
-      display: inline-block;
-      background: rgba(16, 185, 129, 0.12);
-      color: #10b981;
-      font-weight: 800;
+    .pdf-top-date {
       font-size: 10px;
-      padding: 3px 8px;
-      border-radius: 4px;
-      margin-top: 4px;
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      font-weight: 800;
+      color: #10b981;
+      background: rgba(16, 185, 129, 0.1);
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(16, 185, 129, 0.25);
     }
-    .family-block {
-      margin-bottom: 14px;
+    
+    .model-section {
+      margin-bottom: 16px;
       page-break-inside: avoid;
     }
-    .family-header {
-      background: #f5f5f7;
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-weight: 800;
-      font-size: 13px;
-      color: #1d1d1f;
+    .model-header {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-left: 5px solid #10b981;
+      border-radius: 10px;
+      padding: 7px 12px;
+      margin-bottom: 8px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 6px;
-      border: 1px solid #e5e5e7;
     }
-    .family-tag {
+    .model-title-text {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0f172a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .model-badge {
       font-size: 9px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 6px;
       text-transform: uppercase;
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: #0071e3;
-      color: #fff;
+    }
+    .model-badge.semi {
+      background: rgba(245, 158, 11, 0.15);
+      color: #d97706;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+    .model-badge.lacrado {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .cards-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .matrix-card {
+      width: calc(33.333% - 6px);
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      page-break-inside: avoid;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+    .matrix-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 6px;
+      margin-bottom: 6px;
+      border-bottom: 1px dashed #e2e8f0;
+    }
+    .card-model-name {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #0f172a;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+    .card-storage-badge {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.12);
+      color: #059669;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 1px 6px;
+      border-radius: 10px;
+      margin-top: 3px;
+    }
+    .card-simular-btn {
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 8.5px;
       font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      white-space: nowrap;
     }
-    .family-tag.semi {
-      background: #f59e0b;
+
+    .color-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      border-bottom: 1px solid #f8fafc;
     }
-    .items-table {
-      width: 100%;
-      border-collapse: collapse;
+    .color-row:last-child {
+      border-bottom: none;
+    }
+    .color-left {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .color-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.18);
+      display: inline-block;
+    }
+    .color-name {
+      font-size: 9px;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+    }
+    .price-group {
+      text-align: right;
+    }
+    .price-label {
+      font-size: 7px;
+      color: #94a3b8;
+      font-weight: 800;
+      text-transform: uppercase;
+      line-height: 1;
+    }
+    .price-value {
       font-size: 11px;
+      font-weight: 800;
+      color: #10b981;
+      letter-spacing: -0.2px;
     }
-    .items-table th {
-      background: #fafafa;
-      text-align: left;
-      padding: 5px 8px;
-      color: #86868b;
-      font-weight: 700;
-      font-size: 10px;
-      text-transform: uppercase;
-      border-bottom: 1px solid #e5e5e7;
+    .card-icon-circle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 12px;
+      height: 12px;
+      background: rgba(16, 185, 129, 0.12);
+      border-radius: 50%;
+      color: #10b981;
+      font-size: 8px;
+      margin-left: 2px;
     }
-    .items-table td {
-      padding: 6px 8px;
-      border-bottom: 1px solid #f2f2f5;
-      vertical-align: middle;
-    }
-    .col-storage { font-weight: 600; color: #1d1d1f; width: 30%; }
-    .col-color { color: #6e6e73; width: 30%; }
-    .col-price { text-align: right; font-weight: 800; font-size: 12px; color: #10b981; width: 40%; }
-    .col-card { font-size: 10px; color: #6e6e73; font-weight: 500; margin-left: 6px; }
+
     .pdf-footer {
-      margin-top: 20px;
-      padding-top: 10px;
-      border-top: 1px solid #e5e5e7;
+      margin-top: 16px;
       text-align: center;
-      font-size: 10px;
-      color: #86868b;
+      font-size: 9px;
+      color: #94a3b8;
+      padding-top: 8px;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    @media print {
+      body { background: #fff; padding: 0; }
+      .matrix-card { width: calc(33.333% - 6px); }
     }
   </style>
 </head>
 <body>
-  <div class="pdf-header">
+  <div class="pdf-top-bar">
     <div>
-      <h1 class="pdf-title"> CATÁLOGO DE PREÇOS — LOJA FÍSICA</h1>
-      <div class="pdf-subtitle">Tabela Oficial de Venda ao Consumidor (Valores à vista e 12x no Cartão)</div>
+      <h1 class="pdf-top-title">📱 CATÁLOGO DE PREÇOS — LOJA FÍSICA</h1>
+      <div class="pdf-top-subtitle">Tabela de Preços ao Consumidor (Valores à vista com opção de parcelamento no cartão)</div>
     </div>
-    <div class="pdf-date-badge">
-      <div class="pdf-date">Data: ${currentDate}</div>
-      <div class="pdf-badge">LOJA FÍSICA PRO</div>
-    </div>
+    <div class="pdf-top-date">Data: ${currentDate}</div>
   </div>`;
 
   sortedFamilies.forEach(fam => {
-    pdfHtml += `
-  <div class="family-block">
-    <div class="family-header">
-      <span>${fam.modelName}</span>
-      <span class="family-tag ${fam.isSeminovo ? 'semi' : ''}">${fam.isSeminovo ? 'SEMINOVO' : 'LACRADO'}</span>
-    </div>
-    <table class="items-table">
-      <thead>
-        <tr>
-          <th>Armazenamento / RAM</th>
-          <th>Cor</th>
-          <th style="text-align: right;">Preço à Vista / Cartão</th>
-        </tr>
-      </thead>
-      <tbody>`;
-
+    let cardsHtml = '';
     const storages = Array.from(fam.storagesMap.values()).sort((a, b) => {
       const rA = getStorageRank(a.storage);
       const rB = getStorageRank(b.storage);
@@ -2995,33 +3083,63 @@ window.exportStorefrontPDF = function() {
         };
       }).sort((a, b) => a.retailPrice - b.retailPrice);
 
+      let colorRowsHtml = '';
       colorsArr.forEach(col => {
-        const capLabel = grp.ram ? `${grp.storage} (${grp.ram} RAM)` : grp.storage;
-        const rate12x = (cardRates && cardRates['12x']) ? cardRates['12x'] : 0.12;
-        const total12x = col.retailPrice * (1 + rate12x);
-        const parcel12x = total12x / 12;
+        const hex = getAppleColorHex(col.color);
 
-        pdfHtml += `
-        <tr>
-          <td class="col-storage">${capLabel}</td>
-          <td class="col-color">${col.color}</td>
-          <td class="col-price">
-            ${formatBRL(col.retailPrice)}
-            <span class="col-card">(12x de ${formatBRL(parcel12x)})</span>
-          </td>
-        </tr>`;
+        colorRowsHtml += `
+        <div class="color-row">
+          <div class="color-left">
+            <span class="color-dot" style="background-color: ${hex};"></span>
+            <span class="color-name">${col.color}</span>
+          </div>
+          <div class="price-group">
+            <span class="price-label">À VISTA</span>
+            <span class="price-value">${formatBRL(col.retailPrice)}</span>
+            <span class="card-icon-circle">💳</span>
+          </div>
+        </div>`;
       });
+
+      cardsHtml += `
+      <div class="matrix-card">
+        <div class="matrix-card-header">
+          <div>
+            <div class="card-model-name">${grp.model}</div>
+            <div style="display: flex; gap: 4px; align-items: center;">
+              ${grp.storage ? `<span class="card-storage-badge">${grp.storage}</span>` : ''}
+              ${grp.ram ? `<span style="font-size: 8.5px; font-weight: 700; color: #2563eb; background: #eff6ff; padding: 1px 5px; border-radius: 6px;">${grp.ram} RAM</span>` : ''}
+            </div>
+          </div>
+          <div class="card-simular-btn">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="5" width="20" height="14" rx="2.5"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            <span>Simular</span>
+          </div>
+        </div>
+        <div>
+          ${colorRowsHtml}
+        </div>
+      </div>`;
     });
 
     pdfHtml += `
-      </tbody>
-    </table>
-  </div>`;
+    <div class="model-section">
+      <div class="model-header">
+        <h2 class="model-title-text">
+          <span style="display: inline-block; width: 6px; height: 14px; background: #10b981; border-radius: 3px;"></span>
+          ${fam.modelName}
+        </h2>
+        <span class="model-badge ${fam.isSeminovo ? 'semi' : 'lacrado'}">${fam.isSeminovo ? 'Seminovo' : 'Lacrado'}</span>
+      </div>
+      <div class="cards-grid">
+        ${cardsHtml}
+      </div>
+    </div>`;
   });
 
   pdfHtml += `
   <div class="pdf-footer">
-    Valores sujeitos a alteração sem aviso prévio. Consulte disponibilidade em loja.
+    Preços válidos para a data de emissão. Sujeito a alteração e disponibilidade em loja.
   </div>
   <script>
     window.onload = function() {
