@@ -88,7 +88,65 @@ let latestDate = '';
 let totalSuppliers = 0;
 let isSyncing = false;
 
-// Filter to keep ONLY Apple New / Sealed products
+// Filter & Classification for Apple Products (New and Seminovos)
+function isAppleSeminovo(p) {
+  if (!p) return false;
+  const cat = (p.category || '').toUpperCase().trim();
+  const name = (p.name || '').toLowerCase();
+  const desc = (p.description || '').toLowerCase();
+
+  // Exclude Android / Non-Apple brands explicitly
+  if (ANDROID_CATEGORIES.has(cat)) return false;
+  if (
+    name.includes('samsung') ||
+    name.includes('xiaomi') ||
+    name.includes('redmi') ||
+    name.includes('poco') ||
+    name.includes('motorola') ||
+    name.includes('realme') ||
+    name.includes('infinix')
+  ) {
+    return false;
+  }
+
+  const isSeminovoText = (
+    cat === 'SEMI' ||
+    name.includes('semi novo') ||
+    name.includes('semi-novo') ||
+    name.includes('seminovo') ||
+    name.includes('usado') ||
+    name.includes('vitrine') ||
+    name.includes('grade a') ||
+    name.includes('grade b') ||
+    name.includes('as is') ||
+    name.includes('as-is') ||
+    name.includes('recondicionado') ||
+    name.includes('swp') ||
+    name.includes('swap') ||
+    desc.includes('semi novo') ||
+    desc.includes('seminovo') ||
+    desc.includes('vitrine') ||
+    desc.includes('usado')
+  );
+
+  if (!isSeminovoText) return false;
+
+  // Must be an Apple device
+  const isApple = (
+    APPLE_CATEGORIES.has(cat) ||
+    cat === 'SEMI' ||
+    name.includes('iphone') ||
+    name.includes('macbook') ||
+    name.includes('ipad') ||
+    name.includes('apple watch') ||
+    name.includes('watch') ||
+    name.includes('airpods') ||
+    name.includes('imac')
+  );
+
+  return isApple;
+}
+
 function isAppleNovo(p) {
   if (!p) return false;
   const cat = (p.category || '').toUpperCase().trim();
@@ -97,23 +155,20 @@ function isAppleNovo(p) {
 
   // Exclude Android explicitly
   if (ANDROID_CATEGORIES.has(cat)) return false;
-
-  // Exclude Seminovos, Usados, Vitrine, As-Is
-  if (cat === 'SEMI') return false;
   if (
-    name.includes('semi novo') ||
-    name.includes('semi-novo') ||
-    name.includes('seminovo') ||
-    name.includes('usado') ||
-    name.includes('vitrine') ||
-    name.includes('as is') ||
-    name.includes('as-is') ||
-    desc.includes('semi novo') ||
-    desc.includes('seminovo') ||
-    desc.includes('vitrine')
+    name.includes('samsung') ||
+    name.includes('xiaomi') ||
+    name.includes('redmi') ||
+    name.includes('poco') ||
+    name.includes('motorola') ||
+    name.includes('realme') ||
+    name.includes('infinix')
   ) {
     return false;
   }
+
+  // Exclude Seminovos from Novo filter
+  if (isAppleSeminovo(p)) return false;
 
   // Must be an Apple category (or named iPhone, Mac, iPad, Apple Watch, AirPods, iMac)
   if (APPLE_CATEGORIES.has(cat)) return true;
@@ -129,6 +184,17 @@ function isAppleNovo(p) {
   }
 
   return false;
+}
+
+function processAppleProduct(p) {
+  if (!p) return null;
+  if (isAppleSeminovo(p)) {
+    return { ...p, isSeminovo: true, condition: 'SEMINOVO' };
+  }
+  if (isAppleNovo(p)) {
+    return { ...p, isSeminovo: false, condition: 'NOVO' };
+  }
+  return null;
 }
 
 // 1. Authenticate with Buscador PXT API
@@ -184,19 +250,22 @@ async function fetchProducts() {
     totalSuppliers = payload.totalSuppliers || totalSuppliers;
 
     productsMap.clear();
-    let appleCount = 0;
+    let novosCount = 0;
+    let seminovosCount = 0;
     let ignoredCount = 0;
 
     for (const p of rawList) {
-      if (isAppleNovo(p)) {
-        productsMap.set(String(p.id), p);
-        appleCount++;
+      const processed = processAppleProduct(p);
+      if (processed) {
+        productsMap.set(String(processed.id), processed);
+        if (processed.isSeminovo) seminovosCount++;
+        else novosCount++;
       } else {
         ignoredCount++;
       }
     }
 
-    console.log(`[Catalog] Carga concluída: ${appleCount} produtos Apple Novos carregados. (${ignoredCount} Android/Seminovos ignorados)`);
+    console.log(`[Catalog] Carga concluída: ${novosCount} Apple Novos + ${seminovosCount} Apple Seminovos carregados (${productsMap.size} total). (${ignoredCount} Android/Outros ignorados)`);
     isSyncing = false;
     saveCatalogSnapshot();
 
@@ -313,9 +382,10 @@ function connectPxtWebSocket() {
   const handleUpdate = (item) => {
     if (!item || !item.id) return;
     const id = String(item.id);
-    const fullItem = { ...(productsMap.get(id) || {}), ...item, ...(item.changes || {}) };
+    const rawFull = { ...(productsMap.get(id) || {}), ...item, ...(item.changes || {}) };
+    const fullItem = processAppleProduct(rawFull);
 
-    if (!isAppleNovo(fullItem)) {
+    if (!fullItem) {
       if (productsMap.has(id)) {
         productsMap.delete(id);
         localIo.emit('product_deleted', { id });
@@ -324,7 +394,7 @@ function connectPxtWebSocket() {
     }
 
     productsMap.set(id, fullItem);
-    console.log(`[Tempo Real] Produto atualizado: ${fullItem.name} - R$ ${fullItem.price}`);
+    console.log(`[Tempo Real] Produto atualizado (${fullItem.condition}): ${fullItem.name} - R$ ${fullItem.price}`);
     localIo.emit('product_updated', fullItem);
   };
 
@@ -334,10 +404,11 @@ function connectPxtWebSocket() {
   // Event: Product created
   pxtSocket.on('product_created', (item) => {
     if (!item || !item.id) return;
-    const fullItem = { ...item, ...(item.changes || {}) };
-    if (isAppleNovo(fullItem)) {
+    const rawFull = { ...item, ...(item.changes || {}) };
+    const fullItem = processAppleProduct(rawFull);
+    if (fullItem) {
       productsMap.set(String(fullItem.id), fullItem);
-      console.log(`[Tempo Real] Novo produto adicionado: ${fullItem.name} - R$ ${fullItem.price} [${fullItem.supplier?.name}]`);
+      console.log(`[Tempo Real] Novo produto adicionado (${fullItem.condition}): ${fullItem.name} - R$ ${fullItem.price} [${fullItem.supplier?.name}]`);
       localIo.emit('product_created', fullItem);
     }
   });
@@ -377,8 +448,9 @@ function connectPxtWebSocket() {
     const isMassive = created.length > 30 || delta.snapshot === true;
 
     let addedApple = 0;
-    for (const item of created) {
-      if (isAppleNovo(item)) {
+    for (const rawItem of created) {
+      const item = processAppleProduct(rawItem);
+      if (item) {
         productsMap.set(String(item.id), item);
         addedApple++;
         if (!isMassive) {
@@ -386,8 +458,9 @@ function connectPxtWebSocket() {
         }
       }
     }
-    for (const item of updated) {
-      if (isAppleNovo(item)) {
+    for (const rawItem of updated) {
+      const item = processAppleProduct(rawItem);
+      if (item) {
         productsMap.set(String(item.id), item);
         if (!isMassive) {
           localIo.emit('product_updated', item);
@@ -615,6 +688,7 @@ const MARGINS_FILE_PATH = path.join(__dirname, 'data', 'margins.json');
 function getDefaultMargins() {
   return {
     categories: {
+      SEMINOVOS: 600,  // Apple Seminovos: +R$ 600
       IPH: 750,        // iPhone: +R$ 750
       MCB_AIR: 1000,   // Mac Air: +R$ 1.000
       MCB_PRO: 1300,   // Outros Modelos Mac / Pro: +R$ 1.300

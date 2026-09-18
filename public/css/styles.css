@@ -2222,6 +2222,27 @@ body.light-theme .pod-cat-pill.active .pod-cat-count {
   border-radius: var(--radius-full);
 }
 
+.pod-badge-seminovo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(245, 158, 11, 0.14);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+body.light-theme .pod-badge-seminovo {
+  background: rgba(217, 119, 6, 0.12);
+  color: #d97706;
+  border-color: rgba(217, 119, 6, 0.3);
+}
+
 /* Matrix Card */
 .matrix-card {
   background: var(--bg-card);

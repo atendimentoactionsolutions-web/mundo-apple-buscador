@@ -1071,8 +1071,65 @@ if (themeBtn) {
 // =========================================================================
 // 12. MARGENS & TAXAS DA MAQUININHA (LOJA FÍSICA)
 // =========================================================================
+// Helper to detect if a product is an Apple Seminovo
+function isSeminovoProduct(p) {
+  if (!p) return false;
+  if (p.isSeminovo === true || p.condition === 'SEMINOVO') return true;
+  const cat = (p.category || '').toUpperCase().trim();
+  const name = (p.name || '').toLowerCase();
+  const desc = (p.description || '').toLowerCase();
+  return (
+    cat === 'SEMI' ||
+    name.includes('semi novo') ||
+    name.includes('semi-novo') ||
+    name.includes('seminovo') ||
+    name.includes('usado') ||
+    name.includes('vitrine') ||
+    name.includes('grade a') ||
+    name.includes('grade b') ||
+    name.includes('as is') ||
+    name.includes('as-is') ||
+    name.includes('recondicionado') ||
+    name.includes('swp') ||
+    name.includes('swap') ||
+    desc.includes('semi novo') ||
+    desc.includes('seminovo') ||
+    desc.includes('vitrine') ||
+    desc.includes('usado')
+  );
+}
+
+// Calculates reference supplier price
+// For Seminovos:
+// 1 offer: price of the offer
+// 2 offers: simple average
+// 3 offers: discards min and max, takes middle
+// 4+ offers: discards min and max extremes, takes exact arithmetic mean of middle suppliers
+function calculateSupplierReferencePrice(offers, isSeminovo = false) {
+  if (!offers || offers.length === 0) return 0;
+  if (!isSeminovo) {
+    return Math.min(...offers.map(o => Number(o.price) || 0).filter(p => p > 0));
+  }
+
+  const validPrices = offers
+    .map(o => Number(o.price) || 0)
+    .filter(p => p > 0)
+    .sort((a, b) => a - b);
+
+  if (validPrices.length === 0) return 0;
+  if (validPrices.length === 1) return validPrices[0];
+  if (validPrices.length === 2) return Math.round((validPrices[0] + validPrices[1]) / 2);
+  if (validPrices.length === 3) return validPrices[1];
+
+  // 4 or more offers: discard lowest (index 0) and highest (index length - 1)
+  const trimmed = validPrices.slice(1, -1);
+  const sum = trimmed.reduce((acc, val) => acc + val, 0);
+  return Math.round(sum / trimmed.length);
+}
+
 let margins = {
   categories: {
+    SEMINOVOS: 600,
     IPH: 750,
     MCB_AIR: 1000,
     MCB_PRO: 1300,
@@ -1140,11 +1197,17 @@ function getProductRetailPrice(p) {
   const cost = Number(p.price);
   const nameUpper = (p.name || '').trim().toUpperCase();
   const catUpper = (p.category || '').trim().toUpperCase();
+  const isSemi = isSeminovoProduct(p);
 
   // 1. Exceção de modelo específico se cadastrada no painel admin
   let margin = margins.products ? margins.products[nameUpper] : undefined;
 
-  // 2. Se não houver margem por produto, usa a margem da categoria
+  // 2. Se for Seminovo, aplica a margem de Seminovos (padrão R$ 600)
+  if (margin === undefined && isSemi) {
+    margin = (margins.categories && margins.categories.SEMINOVOS !== undefined) ? margins.categories.SEMINOVOS : 600;
+  }
+
+  // 3. Se não houver margem por produto nem for seminovo, usa a margem da categoria
   if (margin === undefined && margins.categories) {
     if (catUpper === 'IPH' || nameUpper.includes('IPHONE')) {
       margin = margins.categories.IPH ?? 750;
@@ -1226,17 +1289,24 @@ function renderStoreFront() {
     if (isCpoProduct(p)) return false;
     if (!p.price || p.price <= 0) return false;
 
+    const isSemi = isSeminovoProduct(p);
+
     // Filtro de Categoria
     if (sfCurrentCategory !== 'ALL') {
-      const cat = (p.category || '').toUpperCase().trim();
-      const name = (p.name || '').toUpperCase();
-      if (sfCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
-      if (sfCurrentCategory === 'MCB' && !(cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO') || name.includes('IMAC'))) return false;
-      if (sfCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
-      if (sfCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
-      if (sfCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
-      if (sfCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR'))) return false;
-      if (sfCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
+      if (sfCurrentCategory === 'SEMI') {
+        if (!isSemi) return false;
+      } else {
+        if (isSemi) return false; // Separa novos de seminovos
+        const cat = (p.category || '').toUpperCase().trim();
+        const name = (p.name || '').toUpperCase();
+        if (sfCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
+        if (sfCurrentCategory === 'MCB' && !(cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO') || name.includes('IMAC'))) return false;
+        if (sfCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
+        if (sfCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
+        if (sfCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
+        if (sfCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR'))) return false;
+        if (sfCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
+      }
     }
 
     // Filtro por texto digitado
@@ -1251,16 +1321,20 @@ function renderStoreFront() {
   const modelFamilies = new Map();
 
   filtered.forEach(p => {
-    const modelKey = (p.name || 'Apple').trim().toUpperCase();
+    const isSemi = isSeminovoProduct(p);
+    const baseModelName = (p.name || 'Apple').trim();
+    const modelKey = isSemi ? `${baseModelName.toUpperCase()} [SEMINOVO]` : baseModelName.toUpperCase();
+    const displayName = isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
     const ram = getMacBookRam(p);
     const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
     const variantKey = ram ? `${storageKey}__${ram}` : storageKey;
-    const retailPrice = getProductRetailPrice(p);
 
     if (!modelFamilies.has(modelKey)) {
       modelFamilies.set(modelKey, {
-        modelName: (p.name || 'Apple').trim(),
+        modelName: displayName,
+        rawModelName: baseModelName,
         category: p.category,
+        isSeminovo: isSemi,
         storagesMap: new Map()
       });
     }
@@ -1268,9 +1342,11 @@ function renderStoreFront() {
     const fam = modelFamilies.get(modelKey);
     if (!fam.storagesMap.has(variantKey)) {
       fam.storagesMap.set(variantKey, {
-        model: fam.modelName,
+        model: displayName,
+        rawModel: baseModelName,
         storage: (p.storage || '').trim(),
         ram: ram,
+        isSeminovo: isSemi,
         colors: new Map()
       });
     }
@@ -1278,22 +1354,24 @@ function renderStoreFront() {
     const stGrp = fam.storagesMap.get(variantKey);
     const colorName = (p.color || 'Padrão').trim();
     const colorKey = colorName.toUpperCase();
-    const curColor = stGrp.colors.get(colorKey);
-
-    if (!curColor || retailPrice < curColor.minRetailPrice) {
+    
+    if (!stGrp.colors.has(colorKey)) {
       stGrp.colors.set(colorKey, {
         color: colorName,
-        minRetailPrice: retailPrice,
+        offers: [p],
         ram: ram
       });
+    } else {
+      stGrp.colors.get(colorKey).offers.push(p);
     }
   });
 
   // Ordenar famílias de modelos
   const sortedFamilies = Array.from(modelFamilies.values()).sort((a, b) => {
-    const rankA = getModelOrderRank(a.modelName, a.category);
-    const rankB = getModelOrderRank(b.modelName, b.category);
+    const rankA = getModelOrderRank(a.rawModelName || a.modelName, a.category);
+    const rankB = getModelOrderRank(b.rawModelName || b.modelName, b.category);
     if (rankA !== rankB) return rankA - rankB;
+    if (a.isSeminovo !== b.isSeminovo) return a.isSeminovo ? 1 : -1;
     return a.modelName.localeCompare(b.modelName);
   });
 
@@ -1320,8 +1398,7 @@ function renderStoreFront() {
       return (parseInt(a.ram) || 0) - (parseInt(b.ram) || 0);
     });
 
-    const catIcon = getCategoryIcon(fam.modelName, fam.category);
-    const storagesCount = storages.length;
+    const catIcon = getCategoryIcon(fam.rawModelName, fam.category);
 
     html += `
       <div class="pod-model-section">
@@ -1329,17 +1406,38 @@ function renderStoreFront() {
           <span class="pod-model-section-icon">${catIcon}</span>
           <h2 class="pod-model-section-title">${fam.modelName}</h2>
         </div>
+        ${fam.isSeminovo ? `<span class="pod-badge-seminovo" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35); padding: 3px 9px; border-radius: 6px; font-size: 0.72rem; font-weight: 800;">SEMINOVO</span>` : ''}
       </div>
     `;
 
     storages.forEach(grp => {
-      const colorsArr = Array.from(grp.colors.values()).sort((a, b) => a.minRetailPrice - b.minRetailPrice);
+      const colorsArr = Array.from(grp.colors.values()).map(colObj => {
+        const isSemi = grp.isSeminovo;
+        const offers = colObj.offers || [];
+        const refCost = calculateSupplierReferencePrice(offers, isSemi);
+        
+        let marginVal = margins.products ? margins.products[grp.rawModel.toUpperCase()] : undefined;
+        if (marginVal === undefined && isSemi) {
+          marginVal = (margins.categories && margins.categories.SEMINOVOS !== undefined) ? margins.categories.SEMINOVOS : 600;
+        }
+        if (marginVal === undefined) {
+          const dummyProd = { name: grp.rawModel, category: fam.category, price: refCost };
+          marginVal = getProductRetailPrice(dummyProd) - refCost;
+        }
+        const retailPrice = refCost + (Number(marginVal) || 0);
+
+        return {
+          color: colObj.color,
+          retailPrice: retailPrice,
+          ram: colObj.ram
+        };
+      }).sort((a, b) => a.retailPrice - b.retailPrice);
 
       const colorRowsHtml = colorsArr.map(col => {
         const hex = getAppleColorHex(col.color);
 
         return `
-          <div class="matrix-color-row" style="cursor: pointer;" onclick="openCardSimulator('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}', ${col.minRetailPrice}, '${encodeURIComponent(grp.ram || '')}')" title="Clique para calcular parcelas no cartão">
+          <div class="matrix-color-row" style="cursor: pointer;" onclick="openCardSimulator('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}', ${col.retailPrice}, '${encodeURIComponent(grp.ram || '')}')" title="Clique para calcular parcelas no cartão">
             <div class="matrix-color-left">
               <span class="matrix-color-dot" style="background-color: ${hex};" title="Cor: ${col.color}"></span>
               <span class="matrix-color-name" title="${col.color}">${col.color}</span>
@@ -1347,7 +1445,7 @@ function renderStoreFront() {
             <div class="matrix-color-right">
               <div class="matrix-cost-group">
                 <span class="matrix-cost-label">À VISTA</span>
-                <span class="matrix-retail-val">${formatBRL(col.minRetailPrice)}</span>
+                <span class="matrix-retail-val">${formatBRL(col.retailPrice)}</span>
               </div>
               <button class="matrix-card-all-btn" style="color: var(--accent-green); border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.08); padding: 3px 8px; font-size: 0.68rem;" title="Simular parcelas">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1361,7 +1459,7 @@ function renderStoreFront() {
       }).join('');
 
       const firstCol = colorsArr[0];
-      const simLowestPrice = firstCol ? firstCol.minRetailPrice : 0;
+      const simLowestPrice = firstCol ? firstCol.retailPrice : 0;
       const simLowestColor = firstCol ? firstCol.color : '';
 
       html += `
@@ -1370,6 +1468,7 @@ function renderStoreFront() {
             <div class="matrix-card-title-wrap">
               <h3 class="matrix-card-title" title="${grp.model}">${grp.model}</h3>
               <div style="display: flex; gap: 6px; align-items: center; margin-top: 3px; flex-wrap: wrap;">
+                ${grp.isSeminovo ? `<span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 800;">SEMINOVO</span>` : ''}
                 ${grp.ram ? `<span class="matrix-card-ram-badge" style="background: rgba(0, 113, 227, 0.18); color: #2997ff; border: 1px solid rgba(41, 151, 255, 0.35); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/></svg>${grp.ram} RAM</span>` : ''}
                 ${grp.storage ? `<span class="matrix-card-storage">${grp.storage}</span>` : ''}
               </div>
@@ -1395,23 +1494,29 @@ function renderStoreFront() {
 
 // Category Count Badges Updater for Preços do Dia
 function updatePricesDayCategoryCounts() {
-  let cALL = 0, cIPH = 0, cMCB = 0, cIPAD = 0, cRLG = 0, cPODS = 0, cACSS = 0, cIMAC = 0;
+  let cALL = 0, cSEMI = 0, cIPH = 0, cMCB = 0, cIPAD = 0, cRLG = 0, cPODS = 0, cACSS = 0, cIMAC = 0;
 
   allProducts.forEach(p => {
     if (!p.price || p.price <= 0) return;
+    const isSemi = isSeminovoProduct(p);
     const cat = (p.category || '').toUpperCase().trim();
     const name = (p.name || '').toUpperCase();
     cALL++;
-    if (cat === 'IPH' || name.includes('IPHONE')) cIPH++;
-    else if (cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO')) cMCB++;
-    else if (cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD')) cIPAD++;
-    else if (cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA')) cRLG++;
-    else if (cat === 'PODS' || name.includes('AIRPOD')) cPODS++;
-    else if (cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR')) cACSS++;
-    else if (cat === 'IMAC' || name.includes('IMAC')) cIMAC++;
+    if (isSemi) {
+      cSEMI++;
+    } else {
+      if (cat === 'IPH' || name.includes('IPHONE')) cIPH++;
+      else if (cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO')) cMCB++;
+      else if (cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD')) cIPAD++;
+      else if (cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA')) cRLG++;
+      else if (cat === 'PODS' || name.includes('AIRPOD')) cPODS++;
+      else if (cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR')) cACSS++;
+      else if (cat === 'IMAC' || name.includes('IMAC')) cIMAC++;
+    }
   });
 
   const elAll = document.getElementById('countCatALL');
+  const elSemi = document.getElementById('countCatSEMI');
   const elIph = document.getElementById('countCatIPH');
   const elMcb = document.getElementById('countCatMCB');
   const elIpad = document.getElementById('countCatIPAD');
@@ -1421,6 +1526,7 @@ function updatePricesDayCategoryCounts() {
   const elImac = document.getElementById('countCatIMAC');
 
   if (elAll) elAll.textContent = cALL;
+  if (elSemi) elSemi.textContent = cSEMI;
   if (elIph) elIph.textContent = cIPH;
   if (elMcb) elMcb.textContent = cMCB;
   if (elIpad) elIpad.textContent = cIPAD;
@@ -1645,17 +1751,24 @@ function renderPricesOfTheDay() {
     if (!p.price || p.price <= 0) return false;
     if (isCpoProduct(p)) return false;
 
+    const isSemi = isSeminovoProduct(p);
+
     // Category filter
     if (podCurrentCategory !== 'ALL') {
-      const cat = (p.category || '').toUpperCase().trim();
-      const name = (p.name || '').toUpperCase();
-      if (podCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
-      if (podCurrentCategory === 'MCB' && !(cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO') || name.includes('IMAC'))) return false;
-      if (podCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
-      if (podCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
-      if (podCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
-      if (podCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR'))) return false;
-      if (podCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
+      if (podCurrentCategory === 'SEMI') {
+        if (!isSemi) return false;
+      } else {
+        if (isSemi) return false; // Exclui seminovos das abas de novos lacrados
+        const cat = (p.category || '').toUpperCase().trim();
+        const name = (p.name || '').toUpperCase();
+        if (podCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
+        if (podCurrentCategory === 'MCB' && !(cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO') || name.includes('IMAC'))) return false;
+        if (podCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
+        if (podCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
+        if (podCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
+        if (podCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR'))) return false;
+        if (podCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
+      }
     }
 
     // Search filter inteligente multi-palavras (modelo, RAM, capacidade, cor ou fornecedor)
@@ -1688,16 +1801,20 @@ function renderPricesOfTheDay() {
   filtered.forEach(p => {
     if (p.supplier?.name) suppliersSet.add(p.supplier.name);
 
-    const modelKey = (p.name || 'Apple').trim().toUpperCase();
+    const isSemi = isSeminovoProduct(p);
+    const baseModelName = (p.name || 'Apple').trim();
+    const modelKey = isSemi ? `${baseModelName.toUpperCase()} [SEMINOVO]` : baseModelName.toUpperCase();
+    const displayName = isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
     const ram = getMacBookRam(p);
     const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
-    // Chave única para separar variantes (MacBooks separam por RAM e SSD para nunca misturar)
     const variantKey = ram ? `${storageKey}__${ram}` : storageKey;
 
     if (!modelFamilies.has(modelKey)) {
       modelFamilies.set(modelKey, {
-        modelName: (p.name || 'Apple').trim(),
+        modelName: displayName,
+        rawModelName: baseModelName,
         category: p.category,
+        isSeminovo: isSemi,
         storagesMap: new Map()
       });
     }
@@ -1705,9 +1822,11 @@ function renderPricesOfTheDay() {
     const fam = modelFamilies.get(modelKey);
     if (!fam.storagesMap.has(variantKey)) {
       fam.storagesMap.set(variantKey, {
-        model: fam.modelName,
+        model: displayName,
+        rawModel: baseModelName,
         storage: (p.storage || '').trim(),
         ram: ram,
+        isSeminovo: isSemi,
         colors: new Map(),
         allOffers: []
       });
@@ -1718,29 +1837,24 @@ function renderPricesOfTheDay() {
 
     const colorName = (p.color || 'Padrão').trim();
     const colorKey = colorName.toUpperCase();
-    const curColor = stGrp.colors.get(colorKey);
-
-    if (!curColor || p.price < curColor.minPrice) {
+    
+    if (!stGrp.colors.has(colorKey)) {
       stGrp.colors.set(colorKey, {
         color: colorName,
-        minPrice: p.price,
-        bestSupplier: p.supplier?.name || 'Fornecedor',
-        whatsappNumber: p.supplier?.whatsappNumber || '',
-        isVerified: p.supplier?.isVerified,
-        address: p.supplier?.address || '',
-        ram: ram,
-        count: (curColor ? curColor.count : 0) + 1
+        offers: [p],
+        ram: ram
       });
     } else {
-      curColor.count++;
+      stGrp.colors.get(colorKey).offers.push(p);
     }
   });
 
   // Ordena as famílias de modelos pela hierarquia oficial Apple
   const sortedFamilies = Array.from(modelFamilies.values()).sort((a, b) => {
-    const rankA = getModelOrderRank(a.modelName, a.category);
-    const rankB = getModelOrderRank(b.modelName, b.category);
+    const rankA = getModelOrderRank(a.rawModelName || a.modelName, a.category);
+    const rankB = getModelOrderRank(b.rawModelName || b.modelName, b.category);
     if (rankA !== rankB) return rankA - rankB;
+    if (a.isSeminovo !== b.isSeminovo) return a.isSeminovo ? 1 : -1;
     return a.modelName.localeCompare(b.modelName);
   });
 
@@ -1776,8 +1890,7 @@ function renderPricesOfTheDay() {
       return (parseInt(a.ram) || 0) - (parseInt(b.ram) || 0);
     });
 
-    const catIcon = getCategoryIcon(fam.modelName, fam.category);
-    const storagesCount = storages.length;
+    const catIcon = getCategoryIcon(fam.rawModelName, fam.category);
 
     // Cabeçalho / Divisor de Modelo (Zero Mistura!)
     html += `
@@ -1786,31 +1899,57 @@ function renderPricesOfTheDay() {
           <span class="pod-model-section-icon">${catIcon}</span>
           <h2 class="pod-model-section-title">${fam.modelName}</h2>
         </div>
+        ${fam.isSeminovo ? `<span class="pod-badge-seminovo" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35); padding: 3px 9px; border-radius: 6px; font-size: 0.72rem; font-weight: 800;">SEMINOVO</span>` : ''}
       </div>
     `;
 
     // Cards individuais de cada capacidade/RAM para este modelo
     storages.forEach(grp => {
-      const colorsArr = Array.from(grp.colors.values()).sort((a, b) => a.minPrice - b.minPrice);
+      const colorsArr = Array.from(grp.colors.values()).map(colObj => {
+        const isSemi = grp.isSeminovo;
+        const offers = colObj.offers || [];
+        const refPrice = calculateSupplierReferencePrice(offers, isSemi);
+        
+        let repOffer = offers[0];
+        if (isSemi) {
+          repOffer = offers.reduce((prev, curr) => {
+            return (Math.abs(curr.price - refPrice) < Math.abs(prev.price - refPrice) ? curr : prev);
+          }, offers[0]);
+        } else {
+          repOffer = offers.reduce((prev, curr) => (curr.price < prev.price ? curr : prev), offers[0]);
+        }
+
+        return {
+          color: colObj.color,
+          displayPrice: refPrice,
+          isSeminovo: isSemi,
+          bestSupplier: repOffer.supplier?.name || 'Fornecedor',
+          whatsappNumber: repOffer.supplier?.whatsappNumber || '',
+          isVerified: repOffer.supplier?.isVerified,
+          address: repOffer.supplier?.address || '',
+          ram: colObj.ram,
+          count: offers.length
+        };
+      }).sort((a, b) => a.displayPrice - b.displayPrice);
 
       const colorRowsHtml = colorsArr.map(col => {
         const hex = getAppleColorHex(col.color);
         const rawPhone = (col.whatsappNumber || '').replace(/\D/g, '');
-        const orderMsg = buildSupplierWhatsAppMessage(grp.model, grp.storage, col.color, col.minPrice, grp.ram);
+        const orderMsg = buildSupplierWhatsAppMessage(grp.rawModel + (grp.isSeminovo ? ' (Seminovo)' : ''), grp.storage, col.color, col.displayPrice, grp.ram);
         const waLink = rawPhone ? `https://wa.me/${rawPhone}?text=${encodeURIComponent(orderMsg)}` : '#';
 
         return `
           <div class="matrix-color-row">
-            <div class="matrix-color-left" onclick="openAllOffersModal('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}', '${encodeURIComponent(grp.ram || '')}')">
+            <div class="matrix-color-left" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo})">
               <span class="matrix-color-dot" style="background-color: ${hex};" title="Cor: ${col.color}"></span>
               <span class="matrix-color-name" title="${col.color}">${col.color}</span>
             </div>
             <div class="matrix-color-right">
-              <div class="matrix-cost-group" onclick="openAllOffersModal('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}', '${encodeURIComponent(grp.ram || '')}')">
-                <span class="matrix-cost-label">CUSTO</span>
-                <span class="matrix-cost-val">${formatBRL(col.minPrice)}</span>
+              <div class="matrix-cost-group" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo})">
+                <span class="matrix-cost-label">${col.isSeminovo ? 'PREÇO MÉDIO' : 'CUSTO'}</span>
+                <span class="matrix-cost-val">${formatBRL(col.displayPrice)}</span>
               </div>
-              <a class="matrix-wa-btn" href="${waLink}" target="_blank" rel="noopener noreferrer" title="Chamar ${col.bestSupplier} no WhatsApp (${formatBRL(col.minPrice)})">
+              <a class="matrix-wa-btn" href="${waLink}" target="_blank" rel="noopener noreferrer" title="Chamar ${col.bestSupplier} no WhatsApp (${formatBRL(col.displayPrice)})">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
                 </svg>
@@ -1826,11 +1965,12 @@ function renderPricesOfTheDay() {
             <div class="matrix-card-title-wrap">
               <h3 class="matrix-card-title" title="${grp.model}">${grp.model}</h3>
               <div style="display: flex; gap: 6px; align-items: center; margin-top: 3px; flex-wrap: wrap;">
+                ${grp.isSeminovo ? `<span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 800;">SEMINOVO</span>` : ''}
                 ${grp.ram ? `<span class="matrix-card-ram-badge" style="background: rgba(0, 113, 227, 0.18); color: #2997ff; border: 1px solid rgba(41, 151, 255, 0.35); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/></svg>${grp.ram} RAM</span>` : ''}
                 ${grp.storage ? `<span class="matrix-card-storage">${grp.storage}</span>` : ''}
               </div>
             </div>
-            <button class="matrix-card-all-btn" onclick="openAllOffersModal('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '', '${encodeURIComponent(grp.ram || '')}')" title="Ver todos os fornecedores deste modelo">
+            <button class="matrix-card-all-btn" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo})" title="Ver todos os fornecedores deste modelo">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
                 <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
@@ -1850,7 +1990,7 @@ function renderPricesOfTheDay() {
 }
 
 // 16. Open Modal with All Offers for a Specific Model + Storage + RAM
-window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor, encodedRam) {
+window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor, encodedRam, isSeminovo = false) {
   const model = decodeURIComponent(encodedModel || '');
   const storage = decodeURIComponent(encodedStorage || '');
   const selectedColor = encodedColor ? decodeURIComponent(encodedColor) : '';
@@ -1863,10 +2003,13 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
 
   const ramTitlePart = selectedRam ? ` • ${selectedRam} RAM` : '';
   const storageTitlePart = storage ? ` • ${storage}` : '';
-  title.textContent = `${model}${ramTitlePart}${storageTitlePart}`;
+  const semiPart = isSeminovo ? ' (Seminovo)' : '';
+  title.textContent = `${model}${semiPart}${ramTitlePart}${storageTitlePart}`;
 
   let offers = allProducts.filter(p => {
     if (isCpoProduct(p)) return false;
+    const pIsSemi = isSeminovoProduct(p);
+    if (isSeminovo ? !pIsSemi : pIsSemi) return false;
     if ((p.name || '').trim().toUpperCase() !== model.trim().toUpperCase()) return false;
     if (storage && (p.storage || '').trim().toUpperCase() !== storage.trim().toUpperCase()) return false;
     if (selectedRam && getMacBookRam(p) !== selectedRam) return false;
@@ -1887,6 +2030,7 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
   }
 
   const lowestPrice = offers[0].price;
+  const refPrice = calculateSupplierReferencePrice(offers, isSeminovo);
 
   const offersHtml = offers.map((p) => {
     const sName = p.supplier?.name || 'Fornecedor';
@@ -1894,11 +2038,12 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
     const sAddress = p.supplier?.address || 'São Paulo - SP';
     const isVerified = p.supplier?.isVerified;
     const whatsapp = (p.supplier?.whatsappNumber || '').replace(/\D/g, '');
-    const isLowest = p.price === lowestPrice;
+    const isLowest = !isSeminovo && p.price === lowestPrice;
+    const isRef = isSeminovo && (Math.abs(p.price - refPrice) < 30);
     const colHex = getAppleColorHex(p.color);
     const ram = getMacBookRam(p);
 
-    const orderMsg = buildSupplierWhatsAppMessage(p.name, p.storage, p.color, p.price, ram);
+    const orderMsg = buildSupplierWhatsAppMessage(p.name + (isSeminovo ? ' (Seminovo)' : ''), p.storage, p.color, p.price, ram);
     const waLink = whatsapp ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(orderMsg)}` : '#';
 
     return `
@@ -1914,6 +2059,7 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
                 </svg>
               ` : ''}
               ${isLowest ? `<span style="font-size: 0.65rem; background: var(--accent-green); color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 800;">MENOR VALOR</span>` : ''}
+              ${isRef ? `<span style="font-size: 0.65rem; background: #f59e0b; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 800;">FORNECEDOR MÉDIO</span>` : ''}
             </div>
             <div class="all-offer-supp-addr">${sAddress}</div>
           </div>
@@ -1942,7 +2088,7 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
   body.innerHTML = `
     <div class="all-offers-header-info">
       <div>
-        <strong>${model} ${storage}</strong> — Todos os fornecedores cadastrados
+        <strong>${model} ${storage}</strong> ${isSeminovo ? '<span style="color: #f59e0b; font-weight: 700;">(Seminovo • Preço Médio: ' + formatBRL(refPrice) + ')</span>' : '— Todos os fornecedores cadastrados'}
       </div>
       <span class="all-offers-count-badge">${offers.length} opções disponíveis</span>
     </div>
