@@ -1255,7 +1255,12 @@ function getProductRetailPrice(p) {
   // 1. Exceção de modelo específico se cadastrada no painel admin
   let margin = margins.products ? margins.products[nameUpper] : undefined;
 
-  // 2. Se for Seminovo, aplica a margem de Seminovos (padrão R$ 600)
+  // 2. Se for Linha iPhone 18 (Lançamento Importante), aplica a margem de R$ 1.100
+  if (margin === undefined && (nameUpper.includes('IPHONE 18') || nameUpper.includes('IPH 18'))) {
+    margin = (margins.categories && margins.categories.IPH18 !== undefined) ? margins.categories.IPH18 : 1100;
+  }
+
+  // 3. Se for Seminovo, aplica a margem de Seminovos (padrão R$ 600)
   if (margin === undefined && isSemi) {
     margin = (margins.categories && margins.categories.SEMINOVOS !== undefined) ? margins.categories.SEMINOVOS : 600;
   }

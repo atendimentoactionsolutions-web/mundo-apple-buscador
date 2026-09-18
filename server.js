@@ -731,7 +731,8 @@ function getDefaultMargins() {
   return {
     categories: {
       SEMINOVOS: 600,  // Apple Seminovos: +R$ 600
-      IPH: 750,        // iPhone: +R$ 750
+      IPH18: 1100,     // iPhone Linha 18 (Lançamento Importante): +R$ 1.100
+      IPH: 750,        // iPhone (Outros modelos): +R$ 750
       MCB_AIR: 1000,   // Mac Air: +R$ 1.000
       MCB_PRO: 1300,   // Outros Modelos Mac / Pro: +R$ 1.300
       IPAD: 500,       // iPad: +R$ 500
@@ -740,7 +741,7 @@ function getDefaultMargins() {
       PODS: 200,       // AirPods: +R$ 200
       ACSS: 100        // Acessórios: +R$ 100
     },
-    products: {}  // Exceções por produto específico: { "IPHONE 17 PRO MAX": 350 }
+    products: {}  // Exceções por produto específico
   };
 }
 

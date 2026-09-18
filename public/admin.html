@@ -775,6 +775,10 @@
           <input type="number" id="margin_SEMINOVOS" value="600" class="modal-input" placeholder="600" style="border-color: rgba(245, 158, 11, 0.4);">
         </div>
         <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #2997ff; margin-bottom: 4px;">iPhone 18 / Linha 18 (IPH18)</label>
+          <input type="number" id="margin_IPH18" value="1100" class="modal-input" placeholder="1100" style="border-color: rgba(41, 151, 255, 0.4);">
+        </div>
+        <div>
           <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">iPhone Novo (IPH)</label>
           <input type="number" id="margin_IPH" value="750" class="modal-input" placeholder="750">
         </div>
@@ -1242,7 +1246,7 @@
 
     function populateMarginsForm() {
       const cats = adminMargins.categories || {};
-      ['SEMINOVOS', 'IPH', 'MCB_AIR', 'MCB_PRO', 'IPAD', 'RLG', 'IMAC', 'PODS', 'ACSS'].forEach(cat => {
+      ['SEMINOVOS', 'IPH18', 'IPH', 'MCB_AIR', 'MCB_PRO', 'IPAD', 'RLG', 'IMAC', 'PODS', 'ACSS'].forEach(cat => {
         const input = document.getElementById(`margin_${cat}`);
         if (input && cats[cat] !== undefined) {
           input.value = cats[cat];
@@ -1307,7 +1311,7 @@
 
     async function saveAdminMargins() {
       // Coleta margens de categoria
-      ['SEMINOVOS', 'IPH', 'MCB_AIR', 'MCB_PRO', 'IPAD', 'RLG', 'IMAC', 'PODS', 'ACSS'].forEach(cat => {
+      ['SEMINOVOS', 'IPH18', 'IPH', 'MCB_AIR', 'MCB_PRO', 'IPAD', 'RLG', 'IMAC', 'PODS', 'ACSS'].forEach(cat => {
         const input = document.getElementById(`margin_${cat}`);
         if (input) {
           adminMargins.categories[cat] = parseFloat(input.value) || 0;
