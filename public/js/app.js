@@ -2116,12 +2116,20 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
 
     <!-- Footer Actions -->
     <div class="sim-footer-actions">
-      <span class="sim-info-note">✓ Parcelas calculadas para a maquininha da loja.</span>
+      <button class="sim-btn-save-img" id="btnSaveSimImage" onclick="downloadSimulationImage()" title="Salvar proposta como imagem JPEG de alta qualidade">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+          <circle cx="9" cy="9" r="2"/>
+          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+        </svg>
+        <span>Salvar Imagem JPEG</span>
+      </button>
+
       <button class="sim-btn-copy-wa" onclick="copyCardSimulationToWhatsApp()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
           <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
         </svg>
-        <span>📲 Enviar Proposta para WhatsApp</span>
+        <span>📲 Enviar para WhatsApp</span>
       </button>
     </div>
   `;
@@ -2174,6 +2182,128 @@ window.recalculateSimulator = function() {
   }
 
   gridContainer.innerHTML = listHtml;
+};
+
+window.downloadSimulationImage = async function() {
+  const btn = document.getElementById('btnSaveSimImage');
+  const originalText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/></svg><span>Gerando imagem...</span>`;
+  }
+
+  try {
+    const d = currentSimData;
+    const entryVal = d.entryAmount || 0;
+    const balance = Math.max(0, d.cashPrice - entryVal);
+
+    // Create a dedicated off-screen high-res card element with perfect layout
+    const exportDiv = document.createElement('div');
+    exportDiv.style.position = 'fixed';
+    exportDiv.style.left = '-9999px';
+    exportDiv.style.top = '0';
+    exportDiv.style.width = '600px';
+    exportDiv.style.backgroundColor = '#0f172a';
+    exportDiv.style.color = '#f8fafc';
+    exportDiv.style.fontFamily = "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    exportDiv.style.padding = '24px 28px';
+    exportDiv.style.borderRadius = '18px';
+    exportDiv.style.boxSizing = 'border-box';
+    exportDiv.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+
+    let rowsHtml = '';
+    for (let i = 1; i <= 18; i++) {
+      const sim = calculateInstallment(d.cashPrice, entryVal, i);
+      const label = i === 1 ? '1x' : `${i}x`;
+      rowsHtml += `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; margin-bottom: 4px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="background: rgba(255, 255, 255, 0.09); padding: 3px 8px; border-radius: 4px; font-weight: 800; font-size: 13px; color: #ffffff;">${label}</span>
+            <span style="font-size: 15px; font-weight: 800; color: #ffffff;">${formatBRL(sim.monthlyAmount)}<span style="font-size: 11px; color: #94a3b8; font-weight: 500; margin-left: 2px;">/mês</span></span>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 9px; text-transform: uppercase; color: #94a3b8; font-weight: 700; letter-spacing: 0.5px;">Total no cartão</div>
+            <div style="font-size: 13px; font-weight: 700; color: #e2e8f0;">${formatBRL(sim.totalAmount)}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    exportDiv.innerHTML = `
+      <!-- Header -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 14px; margin-bottom: 14px;">
+        <div>
+          <div style="font-size: 18px; font-weight: 800; color: #ffffff; text-transform: uppercase; letter-spacing: -0.3px;">${d.model || 'SIMULAÇÃO DE PARCELAMENTO'}</div>
+          <div style="display: flex; gap: 6px; margin-top: 4px; align-items: center;">
+            ${d.storage ? `<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${d.storage}</span>` : ''}
+            ${d.ram ? `<span style="background: rgba(41, 151, 255, 0.15); color: #2997ff; border: 1px solid rgba(41, 151, 255, 0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${d.ram} RAM</span>` : ''}
+            ${d.color && d.color.toUpperCase() !== 'PADRÃO' ? `<span style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; color: #cbd5e1;">${d.color}</span>` : ''}
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 11px; font-weight: 800; color: #10b981; letter-spacing: 0.8px; text-transform: uppercase;">PROPOSTA OFICIAL</div>
+          <div style="font-size: 10px; color: #64748b; margin-top: 2px;">${new Date().toLocaleDateString('pt-BR')}</div>
+        </div>
+      </div>
+
+      <!-- Price Highlights -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+        <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 10px 14px; border-radius: 10px;">
+          <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: #10b981; margin-bottom: 2px;">💵 Valor À Vista (PIX)</div>
+          <div style="font-size: 18px; font-weight: 800; color: #10b981;">${formatBRL(d.cashPrice)}</div>
+          ${entryVal > 0 ? `<div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Entrada PIX: ${formatBRL(entryVal)}</div>` : ''}
+        </div>
+        <div style="background: rgba(41, 151, 255, 0.1); border: 1px solid rgba(41, 151, 255, 0.3); padding: 10px 14px; border-radius: 10px;">
+          <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: #2997ff; margin-bottom: 2px;">💳 Saldo a Parcelar</div>
+          <div style="font-size: 18px; font-weight: 800; color: #2997ff;">${formatBRL(balance)}</div>
+          <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Até 18x no Cartão</div>
+        </div>
+      </div>
+
+      <!-- Title -->
+      <div style="font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Opções de Parcelamento no Cartão (1x a 18x)</div>
+
+      <!-- Rows -->
+      <div style="display: flex; flex-direction: column;">
+        ${rowsHtml}
+      </div>
+
+      <!-- Footer -->
+      <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 12px; padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 10px; color: #64748b;">Condição válida para fechamento imediato</span>
+        <span style="font-size: 10px; font-weight: 700; color: #10b981;">✓ Taxas inclusas na maquininha</span>
+      </div>
+    `;
+
+    document.body.appendChild(exportDiv);
+
+    // Render with html2canvas
+    const canvas = await html2canvas(exportDiv, {
+      scale: 2.5, // High-DPI crystal clear quality
+      backgroundColor: '#0f172a',
+      useCORS: true,
+      logging: false
+    });
+
+    document.body.removeChild(exportDiv);
+
+    // Download as JPEG
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const link = document.createElement('a');
+    const safeName = (d.model || 'simulacao-taxas').toLowerCase().replace(/[^a-z0-9]/g, '-');
+    link.download = `${safeName}-taxas.jpeg`;
+    link.href = imgData;
+    link.click();
+
+  } catch (err) {
+    console.error('Erro ao gerar imagem:', err);
+    alert('Não foi possível gerar a imagem. Tente novamente.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  }
 };
 
 window.copyCardSimulationToWhatsApp = function() {

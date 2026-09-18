@@ -2953,6 +2953,37 @@ body.light-theme .sim-row-highlight {
   gap: 12px;
 }
 
+.sim-btn-save-img {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.sim-btn-save-img:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: var(--text-muted);
+  transform: translateY(-1px);
+}
+
+body.light-theme .sim-btn-save-img {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+body.light-theme .sim-btn-save-img:hover {
+  background: #e2e8f0;
+}
+
 .sim-btn-copy-wa {
   display: inline-flex;
   align-items: center;

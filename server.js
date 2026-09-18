@@ -227,6 +227,7 @@ async function reconnectAndSync(reason = 'watchdog') {
 
   try {
     await authenticate();
+    await fetchProducts().catch(e => console.warn('[Watchdog] Fetch products aviso:', e.message));
     connectPxtWebSocket();
     isReconnecting = false;
   } catch (err) {
@@ -256,7 +257,8 @@ function connectPxtWebSocket() {
 
   pxtSocket.on('connect', () => {
     console.log('[WebSocket] ✅ Conectado com sucesso ao servidor oficial PXT!');
-    const dateQuery = latestDate || `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    const todayStr = `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    const dateQuery = latestDate || todayStr;
     pxtSocket.emit('products_sync_request', { date: dateQuery });
     localIo.emit('pxt_connection_status', { connected: true, status: 'connected', date: dateQuery });
   });
@@ -264,6 +266,9 @@ function connectPxtWebSocket() {
   pxtSocket.on('connect_error', (err) => {
     console.warn('[WebSocket] Aviso de erro na conexão:', err.message);
     localIo.emit('pxt_connection_status', { connected: false, status: 'error', error: err.message });
+    if (err.message && (err.message.includes('Unauthorized') || err.message.includes('jwt') || err.message.includes('401') || err.message.includes('token'))) {
+      setTimeout(() => reconnectAndSync('socket_auth_error'), 2000);
+    }
   });
 
   pxtSocket.on('disconnect', (reason) => {
@@ -355,11 +360,21 @@ function connectPxtWebSocket() {
     const created = delta.created || delta.inserted || [];
     const updated = delta.updated || [];
     const deleted = delta.deleted || [];
-    const isMassive = created.length > 50 || delta.snapshot === true;
 
-    if (delta.snapshot === true) {
+    // Se veio data nova ou é snapshot, atualiza a data e limpa catálogo antigo
+    if (delta.date && delta.date !== latestDate) {
+      console.log(`[Tempo Real] 📅 Nova data de catálogo recebida via delta: ${latestDate} -> ${delta.date}`);
+      latestDate = delta.date;
+      productsMap.clear();
+    } else if (delta.snapshot === true) {
       productsMap.clear();
     }
+
+    if (delta.dollarRate) dollarRate = delta.dollarRate;
+    if (delta.dollarVariation) dollarVariation = delta.dollarVariation;
+    if (delta.totalSuppliers) totalSuppliers = delta.totalSuppliers;
+
+    const isMassive = created.length > 30 || delta.snapshot === true;
 
     let addedApple = 0;
     for (const item of created) {
@@ -389,16 +404,16 @@ function connectPxtWebSocket() {
       }
     }
 
-    console.log(`[Tempo Real] Delta processado: +${created.length}, ~${updated.length}, -${deleted.length} (Total Apple Ativos: ${productsMap.size})`);
+    saveCatalogSnapshot();
+    console.log(`[Tempo Real] Delta processado: +${created.length}, ~${updated.length}, -${deleted.length} (Total Apple Ativos: ${productsMap.size}, Data: ${latestDate})`);
 
-    if (isMassive) {
-      localIo.emit('catalog_reloaded', {
-        total: productsMap.size,
-        dollarRate,
-        dollarVariation,
-        latestDate
-      });
-    }
+    // Notifica todos os clientes conectados para atualizar a interface
+    localIo.emit('catalog_reloaded', {
+      total: productsMap.size,
+      dollarRate,
+      dollarVariation,
+      latestDate
+    });
   });
 
   // Event: Supplier status changed
@@ -880,7 +895,7 @@ async function start() {
         await fetchProducts();
         connectPxtWebSocket();
 
-        // WATCHDOG ATIVO: Verifica a cada 15 segundos se a conexão está 100% viva
+        // 1. WATCHDOG ATIVO: Verifica a cada 15 segundos se a conexão WebSocket está 100% viva
         setInterval(() => {
           if (!pxtSocket || !pxtSocket.connected) {
             console.log('[Watchdog] ⚠️ Conexão caiu ou inativa. Iniciando auto-recuperação imediata...');
@@ -888,14 +903,30 @@ async function start() {
           }
         }, 15000);
 
-        // Ressincronização periódica de integridade (a cada 5 minutos)
-        setInterval(() => {
-          if (pxtSocket && pxtSocket.connected) {
-            const dateQuery = latestDate || `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-            console.log('[Watchdog] 🔄 Disparando checagem periódica de sincronia de produtos...');
-            pxtSocket.emit('products_sync_request', { date: dateQuery });
+        // 2. Auto-Sync Ativo & Detecção de virada de dia a cada 2 minutos
+        setInterval(async () => {
+          try {
+            const todayStr = `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+            if ((latestDate && latestDate !== todayStr) || productsMap.size === 0) {
+              console.log(`[Auto-Sync] 📅 Virada de dia ou catálogo zerado (${latestDate} -> ${todayStr}). Atualizando catálogo...`);
+              await fetchProducts().catch(e => console.warn('[Auto-Sync] Erro no fetch:', e.message));
+            }
+            if (pxtSocket && pxtSocket.connected) {
+              const dateQuery = latestDate || todayStr;
+              pxtSocket.emit('products_sync_request', { date: dateQuery });
+            }
+          } catch (e) {
+            console.warn('[Auto-Sync] Erro no ciclo de sync:', e.message);
           }
-        }, 5 * 60 * 1000);
+        }, 2 * 60 * 1000);
+
+        // 3. Re-sincronização preventiva total a cada 10 minutos (garantia 100% à prova de falhas)
+        setInterval(async () => {
+          try {
+            console.log('[Auto-Sync] 🔄 Sincronização periódica preventiva de integridade (10m)...');
+            await fetchProducts().catch(e => console.warn('[Auto-Sync] Fetch periódico aviso:', e.message));
+          } catch (e) {}
+        }, 10 * 60 * 1000);
       }
     } catch (err) {
       console.error('Falha na inicialização do serviço:', err.message);
