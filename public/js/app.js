@@ -2675,7 +2675,7 @@ window.copyCardSimulationToWhatsApp = function() {
   
   text += `\nOPÇÕES DE PARCELAMENTO NO CARTÃO:\n\n`;
 
-  const installmentOptions = [1, 2, 3, 4, 6, 8, 10, 12, 14, 18];
+  const installmentOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
   
   const installmentRows = installmentOptions.map(n => {
     const sim = calculateInstallment(cashVal, entryVal, n);
