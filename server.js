@@ -14,6 +14,15 @@ const USER_PASS = 'Finasjoias10';
 const PORT = process.env.PORT || 3333;
 const PAUSE_PXT_UPSTREAM = process.env.PAUSE_PXT_UPSTREAM === 'true'; // Padrão falso = TEMPO REAL ATIVO!
 
+// Proteção Anti-Crash Global: Impede que qualquer erro não tratado derrube a aplicação
+process.on('uncaughtException', (err) => {
+  console.error('[Proteção Global] 🛡️ Uncaught Exception capturada:', err.message);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Proteção Global] 🛡️ Unhandled Rejection capturado:', reason?.message || reason);
+});
+
 const ANDROID_CATEGORIES = new Set(['MI', 'NOTE', 'PAD', 'POCO', 'RDM', 'REAL']);
 const APPLE_CATEGORIES = new Set(['IPH', 'MCB', 'IPAD', 'IPD', 'RLG', 'PODS', 'ACSS', 'IMAC', 'MNTR']);
 
