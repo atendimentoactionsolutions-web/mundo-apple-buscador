@@ -1316,12 +1316,12 @@ function getProductRetailPrice(p) {
 // =========================================================================
 let currentView = 'prices_of_the_day'; // Preços do Dia por padrão
 
-let podCurrentCategory = 'ALL';
+let podCurrentCategory = 'IPH';
 let podSearchQuery = '';
 let podSelectedRegion = '';
 let podOnlyVerified = false;
 
-let sfCurrentCategory = 'ALL';
+let sfCurrentCategory = 'IPH';
 let sfSearchQuery = '';
 
 window.switchView = function(viewName) {
@@ -1888,11 +1888,11 @@ window.selectPodModel = function(modelName) {
   if (dropdown) dropdown.classList.remove('open');
   if (clearBtn) clearBtn.style.display = 'flex';
 
-  // Se o modelo selecionado não coincidir com a categoria atual do Preços do Dia, reseta para ALL
-  if (podCurrentCategory !== 'ALL') {
-    podCurrentCategory = 'ALL';
+  // Se o modelo selecionado não coincidir com a categoria atual do Preços do Dia, chaveia para a categoria do produto ou IPH
+  if (podCurrentCategory !== 'IPH') {
+    podCurrentCategory = 'IPH';
     const catPills = document.querySelectorAll('#podCategoryNav .pod-cat-pill');
-    catPills.forEach(p => p.classList.toggle('active', p.dataset.category === 'ALL'));
+    catPills.forEach(p => p.classList.toggle('active', p.dataset.category === 'IPH'));
   }
 
   renderPricesOfTheDay();
@@ -3346,10 +3346,10 @@ window.resetPodFilters = function() {
   if (podRegionFilter) podRegionFilter.value = '';
   if (podVerifiedFilter) podVerifiedFilter.checked = false;
   if (podDropdown) podDropdown.classList.remove('open');
-  podCurrentCategory = 'ALL';
+  podCurrentCategory = 'IPH';
 
   const catPills = document.querySelectorAll('#podCategoryNav .pod-cat-pill');
-  catPills.forEach(p => p.classList.toggle('active', p.dataset.category === 'ALL'));
+  catPills.forEach(p => p.classList.toggle('active', p.dataset.category === 'IPH'));
 
   renderPricesOfTheDay();
 };
