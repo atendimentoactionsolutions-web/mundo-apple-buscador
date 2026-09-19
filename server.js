@@ -914,13 +914,26 @@ app.post('/api/admin/card-rates', async (req, res) => {
 
 // --- ROTAS DE PRODUTOS (ACESSO DIRETO) ---
 app.get('/api/products', (req, res) => {
-  const products = Array.from(productsMap.values()).filter(p => !isCpoProduct(p));
+  let products = Array.from(productsMap.values()).filter(p => !isCpoProduct(p));
+  
+  // Fallback de Segurança Nível Máximo: Se o servidor na nuvem acabou de subir e o mapa está zerado, carrega o snapshot em disco!
+  if (products.length === 0) {
+    const historical = getHistoricalCatalog('latest');
+    if (historical && historical.length > 0) {
+      products = historical;
+      historical.forEach(p => {
+        if (p && p.id) productsMap.set(String(p.id), p);
+      });
+      console.log(`[API Fallback] 📦 ${products.length} produtos resgatados do snapshot em disco.`);
+    }
+  }
+
   res.json({
     success: true,
     total: products.length,
     dollarRate,
     dollarVariation,
-    latestDate,
+    latestDate: latestDate || `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
     data: products
   });
 });
@@ -1007,6 +1020,15 @@ async function start() {
     console.log(`======================================================\n`);
 
     try {
+      // Pré-carregamento de Snapshot de Segurança para Garantia Instantânea de Produtos na Nuvem
+      const initialSnapshot = getHistoricalCatalog('latest');
+      if (initialSnapshot && initialSnapshot.length > 0) {
+        initialSnapshot.forEach(p => {
+          if (p && p.id) productsMap.set(String(p.id), p);
+        });
+        console.log(`[Startup] 📦 ${productsMap.size} produtos pré-carregados instantaneamente do snapshot.`);
+      }
+
       if (PAUSE_PXT_UPSTREAM) {
         console.log(`[PXT] ⏸️ CONEXÃO COM O BUSCADOR OFICIAL PAUSADA!`);
         console.log(`[PXT] 🔒 O servidor local NÃO fará login no PXT para não derrubar sua sessão original.`);
