@@ -2819,11 +2819,10 @@ window.openPdfSelectionModal = function() {
   }
 
   const modelFamilies = new Map();
-  pdfSelectedVariantsMap.clear();
 
   filtered.forEach(p => {
     const isSemi = isSeminovoProduct(p);
-    const baseModelName = cleanModelName(p.name);
+    const baseModelName = cleanModelName(p.name).replace(/\s+/g, ' ').trim();
     const modelKey = isSemi ? `${baseModelName.toUpperCase()} [SEMINOVO]` : baseModelName.toUpperCase();
     const displayName = isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
     const ram = getMacBookRam(p);
@@ -2851,7 +2850,9 @@ window.openPdfSelectionModal = function() {
         isSeminovo: isSemi,
         colors: new Map()
       });
-      pdfSelectedVariantsMap.set(variantKey, true);
+      if (!pdfSelectedVariantsMap.has(variantKey)) {
+        pdfSelectedVariantsMap.set(variantKey, true);
+      }
     }
 
     const stGrp = fam.variantsMap.get(variantKey);
@@ -2962,9 +2963,28 @@ window.generateSelectedPdf = function() {
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Catálogo Loja Física — MUNDO APPLE</title>
+  <title>Catálogo Loja Física</title>
   <style>
-    @page { size: A4 portrait; margin: 10mm 10mm; }
+    @page {
+      size: A4 portrait;
+      margin: 8mm;
+    }
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 8mm;
+      }
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      header, footer {
+        display: none !important;
+      }
+    }
     * { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -2973,15 +2993,13 @@ window.generateSelectedPdf = function() {
       margin: 0;
       padding: 0;
       width: 100%;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
     }
 
     .pdf-container {
       width: 100%;
       max-width: 100%;
       margin: 0 auto;
-      padding: 10px;
+      padding: 6px;
     }
 
     /* Top Bar */
@@ -3002,6 +3020,8 @@ window.generateSelectedPdf = function() {
       color: #0f172a;
       margin: 0;
       letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
     }
     .pdf-header-subtitle {
       font-size: 10px;
@@ -3111,6 +3131,8 @@ window.generateSelectedPdf = function() {
       border-radius: 6px;
       border: 1px solid #cbd5e1;
       white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
     }
 
     .color-row {
@@ -3168,19 +3190,16 @@ window.generateSelectedPdf = function() {
       border-top: 1px solid #e2e8f0;
       width: 100%;
     }
-
-    @media print {
-      body { background: #fff; padding: 0; }
-      .pdf-container { padding: 0; }
-      .cards-container { grid-template-columns: repeat(3, 1fr); gap: 10px; }
-    }
   </style>
 </head>
 <body>
   <div class="pdf-container">
     <div class="pdf-header-bar">
       <div>
-        <h1 class="pdf-header-title">📱 CATÁLOGO DE PREÇOS — LOJA FÍSICA</h1>
+        <h1 class="pdf-header-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -3px; margin-right: 8px; color: #10b981;"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          CATÁLOGO DE PREÇOS — LOJA FÍSICA
+        </h1>
         <div class="pdf-header-subtitle">Tabela Oficial de Venda ao Consumidor (Valores à vista e simulação no cartão)</div>
       </div>
       <div class="pdf-header-date">Data: ${currentDate}</div>
@@ -3249,7 +3268,8 @@ window.generateSelectedPdf = function() {
             </div>
           </div>
           <div class="card-simular">
-            💳 Simular
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align: -1px; margin-right: 3px;"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            Simular
           </div>
         </div>
         <div>
@@ -3283,6 +3303,15 @@ window.generateSelectedPdf = function() {
   </script>
 </body>
 </html>`;
+
+  const printWin = window.open('', '_blank');
+  if (printWin) {
+    printWin.document.write(pdfHtml);
+    printWin.document.close();
+  } else {
+    alert('Por favor, permita pop-ups para gerar o PDF.');
+  }
+};
 
   const printWin = window.open('', '_blank');
   if (printWin) {
