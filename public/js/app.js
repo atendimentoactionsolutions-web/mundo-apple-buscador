@@ -3333,15 +3333,6 @@ window.generateSelectedPdf = function() {
   }
 };
 
-  const printWin = window.open('', '_blank');
-  if (printWin) {
-    printWin.document.write(pdfHtml);
-    printWin.document.close();
-  } else {
-    alert('Por favor, permita pop-ups para gerar o PDF.');
-  }
-};
-
 // Reset Filters for Preços do Dia
 window.resetPodFilters = function() {
   const podSearchInput = document.getElementById('podSearchInput');
