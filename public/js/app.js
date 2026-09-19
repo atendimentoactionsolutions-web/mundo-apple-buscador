@@ -2318,6 +2318,39 @@ window.onSimCashPriceChange = function(val) {
   recalculateSimulator();
 };
 
+// Currency Mask Helpers for Simulator Input (R$ 0,00)
+function parseCurrencyInput(val) {
+  if (!val) return 0;
+  if (typeof val === 'number') return val;
+  const digits = val.toString().replace(/\D/g, '');
+  if (!digits) return 0;
+  return parseFloat(digits) / 100;
+}
+
+function formatCurrencyInput(num) {
+  if (isNaN(num) || num === 0) return '';
+  return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+window.handleSimCashInput = function(inp) {
+  const num = parseCurrencyInput(inp.value);
+  inp.value = formatCurrencyInput(num);
+  currentSimData.cashPrice = num;
+  recalculateSimulator();
+};
+
+window.handleSimEntryInput = function(inp) {
+  const num = parseCurrencyInput(inp.value);
+  const cashVal = currentSimData.cashPrice || 0;
+  let finalVal = num;
+  if (finalVal > cashVal && cashVal > 0) {
+    finalVal = cashVal;
+  }
+  inp.value = formatCurrencyInput(finalVal);
+  currentSimData.entryAmount = finalVal;
+  recalculateSimulator();
+};
+
 window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, cashPrice, encodedRam) {
   const model = decodeURIComponent(encodedModel || '');
   const storage = decodeURIComponent(encodedStorage || '');
@@ -2340,91 +2373,100 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
   const colHex = getAppleColorHex(color);
 
   body.innerHTML = `
-    <!-- Top Hero Header -->
-    <div class="sim-header-hero">
-      <div class="sim-hero-product">
-        <h2 class="sim-hero-title">${currentSimData.model}</h2>
-        <div class="sim-hero-tags" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px;">
-          ${storage ? `<span class="matrix-card-storage">${storage}</span>` : ''}
-          ${ram ? `<span class="matrix-card-ram-badge" style="background: rgba(0, 113, 227, 0.18); color: #2997ff; border: 1px solid rgba(41, 151, 255, 0.35); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/></svg>${ram} RAM</span>` : ''}
+    <div class="sim-exec-container">
+      <!-- Executive Header -->
+      <div class="sim-exec-header">
+        <div class="sim-exec-title">${currentSimData.model}</div>
+        <div class="sim-exec-meta">
+          ${storage ? `
+            <span class="sim-exec-meta-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              <span>${storage}</span>
+            </span>
+          ` : ''}
+          ${ram ? `
+            <span class="sim-exec-meta-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/></svg>
+              <span>${ram} RAM</span>
+            </span>
+          ` : ''}
           ${color && color.toUpperCase() !== 'PADRÃO' ? `
-            <div class="all-offer-color-tag" style="padding: 3px 10px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 5px; background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-color); border-radius: 6px; font-weight: 700;">
-              <span class="matrix-color-dot" style="background-color: ${colHex}; width: 11px; height: 11px; border-radius: 50%; display: inline-block;"></span>
-              <span>🎨 Cor: ${color}</span>
-            </div>
+            <span class="sim-exec-meta-item">
+              <span style="background-color: ${colHex}; width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 1px solid rgba(255,255,255,0.3);"></span>
+              <span>Cor: ${color}</span>
+            </span>
           ` : ''}
         </div>
       </div>
-    </div>
 
-    <!-- Dual Highlight Price Banners -->
-    <div class="sim-dual-highlights">
-      <div class="sim-highlight-card pix">
-        <div class="sim-highlight-badge">💵 Valor À Vista (PIX / Dinheiro)</div>
-        <div class="sim-cash-input-wrap">
-          <span class="sim-cash-prefix">R$</span>
-          <input type="number" id="simCashInput" class="sim-cash-input" placeholder="0,00" value="${currentSimData.cashPrice > 0 ? currentSimData.cashPrice : ''}" min="0" oninput="onSimCashPriceChange(this.value)">
+      <!-- Integrated Financial Controls -->
+      <div class="sim-exec-controls">
+        <div class="sim-exec-field">
+          <label class="sim-exec-label" for="simCashInput">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+            Preço À Vista (PIX)
+          </label>
+          <div class="sim-exec-input-wrap">
+            <span style="font-weight: 800; color: var(--text-muted); margin-right: 6px; font-size: 0.95rem;">R$</span>
+            <input type="text" id="simCashInput" class="sim-exec-input" placeholder="0,00" value="${formatCurrencyInput(currentSimData.cashPrice)}" oninput="handleSimCashInput(this)">
+          </div>
         </div>
-        <div class="sim-highlight-sub">Preço base da venda à vista</div>
+
+        <div class="sim-exec-field">
+          <label class="sim-exec-label" for="simEntryInput">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Entrada PIX (Opcional)
+          </label>
+          <div class="sim-exec-input-wrap">
+            <span style="font-weight: 800; color: var(--text-muted); margin-right: 6px; font-size: 0.95rem;">R$</span>
+            <input type="text" id="simEntryInput" class="sim-exec-input" placeholder="0,00" value="" oninput="handleSimEntryInput(this)">
+          </div>
+        </div>
+
+        <div class="sim-exec-field">
+          <label class="sim-exec-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            Saldo no Cartão
+          </label>
+          <div class="sim-exec-badge-val" id="simHeroCardVal">${formatBRL(currentSimData.cashPrice)}</div>
+        </div>
       </div>
-      <div class="sim-highlight-card card">
-        <div class="sim-highlight-badge">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
-            <rect x="2" y="5" width="20" height="14" rx="2.5"/>
-            <line x1="2" y1="10" x2="22" y2="10"/>
+
+      <!-- Executive Installment Table -->
+      <div class="sim-table-wrap">
+        <table class="sim-exec-table">
+          <thead>
+            <tr>
+              <th>Parcela</th>
+              <th>Valor Mensal</th>
+              <th class="text-right">Total no Cartão</th>
+            </tr>
+          </thead>
+          <tbody id="simInstallmentsGrid">
+            <!-- Injected via recalculateSimulator -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer Action Buttons -->
+      <div style="display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap;">
+        <button class="sim-btn-copy-wa" onclick="copyCardSimulationToWhatsApp()" style="flex: 1; min-width: 180px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
           </svg>
-          Saldo a Financiar no Cartão
-        </div>
-        <div class="sim-highlight-val" id="simHeroCardVal">${formatBRL(currentSimData.cashPrice)}</div>
-        <div class="sim-highlight-sub" id="simHeroCardSub">Parcele em até 18x no cartão de crédito</div>
+          <span>Copiar Texto WhatsApp</span>
+        </button>
+
+        <button class="sim-btn-save-img" id="btnSaveSimImage" onclick="downloadSimulationImage()" style="flex: 1; min-width: 180px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span>Salvar Imagem JPEG</span>
+        </button>
       </div>
-    </div>
-
-    <!-- Entry Section (Abatimento PIX) -->
-    <div class="sim-entry-section">
-      <div class="sim-entry-row">
-        <div class="sim-entry-text">
-          <h4>💡 Deseja dar uma Entrada no PIX/Dinheiro?</h4>
-          <p>O valor digitado será abatido do total à vista e o saldo restante será financiado na maquininha</p>
-        </div>
-        <div class="sim-entry-input-box">
-          <span class="sim-entry-prefix">R$</span>
-          <input type="number" id="simEntryInput" class="sim-entry-input" placeholder="0,00" value="" min="0" max="${currentSimData.cashPrice}" oninput="recalculateSimulator()">
-        </div>
-      </div>
-    </div>
-
-    <!-- Complete Installment List Title -->
-    <div class="sim-installments-section-title">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px; color: var(--accent-green);">
-        <rect x="2" y="5" width="20" height="14" rx="2.5"/>
-        <line x1="2" y1="10" x2="22" y2="10"/>
-      </svg>
-      Opções de Parcelamento no Cartão (1x até 18x)
-    </div>
-
-    <!-- Full 1x to 18x List -->
-    <div class="sim-installments-list" id="simInstallmentsGrid">
-      <!-- Injected via recalculateSimulator -->
-    </div>
-
-    <!-- Footer Actions -->
-    <div class="sim-footer-actions">
-      <button class="sim-btn-save-img" id="btnSaveSimImage" onclick="downloadSimulationImage()" title="Salvar proposta como imagem JPEG de alta qualidade">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
-          <circle cx="9" cy="9" r="2"/>
-          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
-        </svg>
-        <span>Salvar Imagem JPEG</span>
-      </button>
-
-      <button class="sim-btn-copy-wa" onclick="copyCardSimulationToWhatsApp()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
-        </svg>
-        <span>📲 Enviar para WhatsApp</span>
-      </button>
     </div>
   `;
 
@@ -2433,59 +2475,38 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
 };
 
 window.recalculateSimulator = function() {
-  const cashInp = document.getElementById('simCashInput');
-  const entryInp = document.getElementById('simEntryInput');
   const gridContainer = document.getElementById('simInstallmentsGrid');
   const heroCardVal = document.getElementById('simHeroCardVal');
-  const heroCardSub = document.getElementById('simHeroCardSub');
 
   if (!gridContainer) return;
 
-  const cashVal = parseFloat(cashInp?.value) || currentSimData.cashPrice || 0;
-  currentSimData.cashPrice = cashVal;
-
-  let entryVal = parseFloat(entryInp?.value) || 0;
-  if (entryVal < 0) entryVal = 0;
-  if (entryVal > cashVal) {
-    entryVal = cashVal;
-    if (entryInp) entryInp.value = cashVal > 0 ? cashVal : '';
-  }
-  currentSimData.entryAmount = entryVal;
-
+  const cashVal = currentSimData.cashPrice || 0;
+  const entryVal = currentSimData.entryAmount || 0;
   const balance = Math.max(0, cashVal - entryVal);
 
   if (heroCardVal) {
     heroCardVal.textContent = formatBRL(balance);
   }
-  if (heroCardSub) {
-    heroCardSub.textContent = entryVal > 0 
-      ? `Entrada de ${formatBRL(entryVal)} no PIX + saldo a parcelar`
-      : `Parcele o valor integral de ${formatBRL(cashVal)} em até 18x no cartão`;
-  }
 
-  let listHtml = '';
+  let rowsHtml = '';
   for (let i = 1; i <= 18; i++) {
     const sim = calculateInstallment(cashVal, entryVal, i);
-    const label = i === 1 ? '1x (À vista no cartão)' : `${i}x`;
+    const label = i === 1 ? '1x (À vista)' : `${i}x`;
     const grandTotal = entryVal + sim.totalAmount;
 
-    listHtml += `
-      <div class="sim-row">
-        <div class="sim-row-left">
-          <span class="sim-row-badge">${label}</span>
-          <div class="sim-row-main">
-            <span class="sim-row-monthly">${formatBRL(sim.monthlyAmount)}<span class="sim-row-per-month">/mês</span></span>
-          </div>
-        </div>
-        <div class="sim-row-right">
-          <span class="sim-row-total-label">Saldo no cartão: <strong>${formatBRL(sim.totalAmount)}</strong></span>
-          ${entryVal > 0 ? `<span style="font-size: 0.73rem; color: #10b981; font-weight: 800; display: block; margin-top: 2px;">Total (PIX + Cartão): ${formatBRL(grandTotal)}</span>` : ''}
-        </div>
-      </div>
+    rowsHtml += `
+      <tr>
+        <td style="font-weight: 800; color: var(--text-primary);">${label}</td>
+        <td style="color: var(--accent-green); font-weight: 800;">${formatBRL(sim.monthlyAmount)} <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">/mês</span></td>
+        <td class="text-right">
+          <span style="font-weight: 800; color: var(--text-primary);">${formatBRL(sim.totalAmount)}</span>
+          ${entryVal > 0 ? `<div style="font-size: 0.72rem; color: var(--accent-green); font-weight: 700; margin-top: 1px;">Total (PIX+Cartão): ${formatBRL(grandTotal)}</div>` : ''}
+        </td>
+      </tr>
     `;
   }
 
-  gridContainer.innerHTML = listHtml;
+  gridContainer.innerHTML = rowsHtml;
 };
 
 window.downloadSimulationImage = async function() {
@@ -2551,7 +2572,7 @@ window.downloadSimulationImage = async function() {
             ${d.color ? `
               <span style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); padding: 2px 9px; border-radius: 4px; font-size: 11px; font-weight: 700; color: #f8fafc; display: inline-flex; align-items: center; gap: 5px;">
                 <span style="width: 10px; height: 10px; border-radius: 50%; background-color: ${colHex}; display: inline-block; border: 1px solid rgba(255,255,255,0.3);"></span>
-                🎨 Cor: ${d.color}
+                <span>Cor: ${d.color}</span>
               </span>
             ` : ''}
           </div>
@@ -2565,17 +2586,17 @@ window.downloadSimulationImage = async function() {
       <!-- Price Highlights Banners -->
       <div style="display: grid; grid-template-columns: ${entryVal > 0 ? '1fr 1fr 1fr' : '1fr 1fr'}; gap: 10px; margin-bottom: 14px;">
         <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 10px 12px; border-radius: 10px;">
-          <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: #10b981; margin-bottom: 2px;">💵 Valor À Vista (PIX)</div>
+          <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: #10b981; margin-bottom: 2px;">Valor À Vista (PIX)</div>
           <div style="font-size: 17px; font-weight: 800; color: #10b981;">${formatBRL(cashVal)}</div>
         </div>
         ${entryVal > 0 ? `
           <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 10px 12px; border-radius: 10px;">
-            <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: #f59e0b; margin-bottom: 2px;">💰 Entrada em PIX</div>
+            <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: #f59e0b; margin-bottom: 2px;">Entrada em PIX</div>
             <div style="font-size: 17px; font-weight: 800; color: #f59e0b;">${formatBRL(entryVal)}</div>
           </div>
         ` : ''}
         <div style="background: rgba(41, 151, 255, 0.1); border: 1px solid rgba(41, 151, 255, 0.3); padding: 10px 12px; border-radius: 10px;">
-          <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: #2997ff; margin-bottom: 2px;">💳 Saldo no Cartão</div>
+          <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: #2997ff; margin-bottom: 2px;">Saldo no Cartão</div>
           <div style="font-size: 17px; font-weight: 800; color: #2997ff;">${formatBRL(balance)}</div>
         </div>
       </div>
@@ -2591,7 +2612,7 @@ window.downloadSimulationImage = async function() {
       <!-- Footer -->
       <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 12px; padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">
         <span style="font-size: 10px; color: #64748b;">Condição válida para fechamento imediato</span>
-        <span style="font-size: 10px; font-weight: 700; color: #10b981;">✓ Taxas inclusas na maquininha</span>
+        <span style="font-size: 10px; font-weight: 700; color: #10b981;">Taxas inclusas na maquininha</span>
       </div>
     `;
 
