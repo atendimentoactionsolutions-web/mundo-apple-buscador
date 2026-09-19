@@ -44,6 +44,26 @@ function isCpoProduct(p) {
   return n.includes('CPO') || d.includes('CPO') || r.includes('CPO');
 }
 
+function isAsIsProduct(p) {
+  if (!p) return false;
+  const cat = (p.category || '').toUpperCase().trim();
+  const name = (p.name || '').toUpperCase();
+  const desc = (p.description || '').toUpperCase();
+  const reg = (p.region || '').toUpperCase();
+  return (
+    name.includes('AS IS') ||
+    name.includes('AS-IS') ||
+    name.includes('ASIS') ||
+    desc.includes('AS IS') ||
+    desc.includes('AS-IS') ||
+    desc.includes('ASIS') ||
+    cat.includes('AS IS') ||
+    cat.includes('AS-IS') ||
+    reg.includes('AS IS') ||
+    reg.includes('AS-IS')
+  );
+}
+
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
