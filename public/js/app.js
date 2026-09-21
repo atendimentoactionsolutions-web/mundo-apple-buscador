@@ -2970,6 +2970,9 @@ window.openExportSelectionModal = function(scope = 'SF') {
     }
   }
 
+  // Limpa o mapa para a visualização atual garantindo que apenas os modelos presentes no modal sejam selecionados
+  pdfSelectedVariantsMap.clear();
+
   const modelFamilies = new Map();
 
   filtered.forEach(p => {
@@ -3002,9 +3005,7 @@ window.openExportSelectionModal = function(scope = 'SF') {
         isSeminovo: isSemi,
         colors: new Map()
       });
-      if (!pdfSelectedVariantsMap.has(variantKey)) {
-        pdfSelectedVariantsMap.set(variantKey, true);
-      }
+      pdfSelectedVariantsMap.set(variantKey, true);
     }
 
     const stGrp = fam.variantsMap.get(variantKey);
@@ -3049,7 +3050,7 @@ window.openExportSelectionModal = function(scope = 'SF') {
     });
 
     variants.forEach(v => {
-      const isChecked = pdfSelectedVariantsMap.get(v.variantKey) !== false;
+      const isChecked = pdfSelectedVariantsMap.get(v.variantKey) === true;
       const labelText = v.ram ? `${v.storage} (${v.ram} RAM)` : (v.storage || 'Padrão');
 
       html += `
@@ -3081,16 +3082,18 @@ window.closePdfSelectionModal = function() {
 };
 
 window.onPdfVariantCheckboxChange = function(variantKey, isChecked) {
-  pdfSelectedVariantsMap.set(variantKey, isChecked);
+  pdfSelectedVariantsMap.set(variantKey, Boolean(isChecked));
   updatePdfSelectedCountBadge();
 };
 
 window.toggleAllPdfSelections = function(selectState) {
+  const state = Boolean(selectState);
+  pdfSelectedVariantsMap.forEach((_, key) => {
+    pdfSelectedVariantsMap.set(key, state);
+  });
   const checkboxes = document.querySelectorAll('#pdfSelectionListBody input[type="checkbox"]');
   checkboxes.forEach(cb => {
-    cb.checked = selectState;
-    const vk = cb.dataset.pdfVariant;
-    if (vk) pdfSelectedVariantsMap.set(vk, selectState);
+    cb.checked = state;
   });
   updatePdfSelectedCountBadge();
 };
@@ -3098,14 +3101,14 @@ window.toggleAllPdfSelections = function(selectState) {
 function updatePdfSelectedCountBadge() {
   const badge = document.getElementById('pdfSelectedCountBadge');
   let selected = 0;
-  pdfSelectedVariantsMap.forEach(val => { if (val) selected++; });
+  pdfSelectedVariantsMap.forEach(val => { if (val === true) selected++; });
   if (badge) badge.textContent = `${selected} selecionados`;
 }
 
 // Copia lista completa formatada para WhatsApp com os modelos selecionados
 window.copySelectedStorefrontWhatsApp = async function(btn) {
   let selectedCount = 0;
-  pdfSelectedVariantsMap.forEach(val => { if (val) selectedCount++; });
+  pdfSelectedVariantsMap.forEach(val => { if (val === true) selectedCount++; });
 
   if (selectedCount === 0) {
     alert('Por favor, selecione pelo menos 1 modelo para exportar.');
@@ -3124,7 +3127,7 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
     });
 
     variants.forEach(grp => {
-      if (pdfSelectedVariantsMap.get(grp.variantKey) === false) return;
+      if (pdfSelectedVariantsMap.get(grp.variantKey) !== true) return;
 
       const colorsArr = Array.from(grp.colors.values()).map(colObj => {
         const isSemi = grp.isSeminovo;
