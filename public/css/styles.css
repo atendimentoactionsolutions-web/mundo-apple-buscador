@@ -3701,41 +3701,412 @@ body.light-theme .sim-btn-save-img:hover {
     font-size: 1.2rem;
   }
 
-  .all-offer-wa-btn {
-    width: 100%;
-    height: 44px;
-    font-size: 0.86rem;
-    font-weight: 700;
+/* ==========================================================================
+   EXECUTIVE APPLE UI ENHANCEMENTS (DESKTOP & MOBILE APP-LIKE POLISH)
+   ========================================================================== */
+
+/* 1. Refined Glassmorphism & Header Depth */
+.top-header {
+  background: rgba(13, 15, 20, 0.82) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+body.light-theme .top-header {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+/* 2. Apple Segmented Tab Switcher (iOS/macOS style) */
+.view-switch-nav {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 4px !important;
+  gap: 3px !important;
+  border-radius: 12px !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+body.light-theme .view-switch-nav {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+.view-tab-btn {
+  padding: 7px 16px !important;
+  border-radius: 9px !important;
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.1px !important;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.view-tab-btn.active {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 12px rgba(16, 185, 129, 0.4), 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* 3. Search Bar Glass & Polish */
+.pod-search-wrap {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.pod-search-wrap:focus-within {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3.5px rgba(16, 185, 129, 0.2), 0 12px 32px rgba(0, 0, 0, 0.25) !important;
+}
+
+body.light-theme .pod-search-wrap {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+/* 4. Category Pills - Apple Micro-Interactions */
+.pod-cat-pill {
+  padding: 7px 16px !important;
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  border-radius: 11px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.pod-cat-pill:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-1.5px);
+}
+
+.pod-cat-pill.active {
+  background: #f8fafc !important;
+  color: #090a0d !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.12), 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+body.light-theme .pod-cat-pill.active {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.15) !important;
+}
+
+.pod-cat-count {
+  font-size: 0.68rem !important;
+  font-weight: 800 !important;
+  padding: 2px 7px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.pod-cat-pill.active .pod-cat-count {
+  background: rgba(0, 0, 0, 0.14) !important;
+  color: #090a0d !important;
+}
+
+body.light-theme .pod-cat-pill.active .pod-cat-count {
+  background: rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+}
+
+/* 5. Model Section Headers */
+.pod-model-section {
+  border-radius: 12px !important;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-left: 4px solid #10b981 !important;
+  backdrop-filter: blur(10px);
+}
+
+body.light-theme .pod-model-section {
+  background: linear-gradient(90deg, #f8fafc 0%, #ffffff 100%) !important;
+  border: 1px solid #e2e8f0 !important;
+  border-left: 4px solid #059669 !important;
+}
+
+/* 6. Model Variant Cards & Price Hierarchy */
+.matrix-card {
+  border-radius: 13px !important;
+  background: rgba(18, 20, 27, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.matrix-card:hover {
+  border-color: rgba(16, 185, 129, 0.35) !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), 0 0 18px rgba(16, 185, 129, 0.08) !important;
+}
+
+body.light-theme .matrix-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+body.light-theme .matrix-card:hover {
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08), 0 0 16px rgba(16, 185, 129, 0.1) !important;
+}
+
+.matrix-cost-val, .matrix-retail-val {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-family) !important;
+  font-variant-numeric: tabular-nums !important;
+  letter-spacing: -0.3px !important;
+}
+
+.matrix-wa-btn {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease !important;
+}
+
+.matrix-wa-btn:hover {
+  transform: scale(1.15) !important;
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.5) !important;
+}
+
+/* ==========================================================================
+   MOBILE NATIVE APP EXPERIENCE (SMARTPHONE FOCUS)
+   ========================================================================== */
+
+/* Mobile Bottom Navigation Bar */
+.mobile-bottom-bar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Extra bottom padding to body so content never gets covered by bottom bar */
+  body {
+    padding-bottom: 78px !important;
+  }
+
+  /* Fixed Glassmorphism Bottom Bar */
+  .mobile-bottom-bar {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 64px !important;
+    background: rgba(13, 15, 20, 0.92) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    z-index: 9999 !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    padding: 0 10px !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  body.light-theme .mobile-bottom-bar {
+    background: rgba(255, 255, 255, 0.94) !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06) !important;
+  }
+
+  .mob-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    border-radius: 10px;
+    gap: 3px;
+    height: 100%;
+    color: var(--text-muted);
+    text-decoration: none;
+    cursor: pointer;
+    font-size: 0.68rem;
+    font-weight: 700;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    padding: 4px 0;
+  }
+
+  .mob-nav-item svg {
+    width: 20px;
+    height: 20px;
+    stroke-width: 2.2;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .mob-nav-item:active svg {
+    transform: scale(0.9);
+  }
+
+  .mob-nav-item.active {
+    color: #10b981 !important;
+  }
+
+  .mob-nav-item.active svg {
+    stroke: #10b981 !important;
+    transform: scale(1.08);
+  }
+
+  /* Compact Top Header on Mobile */
+  .top-header {
+    padding: 8px 0 !important;
+  }
+
+  .header-inner {
+    padding: 0 14px !important;
+  }
+
+  /* Hide desktop view-switch on mobile since bottom bar handles it */
+  .view-switch-nav {
+    display: none !important;
+  }
+
+  /* Compact right actions on mobile */
+  .calc-top-btn span,
+  .admin-top-btn span {
+    display: none !important;
+  }
+
+  .calc-top-btn,
+  .admin-top-btn {
+    padding: 6px 10px !important;
+    border-radius: 50% !important;
+    width: 34px !important;
+    height: 34px !important;
+    justify-content: center !important;
+  }
+
+  /* Elastic horizontal scroll for categories */
+  .pod-categories-wrapper {
+    width: 100% !important;
+    padding: 0 12px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .pod-categories-list {
+    gap: 7px !important;
+    padding-bottom: 4px !important;
+    -webkit-overflow-scrolling: touch !important;
+    scroll-snap-type: x proximity !important;
+  }
+
+  .pod-cat-pill {
+    padding: 7px 13px !important;
+    font-size: 0.78rem !important;
+    scroll-snap-align: start !important;
+  }
+
+  /* Toolbar search & export on mobile */
+  .pod-toolbar-wrapper {
+    padding: 8px 0 !important;
+    margin-bottom: 12px !important;
+  }
+
+  .pod-toolbar {
+    padding: 0 12px !important;
+    gap: 10px !important;
+  }
+
+  .pod-title-group {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  .pod-main-title {
+    font-size: 1.15rem !important;
+  }
+
+  .pod-search-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 48px !important;
+    padding: 0 14px !important;
+  }
+
+  .pod-controls-right {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  .pod-region-wrapper {
+    flex: 1 !important;
+  }
+
+  .pod-select {
+    width: 100% !important;
+    height: 38px !important;
+  }
+
+  .pod-btn-export {
+    height: 38px !important;
+    padding: 0 14px !important;
+  }
+
+  /* Matrix Cards on Mobile: 2 per row if screen >= 380px, 1 per row for very small */
+  .pod-matrix-container,
+  .storefront-grid {
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)) !important;
+    gap: 8px !important;
+    padding: 0 10px !important;
+    width: 100% !important;
+  }
+
+  .matrix-card-header {
+    padding: 7px 9px !important;
+  }
+
+  .matrix-card-title {
+    font-size: 0.74rem !important;
+  }
+
+  .matrix-color-row {
+    padding: 6px 9px !important;
+  }
+
+  .matrix-color-name {
+    font-size: 0.70rem !important;
+  }
+
+  .matrix-cost-val,
+  .matrix-retail-val {
+    font-size: 0.82rem !important;
+  }
+
+  .matrix-wa-btn {
+    width: 27px !important;
+    height: 27px !important;
+  }
+
+  /* Native Bottom Sheet modal for mobile */
+  .modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  .modal-content.modal-large,
+  .modal-content.modal-simulator,
+  #pdfSelectionModal .modal-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 90vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    margin: 0 !important;
+    animation: slideUpModal 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  @keyframes slideUpModal {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
   }
 }
 
-/* MODO CLIENTE / APRESENTAÇÃO DE CATÁLOGO */
-body.client-mode-active #viewPricesDay,
-body.client-mode-active #adminHeaderBtn,
-body.client-mode-active .app-header-nav-btn,
-body.client-mode-active #userSessionInfo {
-  display: none !important;
-}
-
-body.client-mode-active #viewStoreFront {
-  display: block !important;
-}
-
-body.client-mode-active #btnClientModeToggle {
-  background: rgba(16, 185, 129, 0.2) !important;
-  border-color: rgba(16, 185, 129, 0.5) !important;
-  color: #10b981 !important;
-}
-
-body.client-mode-active #sfMainTitleText::after {
-  content: " • Catálogo Digital";
-  font-size: 0.85rem;
-  color: #10b981;
-  font-weight: 700;
-  margin-left: 6px;
-}
 
 
 
