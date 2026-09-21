@@ -1331,24 +1331,17 @@ window.switchView = function(viewName) {
   const tabPricesDay = document.getElementById('tabPricesDay');
   const tabStoreFront = document.getElementById('tabStoreFront');
 
-  const mobTabPrices = document.getElementById('mobTabPrices');
-  const mobTabStore = document.getElementById('mobTabStore');
-
   if (viewName === 'storefront') {
     if (viewPricesDay) viewPricesDay.style.display = 'none';
     if (viewStoreFront) viewStoreFront.style.display = 'block';
     if (tabPricesDay) tabPricesDay.classList.remove('active');
     if (tabStoreFront) tabStoreFront.classList.add('active');
-    if (mobTabPrices) mobTabPrices.classList.remove('active');
-    if (mobTabStore) mobTabStore.classList.add('active');
     renderStoreFront();
   } else {
     if (viewPricesDay) viewPricesDay.style.display = 'block';
     if (viewStoreFront) viewStoreFront.style.display = 'none';
     if (tabPricesDay) tabPricesDay.classList.add('active');
     if (tabStoreFront) tabStoreFront.classList.remove('active');
-    if (mobTabPrices) mobTabPrices.classList.add('active');
-    if (mobTabStore) mobTabStore.classList.remove('active');
     renderPricesOfTheDay();
   }
 };

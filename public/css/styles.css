@@ -3879,99 +3879,81 @@ body.light-theme .matrix-card:hover {
    MOBILE NATIVE APP EXPERIENCE (SMARTPHONE FOCUS)
    ========================================================================== */
 
-/* Mobile Bottom Navigation Bar */
-.mobile-bottom-bar {
-  display: none;
-}
-
 @media (max-width: 768px) {
-  /* Extra bottom padding to body so content never gets covered by bottom bar */
   body {
-    padding-bottom: 78px !important;
-  }
-
-  /* Fixed Glassmorphism Bottom Bar */
-  .mobile-bottom-bar {
-    display: flex !important;
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    height: 64px !important;
-    background: rgba(13, 15, 20, 0.92) !important;
-    backdrop-filter: blur(20px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
-    z-index: 9999 !important;
-    align-items: center !important;
-    justify-content: space-around !important;
-    padding: 0 10px !important;
-    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4) !important;
-  }
-
-  body.light-theme .mobile-bottom-bar {
-    background: rgba(255, 255, 255, 0.94) !important;
-    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06) !important;
-  }
-
-  .mob-nav-item {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    height: 100%;
-    color: var(--text-muted);
-    text-decoration: none;
-    cursor: pointer;
-    font-size: 0.68rem;
-    font-weight: 700;
-    transition: all 0.2s ease;
-    border-radius: 8px;
-    padding: 4px 0;
-  }
-
-  .mob-nav-item svg {
-    width: 20px;
-    height: 20px;
-    stroke-width: 2.2;
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-
-  .mob-nav-item:active svg {
-    transform: scale(0.9);
-  }
-
-  .mob-nav-item.active {
-    color: #10b981 !important;
-  }
-
-  .mob-nav-item.active svg {
-    stroke: #10b981 !important;
-    transform: scale(1.08);
+    padding-bottom: 24px !important;
   }
 
   /* Clean & Focused Top Header on Mobile */
   .top-header {
-    padding: 10px 0 !important;
+    padding: 8px 0 10px !important;
   }
 
   .header-inner {
-    padding: 0 16px !important;
+    padding: 0 14px !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    align-items: center !important;
+    justify-content: space-between !important;
   }
 
-  /* Hide desktop view-switch on mobile since bottom bar handles it */
-  .view-switch-nav {
-    display: none !important;
+  /* Clean Top Bar: Left = Logo Apple, Right = Status + Quick Calculator */
+  .brand-section {
+    order: 1;
   }
 
-  /* Remove clutter from top header on mobile (Calculadora is on the bottom bar now) */
-  .calc-top-btn,
+  .header-right-group {
+    order: 2;
+    gap: 8px !important;
+  }
+
+  .calc-top-btn {
+    display: inline-flex !important;
+    padding: 5px 10px !important;
+    border-radius: 8px !important;
+    font-size: 0.72rem !important;
+    height: 30px !important;
+  }
+  .calc-top-btn span {
+    display: inline !important;
+  }
+
   .admin-top-btn {
     display: none !important;
+  }
+
+  .live-indicator {
+    padding: 4px 8px !important;
+    font-size: 0.68rem !important;
+  }
+
+  /* Elegant iOS-Style Segmented Pill Switcher on Mobile */
+  .view-switch-nav {
+    display: flex !important;
+    order: 3;
+    width: 100% !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 12px !important;
+    padding: 3px !important;
+    gap: 3px !important;
+    margin-top: 2px !important;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  body.light-theme .view-switch-nav {
+    background: rgba(0, 0, 0, 0.04) !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .view-tab-btn {
+    flex: 1 !important;
+    justify-content: center !important;
+    padding: 8px 12px !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    border-radius: 9px !important;
   }
 
   .live-indicator {
