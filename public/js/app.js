@@ -1552,13 +1552,22 @@ function renderStoreFront() {
                 ${grp.storage ? `<span class="matrix-card-storage">${grp.storage}</span>` : ''}
               </div>
             </div>
-            <button class="matrix-card-all-btn" onclick="openCardSimulator('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(simLowestColor)}', ${simLowestPrice}, '${encodeURIComponent(grp.ram || '')}')" title="Simular parcelamento deste modelo">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="5" width="20" height="14" rx="2.5"/>
-                <line x1="2" y1="10" x2="22" y2="10"/>
-              </svg>
-              <span>Simular</span>
-            </button>
+            <div style="display: flex; gap: 5px; align-items: center;">
+              <button class="matrix-card-all-btn" onclick="copyModelPrices(this, '${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(grp.ram || '')}', ${encodeURIComponent(JSON.stringify(colorsArr.map(c => ({ color: c.color, price: c.retailPrice }))))}, false)" title="Copiar lista de preços para WhatsApp">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                </svg>
+                <span>Copiar</span>
+              </button>
+              <button class="matrix-card-all-btn" onclick="openCardSimulator('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(simLowestColor)}', ${simLowestPrice}, '${encodeURIComponent(grp.ram || '')}')" title="Simular parcelamento deste modelo">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="5" width="20" height="14" rx="2.5"/>
+                  <line x1="2" y1="10" x2="22" y2="10"/>
+                </svg>
+                <span>Simular</span>
+              </button>
+            </div>
           </div>
           <div class="matrix-card-body">
             ${colorRowsHtml}
@@ -1570,6 +1579,59 @@ function renderStoreFront() {
 
   container.innerHTML = html;
 }
+
+// Helper para copiar tabela de preços formatada para WhatsApp de um modelo específico
+window.copyModelPrices = async function(btn, encModel, encStorage, encRam, encColorsJson, isCusto = false) {
+  try {
+    const model = decodeURIComponent(encModel);
+    const storage = decodeURIComponent(encStorage);
+    const ram = decodeURIComponent(encRam);
+    const colors = JSON.parse(decodeURIComponent(encColorsJson));
+
+    const parts = [model];
+    if (ram && !model.includes(ram)) parts.push(ram);
+    if (storage) parts.push(storage);
+    const titleLine = parts.join(' ').toUpperCase();
+
+    let lines = [titleLine, ''];
+    colors.forEach(c => {
+      lines.push(`• ${c.color.toUpperCase()} — ${formatBRL(c.price)}`);
+    });
+
+    lines.push('');
+    if (isCusto) {
+      lines.push('Preços de custo dos fornecedores em tempo real.');
+    } else {
+      lines.push('Valores válidos para pagamento à vista.');
+      lines.push('Consulte opções de parcelamento no cartão.');
+    }
+
+    const textToCopy = lines.join('\n');
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(textToCopy);
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = textToCopy;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+
+    if (btn) {
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span style="color: #10b981; font-weight: 800;">Copiado!</span>`;
+      setTimeout(() => {
+        btn.innerHTML = originalHtml;
+      }, 2000);
+    }
+  } catch (err) {
+    console.error('Erro ao copiar lista de preços:', err);
+  }
+};
 
 // Category Count Badges Updater for Preços do Dia
 function updatePricesDayCategoryCounts() {
@@ -2138,13 +2200,22 @@ function renderPricesOfTheDay() {
                 ${grp.storage ? `<span class="matrix-card-storage">${grp.storage}</span>` : ''}
               </div>
             </div>
-            <button class="matrix-card-all-btn" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo})" title="Ver todos os fornecedores deste modelo">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-                <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
-              </svg>
-              <span>Todas</span>
-            </button>
+            <div style="display: flex; gap: 5px; align-items: center;">
+              <button class="matrix-card-all-btn" onclick="copyModelPrices(this, '${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(grp.ram || '')}', ${encodeURIComponent(JSON.stringify(colorsArr.map(c => ({ color: c.color, price: c.displayPrice }))))}, true)" title="Copiar custos deste modelo para WhatsApp">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                </svg>
+                <span>Copiar</span>
+              </button>
+              <button class="matrix-card-all-btn" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo})" title="Ver todos os fornecedores deste modelo">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                  <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+                </svg>
+                <span>Todas</span>
+              </button>
+            </div>
           </div>
           <div class="matrix-card-body">
             ${colorRowsHtml}
