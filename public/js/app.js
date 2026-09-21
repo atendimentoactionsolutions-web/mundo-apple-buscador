@@ -1552,22 +1552,13 @@ function renderStoreFront() {
                 ${grp.storage ? `<span class="matrix-card-storage">${grp.storage}</span>` : ''}
               </div>
             </div>
-            <div style="display: flex; gap: 5px; align-items: center;">
-              <button class="matrix-card-all-btn" onclick="copyModelPrices(this, '${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(grp.ram || '')}', ${encodeURIComponent(JSON.stringify(colorsArr.map(c => ({ color: c.color, price: c.retailPrice }))))}, false)" title="Copiar lista de preços para WhatsApp">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
-                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
-                </svg>
-                <span>Copiar</span>
-              </button>
-              <button class="matrix-card-all-btn" onclick="openCardSimulator('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(simLowestColor)}', ${simLowestPrice}, '${encodeURIComponent(grp.ram || '')}')" title="Simular parcelamento deste modelo">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="2" y="5" width="20" height="14" rx="2.5"/>
-                  <line x1="2" y1="10" x2="22" y2="10"/>
-                </svg>
-                <span>Simular</span>
-              </button>
-            </div>
+            <button class="matrix-card-all-btn" onclick="copyModelPrices(this, '${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(grp.ram || '')}', ${encodeURIComponent(JSON.stringify(colorsArr.map(c => ({ color: c.color, price: c.retailPrice }))))}, false)" title="Copiar lista de preços para WhatsApp">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+              </svg>
+              <span>Copiar</span>
+            </button>
           </div>
           <div class="matrix-card-body">
             ${colorRowsHtml}
@@ -1578,6 +1569,39 @@ function renderStoreFront() {
   });
 
   container.innerHTML = html;
+}
+
+// Helper robusto para copiar texto no PC e Mobile
+async function robustCopyToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      // Continua para o fallback de textarea caso o browser bloqueie
+    }
+  }
+
+  // Fallback 100% compatível com PC e Safari
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.style.position = "fixed";
+  textArea.style.left = "-999999px";
+  textArea.style.top = "-999999px";
+  textArea.setAttribute('readonly', '');
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  textArea.setSelectionRange(0, 99999);
+
+  let successful = false;
+  try {
+    successful = document.execCommand('copy');
+  } catch (err) {
+    successful = false;
+  }
+  document.body.removeChild(textArea);
+  return successful;
 }
 
 // Helper para copiar tabela de preços formatada para WhatsApp de um modelo específico
@@ -1607,19 +1631,7 @@ window.copyModelPrices = async function(btn, encModel, encStorage, encRam, encCo
     }
 
     const textToCopy = lines.join('\n');
-
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(textToCopy);
-    } else {
-      const textarea = document.createElement('textarea');
-      textarea.value = textToCopy;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-    }
+    await robustCopyToClipboard(textToCopy);
 
     if (btn) {
       const originalHtml = btn.innerHTML;
