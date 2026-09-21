@@ -1784,7 +1784,7 @@ window.copyModelPrices = async function(firstArg, secondArg, encStorage, encRam,
     let lines = [titleLine, ''];
     colors.forEach(c => {
       const colorFormatted = formatOnlyFirstLetterUpper(c.color);
-      lines.push(`• ${colorFormatted} — ${formatBRL(c.price)}`);
+      lines.push(`${colorFormatted} • ${formatBRL(c.price)}`);
     });
 
     lines.push('');
@@ -3055,14 +3055,15 @@ window.exportPricesDayTable = function() {
 };
 
 // =========================================================================
-// SELEÇÃO DE PRODUTOS & GERADOR DE PDF PIXEL-PERFECT (LOJA FÍSICA)
+// SELEÇÃO DE PRODUTOS & EXPORTAÇÃO LIMPA PARA WHATSAPP (LOJA FÍSICA)
 // =========================================================================
 let pdfSelectedVariantsMap = new Map(); // key: variantKey -> boolean
 let pdfCachedFamilies = [];
 
-window.exportStorefrontPDF = function() {
+window.openStorefrontExportModal = function() {
   openPdfSelectionModal();
 };
+window.exportStorefrontPDF = window.openStorefrontExportModal;
 
 window.openPdfSelectionModal = function() {
   const modal = document.getElementById('pdfSelectionModal');
@@ -3101,7 +3102,7 @@ window.openPdfSelectionModal = function() {
   });
 
   if (filtered.length === 0) {
-    alert('Nenhum produto encontrado para gerar o PDF com os filtros atuais da Loja Física.');
+    alert('Nenhum produto encontrado para exportar com os filtros atuais da Loja Física.');
     return;
   }
 
@@ -3203,12 +3204,16 @@ window.openPdfSelectionModal = function() {
 
   body.innerHTML = html;
   updatePdfSelectedCountBadge();
+  modal.classList.add('active');
   modal.style.display = 'flex';
 };
 
 window.closePdfSelectionModal = function() {
   const modal = document.getElementById('pdfSelectionModal');
-  if (modal) modal.style.display = 'none';
+  if (modal) {
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+  }
 };
 
 window.onPdfVariantCheckboxChange = function(variantKey, isChecked) {
@@ -3233,268 +3238,19 @@ function updatePdfSelectedCountBadge() {
   if (badge) badge.textContent = `${selected} selecionados`;
 }
 
-window.generateSelectedPdf = function() {
+// Copia lista completa formatada para WhatsApp com os modelos selecionados
+window.copySelectedStorefrontWhatsApp = async function(btn) {
   let selectedCount = 0;
   pdfSelectedVariantsMap.forEach(val => { if (val) selectedCount++; });
 
   if (selectedCount === 0) {
-    alert('Por favor, selecione pelo menos 1 modelo para gerar o PDF.');
+    alert('Por favor, selecione pelo menos 1 modelo para exportar.');
     return;
   }
 
-  closePdfSelectionModal();
-
-  const currentDate = new Date().toLocaleDateString('pt-BR');
-
-  let pdfHtml = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>Catálogo Loja Física</title>
-  <style>
-    @page {
-      size: A4 portrait;
-      margin: 8mm;
-    }
-    @media print {
-      @page {
-        size: A4 portrait;
-        margin: 8mm;
-      }
-      html, body {
-        margin: 0 !important;
-        padding: 0 !important;
-        background: #ffffff !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-      header, footer {
-        display: none !important;
-      }
-    }
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: #0f172a;
-      background: #ffffff;
-      margin: 0;
-      padding: 0;
-      width: 100%;
-    }
-
-    .pdf-container {
-      width: 100%;
-      max-width: 100%;
-      margin: 0 auto;
-      padding: 6px;
-    }
-
-    /* Top Bar */
-    .pdf-header-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 18px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      margin-bottom: 16px;
-      width: 100%;
-    }
-    .pdf-header-title {
-      font-size: 16px;
-      font-weight: 800;
-      color: #0f172a;
-      margin: 0;
-      letter-spacing: -0.3px;
-      display: flex;
-      align-items: center;
-    }
-    .pdf-header-subtitle {
-      font-size: 10px;
-      color: #64748b;
-      margin-top: 3px;
-      font-weight: 500;
-    }
-    .pdf-header-date {
-      font-size: 10px;
-      font-weight: 800;
-      color: #059669;
-      background: #ecfdf5;
-      padding: 5px 12px;
-      border-radius: 20px;
-      border: 1px solid #a7f3d0;
-      white-space: nowrap;
-    }
-
-    /* Model Group Section */
-    .model-group {
-      margin-bottom: 18px;
-      width: 100%;
-      page-break-inside: avoid;
-      break-inside: avoid;
-    }
-    .model-group-title {
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      border-left: 5px solid #10b981;
-      border-radius: 10px;
-      padding: 8px 14px;
-      margin-bottom: 10px;
-      font-size: 13px;
-      font-weight: 800;
-      color: #0f172a;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-    }
-    .model-group-badge {
-      font-size: 8.5px;
-      font-weight: 800;
-      padding: 2px 8px;
-      border-radius: 6px;
-      text-transform: uppercase;
-    }
-    .badge-semi { background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
-    .badge-lacrado { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
-
-    /* CSS Grid 3 Columns filling 100% width like the website */
-    .cards-container {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      width: 100%;
-    }
-
-    .matrix-card {
-      width: 100%;
-      background: #ffffff;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 12px;
-      padding: 10px 12px;
-      page-break-inside: avoid;
-      break-inside: avoid;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .card-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      padding-bottom: 6px;
-      margin-bottom: 8px;
-      border-bottom: 1px dashed #e2e8f0;
-    }
-    .card-title {
-      font-size: 11px;
-      font-weight: 800;
-      color: #0f172a;
-      text-transform: uppercase;
-      line-height: 1.25;
-    }
-    .card-storage {
-      display: inline-block;
-      background: #ecfdf5;
-      color: #059669;
-      border: 1px solid #a7f3d0;
-      font-size: 9.5px;
-      font-weight: 800;
-      padding: 2px 7px;
-      border-radius: 8px;
-      margin-top: 3px;
-    }
-    .card-simular {
-      font-size: 8.5px;
-      font-weight: 700;
-      color: #475569;
-      background: #f1f5f9;
-      padding: 3px 7px;
-      border-radius: 6px;
-      border: 1px solid #cbd5e1;
-      white-space: nowrap;
-      display: inline-flex;
-      align-items: center;
-    }
-
-    .color-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 4px 0;
-      border-bottom: 1px solid #f8fafc;
-    }
-    .color-row:last-child {
-      border-bottom: none;
-    }
-    .color-info {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .color-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      border: 1px solid rgba(0,0,0,0.2);
-      display: inline-block;
-    }
-    .color-name {
-      font-size: 9.5px;
-      font-weight: 700;
-      color: #334155;
-      text-transform: uppercase;
-    }
-    .price-box {
-      text-align: right;
-    }
-    .price-label {
-      font-size: 7px;
-      color: #94a3b8;
-      font-weight: 800;
-      text-transform: uppercase;
-      display: block;
-      line-height: 1;
-    }
-    .price-val {
-      font-size: 12px;
-      font-weight: 800;
-      color: #059669;
-      letter-spacing: -0.2px;
-    }
-
-    .pdf-footer {
-      margin-top: 20px;
-      text-align: center;
-      font-size: 9px;
-      color: #94a3b8;
-      padding-top: 10px;
-      border-top: 1px solid #e2e8f0;
-      width: 100%;
-    }
-  </style>
-</head>
-<body>
-  <div class="pdf-container">
-    <div class="pdf-header-bar">
-      <div>
-        <h1 class="pdf-header-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -3px; margin-right: 8px; color: #10b981;"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-          CATÁLOGO DE PREÇOS — LOJA FÍSICA
-        </h1>
-        <div class="pdf-header-subtitle">Tabela Oficial de Venda ao Consumidor (Valores à vista e simulação no cartão)</div>
-      </div>
-      <div class="pdf-header-date">Data: ${currentDate}</div>
-    </div>`;
+  const blocks = [];
 
   pdfCachedFamilies.forEach(fam => {
-    let cardsHtml = '';
-
     const variants = Array.from(fam.variantsMap.values()).sort((a, b) => {
       const rA = getStorageRank(a.storage);
       const rB = getStorageRank(b.storage);
@@ -3527,78 +3283,56 @@ window.generateSelectedPdf = function() {
         };
       }).sort((a, b) => a.retailPrice - b.retailPrice);
 
-      let colorRowsHtml = '';
-      colorsArr.forEach(col => {
-        const hex = getAppleColorHex(col.color);
+      if (colorsArr.length === 0) return;
 
-        colorRowsHtml += `
-        <div class="color-row">
-          <div class="color-info">
-            <span class="color-dot" style="background-color: ${hex};"></span>
-            <span class="color-name">${col.color}</span>
-          </div>
-          <div class="price-box">
-            <span class="price-label">À VISTA</span>
-            <span class="price-val">${formatBRL(col.retailPrice)}</span>
-          </div>
-        </div>`;
+      const titleLine = formatModelTitleForCopy(grp.model, grp.storage, grp.ram);
+      const modelLines = [titleLine, ''];
+
+      colorsArr.forEach(c => {
+        const colorFormatted = formatOnlyFirstLetterUpper(c.color);
+        modelLines.push(`${colorFormatted} • ${formatBRL(c.retailPrice)}`);
       });
 
-      cardsHtml += `
-      <div class="matrix-card">
-        <div class="card-top">
-          <div>
-            <div class="card-title">${grp.model}</div>
-            <div style="display: flex; gap: 4px; align-items: center;">
-              ${grp.storage ? `<span class="card-storage">${grp.storage}</span>` : ''}
-              ${grp.ram ? `<span style="font-size: 8px; font-weight: 700; color: #2563eb; background: #eff6ff; padding: 1px 4px; border-radius: 6px;">${grp.ram} RAM</span>` : ''}
-            </div>
-          </div>
-          <div class="card-simular">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align: -1px; margin-right: 3px;"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-            Simular
-          </div>
-        </div>
-        <div>
-          ${colorRowsHtml}
-        </div>
-      </div>`;
+      blocks.push(modelLines.join('\n'));
     });
-
-    if (cardsHtml.trim()) {
-      pdfHtml += `
-      <div class="model-group">
-        <div class="model-group-title">
-          <span>${fam.modelName}</span>
-          <span class="model-group-badge ${fam.isSeminovo ? 'badge-semi' : 'badge-lacrado'}">${fam.isSeminovo ? 'Seminovo' : 'Lacrado'}</span>
-        </div>
-        <div class="cards-container">
-          ${cardsHtml}
-        </div>
-      </div>`;
-    }
   });
 
-  pdfHtml += `
-  <div class="pdf-footer">
-    Preços válidos para a data de emissão. Sujeito a alteração e disponibilidade de estoque.
-  </div>
-  <script>
-    window.onload = function() {
-      setTimeout(function() { window.print(); }, 250);
-    };
-  </script>
-</body>
-</html>`;
+  if (blocks.length === 0) {
+    alert('Nenhum preço disponível para os modelos selecionados.');
+    return;
+  }
 
-  const printWin = window.open('', '_blank');
-  if (printWin) {
-    printWin.document.write(pdfHtml);
-    printWin.document.close();
+  const footer = [
+    '',
+    'Valores válidos para pagamento à vista.',
+    'Consulte opções de parcelamento no cartão.'
+  ].join('\n');
+
+  const fullText = blocks.join('\n\n') + '\n' + footer;
+
+  await robustCopyToClipboard(fullText);
+
+  if (btn) {
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>Copiado com Sucesso!</span>`;
+    btn.style.background = '#059669';
+    setTimeout(() => {
+      btn.innerHTML = origHtml;
+      btn.style.background = '';
+      closePdfSelectionModal();
+    }, 1200);
   } else {
-    alert('Por favor, permita pop-ups para gerar o PDF.');
+    closePdfSelectionModal();
   }
 };
+
+// Fechar modal de seleção ao clicar fora
+const pdfSelectionModalEl = document.getElementById('pdfSelectionModal');
+if (pdfSelectionModalEl) {
+  pdfSelectionModalEl.addEventListener('click', (e) => {
+    if (e.target === pdfSelectionModalEl) closePdfSelectionModal();
+  });
+}
 
 // Reset Filters for Preços do Dia
 window.resetPodFilters = function() {
