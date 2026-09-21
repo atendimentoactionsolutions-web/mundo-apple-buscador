@@ -2104,56 +2104,16 @@ body.light-theme .pod-cat-pill.active .pod-cat-count {
   margin: 0 auto 60px;
   padding: 0 16px;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
   align-items: start;
-}
-
-@media (min-width: 1540px) {
-  .pod-matrix-container,
-  .storefront-grid {
-    grid-template-columns: repeat(6, 1fr);
-    gap: 10px;
-  }
-}
-
-@media (max-width: 1539px) and (min-width: 1260px) {
-  .pod-matrix-container,
-  .storefront-grid {
-    grid-template-columns: repeat(5, 1fr);
-    gap: 10px;
-  }
-}
-
-@media (max-width: 1259px) and (min-width: 1020px) {
-  .pod-matrix-container,
-  .storefront-grid {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-  }
-}
-
-@media (max-width: 1019px) and (min-width: 760px) {
-  .pod-matrix-container,
-  .storefront-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
-}
-
-@media (max-width: 759px) and (min-width: 500px) {
-  .pod-matrix-container,
-  .storefront-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-  }
 }
 
 @media (max-width: 499px) {
   .pod-matrix-container,
   .storefront-grid {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: 10px;
     padding: 0 10px;
   }
 }
@@ -2293,9 +2253,9 @@ body.light-theme .matrix-card-header {
   font-weight: 800;
   color: var(--text-primary);
   text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  line-height: 1.25;
+  word-break: break-word;
   letter-spacing: 0.2px;
 }
 
@@ -2314,10 +2274,10 @@ body.light-theme .matrix-card-header {
 .matrix-card-all-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
+  gap: 3px;
+  padding: 3px 6px;
   border-radius: var(--radius-full);
-  font-size: 0.68rem;
+  font-size: 0.67rem;
   font-weight: 700;
   color: var(--text-secondary);
   background: var(--bg-pill);
@@ -2392,9 +2352,9 @@ body.light-theme .matrix-color-dot {
   font-size: 0.74rem;
   font-weight: 700;
   color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  line-height: 1.2;
+  word-break: break-word;
   text-transform: uppercase;
 }
 

@@ -1598,26 +1598,15 @@ function formatOnlyFirstLetterUpper(str) {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
-// Helper para formatar o nome do modelo para texto copiado
+// Helper para formatar o nome do modelo para texto copiado (Modelo + GB em MAIÚSCULO)
 function formatModelTitleForCopy(model, storage, ram) {
   const parts = [model || ''];
   if (ram && !model.toUpperCase().includes(ram.toUpperCase())) parts.push(ram);
   if (storage) parts.push(storage);
-  let title = parts.join(' ').trim();
-
-  // Se tudo estiver em maiúsculo, passa para Title Case elegante
-  if (title === title.toUpperCase()) {
-    title = title.toLowerCase().replace(/(^|\s)\S/g, l => l.toUpperCase());
-  }
-
-  return title
-    .replace(/\bIphone\b/gi, 'iPhone')
-    .replace(/\bIpad\b/gi, 'iPad')
-    .replace(/\bMacbook\b/gi, 'MacBook')
-    .replace(/\bAirpods\b/gi, 'AirPods')
-    .replace(/\b(\d+)\s*gb\b/gi, '$1GB')
-    .replace(/\b(\d+)\s*tb\b/gi, '$1TB')
-    .replace(/\b(\d+)\s*ram\b/gi, '$1 RAM');
+  return parts.join(' ').trim().toUpperCase()
+    .replace(/\b(\d+)\s*GB\b/gi, '$1GB')
+    .replace(/\b(\d+)\s*TB\b/gi, '$1TB')
+    .replace(/\b(\d+)\s*RAM\b/gi, '$1 RAM');
 }
 
 // Modal de Vitrine Limpa para Apresentar ao Cliente
@@ -2848,89 +2837,139 @@ if (clientShowcaseModal) {
   });
 }
 
-// 17. Export Preços do Dia Summary to WhatsApp
+// 17. Export Preços do Dia Summary to WhatsApp (Agora com seleção por modelos)
 window.exportPricesDayTable = function() {
-  const groupsMap = new Map();
-  allProducts.forEach(p => {
-    if (!p.price || p.price <= 0) return;
-    const key = `${p.name} ${p.storage || ''}`.trim();
-    const cur = groupsMap.get(key);
-    if (!cur || p.price < cur.minPrice) {
-      groupsMap.set(key, { name: key, minPrice: p.price, supplier: p.supplier?.name || 'Fornecedor' });
-    }
-  });
-
-  const sorted = Array.from(groupsMap.values()).slice(0, 30);
-  let text = `*TABELA DE PREÇOS DO DIA — FORNECEDOR*\n`;
-  text += `Data: ${new Date().toLocaleDateString('pt-BR')}\n`;
-  text += `----------------------------------------\n`;
-  sorted.forEach(item => {
-    text += `📱 *${item.name}*: ${formatBRL(item.minPrice)} (${item.supplier})\n`;
-  });
-  text += `----------------------------------------\n`;
-  text += `Consulte mais modelos em nosso painel oficial!`;
-
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(() => {
-      alert('Resumo de preços copiado com sucesso para a área de transferência! Cole no WhatsApp.');
-    }).catch(() => {
-      prompt('Copie o texto abaixo para o WhatsApp:', text);
-    });
-  } else {
-    prompt('Copie o texto abaixo para o WhatsApp:', text);
-  }
+  openExportSelectionModal('POD');
 };
 
 // =========================================================================
-// SELEÇÃO DE PRODUTOS & EXPORTAÇÃO LIMPA PARA WHATSAPP (LOJA FÍSICA)
+// SELEÇÃO DE PRODUTOS & EXPORTAÇÃO LIMPA PARA WHATSAPP (UNIVERSAL: SF OU POD)
 // =========================================================================
 let pdfSelectedVariantsMap = new Map(); // key: variantKey -> boolean
 let pdfCachedFamilies = [];
+let currentExportScope = 'SF'; // 'SF' = Loja Física, 'POD' = Preços do Dia (Fornecedores)
 
 window.openStorefrontExportModal = function() {
-  openPdfSelectionModal();
+  openExportSelectionModal('SF');
 };
 window.exportStorefrontPDF = window.openStorefrontExportModal;
-
 window.openPdfSelectionModal = function() {
+  openExportSelectionModal('SF');
+};
+
+window.openExportSelectionModal = function(scope = 'SF') {
+  currentExportScope = scope;
   const modal = document.getElementById('pdfSelectionModal');
   const body = document.getElementById('pdfSelectionListBody');
+  const titleEl = document.getElementById('exportModalTitle');
+  const subEl = document.getElementById('exportModalSubtitle');
   if (!modal || !body) return;
 
-  const sLower = sfSearchQuery.trim().toLowerCase();
-  const searchTokens = normalizeSearchText(sLower).split(' ').filter(Boolean);
+  if (titleEl) {
+    titleEl.textContent = scope === 'POD' 
+      ? 'Exportar Preços do Dia (Fornecedores)' 
+      : 'Exportar Lista para o WhatsApp';
+  }
+  if (subEl) {
+    subEl.textContent = scope === 'POD'
+      ? 'Marque os modelos de fornecedor que deseja incluir no texto'
+      : 'Marque os modelos que deseja incluir no texto para enviar aos clientes';
+  }
 
-  const filtered = allProducts.filter(p => {
-    if (isCpoProduct(p)) return false;
-    if (!p.price || p.price <= 0) return false;
-    const isSemi = isSeminovoProduct(p);
+  let filtered = [];
 
-    if (sfCurrentCategory !== 'ALL') {
-      if (sfCurrentCategory === 'SEMI') {
-        if (!isSemi) return false;
-      } else {
-        if (isSemi) return false;
-        const cat = (p.category || '').toUpperCase().trim();
-        const name = (p.name || '').toUpperCase();
-        if (sfCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
-        if (sfCurrentCategory === 'MCB' && !(cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO') || name.includes('IMAC'))) return false;
-        if (sfCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
-        if (sfCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
-        if (sfCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
-        if (sfCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR'))) return false;
-        if (sfCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
+  if (scope === 'POD') {
+    const podSearchInput = document.getElementById('podSearchInput');
+    const podRegionFilter = document.getElementById('podRegionFilter');
+    const podVerifiedFilter = document.getElementById('podVerifiedFilter');
+
+    const searchTerm = (podSearchInput?.value || '').trim();
+    const searchTokens = normalizeSearchText(searchTerm).split(' ').filter(Boolean);
+    const selectedRegion = podRegionFilter?.value || '';
+    const onlyVerified = podVerifiedFilter?.checked || false;
+
+    filtered = allProducts.filter(p => {
+      if (!p.price || p.price <= 0) return false;
+      if (isCpoProduct(p)) return false;
+      const isSemi = isSeminovoProduct(p);
+
+      if (podCurrentCategory !== 'ALL') {
+        if (podCurrentCategory === 'SEMI') {
+          if (!isSemi) return false;
+        } else {
+          if (isSemi) return false;
+          const cat = (p.category || '').toUpperCase().trim();
+          const name = (p.name || '').toUpperCase();
+          if (podCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
+          if (podCurrentCategory === 'MCB' && !(cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO') || name.includes('IMAC'))) return false;
+          if (podCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
+          if (podCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
+          if (podCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
+          if (podCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR'))) return false;
+          if (podCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
+        }
       }
-    }
 
-    if (searchTokens.length > 0) {
-      if (!matchSearchTokens(p, searchTokens)) return false;
-    }
-    return true;
-  });
+      if (searchTokens.length > 0) {
+        if (!matchSearchTokens(p, searchTokens)) return false;
+      }
 
-  if (filtered.length === 0) {
-    alert('Nenhum produto encontrado para exportar com os filtros atuais da Loja Física.');
-    return;
+      if (selectedRegion) {
+        const isMac = (p.category || '').toUpperCase() === 'MCB' || (p.name || '').toUpperCase().includes('MAC');
+        if (!isMac) {
+          const reg = (p.region || p.description || p.name || '').toUpperCase();
+          if (selectedRegion === 'EUA' && !(reg.includes('EUA') || reg.includes('USA') || reg.includes('LL/A') || reg.includes('CHIP VIRTUAL'))) return false;
+          if (selectedRegion === 'BR' && !(reg.includes('BR') || reg.includes('ANATEL') || reg.includes('NACIONAL') || reg.includes('BZ/A'))) return false;
+          if (selectedRegion === 'PY' && !(reg.includes('PY') || reg.includes('PARAGUAI') || reg.includes('PARAGUAY'))) return false;
+          if (selectedRegion === 'GLOBAL' && !(reg.includes('GLOBAL') || reg.includes('J/A') || reg.includes('ZD/A') || reg.includes('HN/A'))) return false;
+        }
+      }
+
+      if (onlyVerified && !p.supplier?.isVerified) return false;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      alert('Nenhum produto encontrado para exportar com os filtros atuais de Preços do Dia.');
+      return;
+    }
+  } else {
+    // SF Scope
+    const sLower = sfSearchQuery.trim().toLowerCase();
+    const searchTokens = normalizeSearchText(sLower).split(' ').filter(Boolean);
+
+    filtered = allProducts.filter(p => {
+      if (isCpoProduct(p)) return false;
+      if (!p.price || p.price <= 0) return false;
+      const isSemi = isSeminovoProduct(p);
+
+      if (sfCurrentCategory !== 'ALL') {
+        if (sfCurrentCategory === 'SEMI') {
+          if (!isSemi) return false;
+        } else {
+          if (isSemi) return false;
+          const cat = (p.category || '').toUpperCase().trim();
+          const name = (p.name || '').toUpperCase();
+          if (sfCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
+          if (sfCurrentCategory === 'MCB' && !(cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO') || name.includes('IMAC'))) return false;
+          if (sfCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
+          if (sfCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
+          if (sfCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
+          if (sfCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR'))) return false;
+          if (sfCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
+        }
+      }
+
+      if (searchTokens.length > 0) {
+        if (!matchSearchTokens(p, searchTokens)) return false;
+      }
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      alert('Nenhum produto encontrado para exportar com os filtros atuais da Loja Física.');
+      return;
+    }
   }
 
   const modelFamilies = new Map();
@@ -3075,6 +3114,7 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
     return;
   }
 
+  const isPod = (currentExportScope === 'POD');
   const blocks = [];
 
   pdfCachedFamilies.forEach(fam => {
@@ -3093,19 +3133,22 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
         const offers = colObj.offers || [];
         const refCost = calculateSupplierReferencePrice(offers, isSemi);
         
-        let marginVal = margins.products ? margins.products[grp.rawModel.toUpperCase()] : undefined;
-        if (marginVal === undefined && isSemi) {
-          marginVal = (margins.categories && margins.categories.SEMINOVOS !== undefined) ? margins.categories.SEMINOVOS : 600;
+        let finalPrice = refCost;
+        if (!isPod) {
+          let marginVal = margins.products ? margins.products[grp.rawModel.toUpperCase()] : undefined;
+          if (marginVal === undefined && isSemi) {
+            marginVal = (margins.categories && margins.categories.SEMINOVOS !== undefined) ? margins.categories.SEMINOVOS : 600;
+          }
+          if (marginVal === undefined) {
+            const dummyProd = { name: grp.rawModel, category: fam.category, price: refCost };
+            marginVal = getProductRetailPrice(dummyProd) - refCost;
+          }
+          finalPrice = refCost + (Number(marginVal) || 0);
         }
-        if (marginVal === undefined) {
-          const dummyProd = { name: grp.rawModel, category: fam.category, price: refCost };
-          marginVal = getProductRetailPrice(dummyProd) - refCost;
-        }
-        const retailPrice = refCost + (Number(marginVal) || 0);
 
         return {
           color: colObj.color,
-          retailPrice: retailPrice,
+          retailPrice: finalPrice,
           ram: colObj.ram
         };
       }).sort((a, b) => a.retailPrice - b.retailPrice);
@@ -3129,11 +3172,9 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
     return;
   }
 
-  const footer = [
-    '',
-    'Valores válidos para pagamento à vista.',
-    'Consulte opções de parcelamento no cartão.'
-  ].join('\n');
+  const footer = isPod 
+    ? ['', 'Preços de custo dos fornecedores em tempo real.'].join('\n')
+    : ['', 'Valores válidos para pagamento à vista.', 'Consulte opções de parcelamento no cartão.'].join('\n');
 
   const fullText = blocks.join('\n\n') + '\n' + footer;
 
