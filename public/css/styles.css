@@ -4109,6 +4109,22 @@ body.light-theme .matrix-card:hover {
     padding: 0 !important;
   }
 
+  /* Vitrine Cliente (Olho): centralizado no meio da tela no celular */
+  #clientShowcaseModal {
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 16px !important;
+  }
+
+  #clientShowcaseModal .modal-content {
+    width: 94% !important;
+    max-width: 440px !important;
+    max-height: 85vh !important;
+    border-radius: 18px !important;
+    margin: auto !important;
+    animation: modal-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
   .modal-content.modal-large,
   .modal-content.modal-simulator,
   #pdfSelectionModal .modal-content {
