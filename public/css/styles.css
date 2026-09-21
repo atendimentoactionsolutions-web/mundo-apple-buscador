@@ -3954,13 +3954,13 @@ body.light-theme .matrix-card:hover {
     transform: scale(1.08);
   }
 
-  /* Compact Top Header on Mobile */
+  /* Clean & Focused Top Header on Mobile */
   .top-header {
-    padding: 8px 0 !important;
+    padding: 10px 0 !important;
   }
 
   .header-inner {
-    padding: 0 14px !important;
+    padding: 0 16px !important;
   }
 
   /* Hide desktop view-switch on mobile since bottom bar handles it */
@@ -3968,49 +3968,46 @@ body.light-theme .matrix-card:hover {
     display: none !important;
   }
 
-  /* Compact right actions on mobile */
-  .calc-top-btn span,
-  .admin-top-btn span {
+  /* Remove clutter from top header on mobile (Calculadora is on the bottom bar now) */
+  .calc-top-btn,
+  .admin-top-btn {
     display: none !important;
   }
 
-  .calc-top-btn,
-  .admin-top-btn {
-    padding: 6px 10px !important;
-    border-radius: 50% !important;
-    width: 34px !important;
-    height: 34px !important;
-    justify-content: center !important;
+  .live-indicator {
+    padding: 4px 10px !important;
+    font-size: 0.70rem !important;
   }
 
   /* Elastic horizontal scroll for categories */
   .pod-categories-wrapper {
     width: 100% !important;
-    padding: 0 12px !important;
+    padding: 0 14px !important;
     margin-bottom: 12px !important;
   }
 
   .pod-categories-list {
-    gap: 7px !important;
+    gap: 8px !important;
     padding-bottom: 4px !important;
     -webkit-overflow-scrolling: touch !important;
     scroll-snap-type: x proximity !important;
   }
 
   .pod-cat-pill {
-    padding: 7px 13px !important;
-    font-size: 0.78rem !important;
+    padding: 8px 16px !important;
+    font-size: 0.82rem !important;
     scroll-snap-align: start !important;
+    border-radius: 12px !important;
   }
 
   /* Toolbar search & export on mobile */
   .pod-toolbar-wrapper {
-    padding: 8px 0 !important;
+    padding: 10px 0 !important;
     margin-bottom: 12px !important;
   }
 
   .pod-toolbar {
-    padding: 0 12px !important;
+    padding: 0 14px !important;
     gap: 10px !important;
   }
 
@@ -4020,19 +4017,22 @@ body.light-theme .matrix-card:hover {
   }
 
   .pod-main-title {
-    font-size: 1.15rem !important;
+    font-size: 1.2rem !important;
+    font-weight: 800 !important;
   }
 
   .pod-search-wrap {
     width: 100% !important;
     max-width: 100% !important;
-    height: 48px !important;
+    height: 46px !important;
     padding: 0 14px !important;
+    border-radius: 12px !important;
   }
 
   .pod-controls-right {
     width: 100% !important;
-    justify-content: space-between !important;
+    display: flex !important;
+    gap: 8px !important;
   }
 
   .pod-region-wrapper {
@@ -4041,47 +4041,124 @@ body.light-theme .matrix-card:hover {
 
   .pod-select {
     width: 100% !important;
-    height: 38px !important;
+    height: 40px !important;
+    border-radius: 10px !important;
+    font-size: 0.82rem !important;
   }
 
   .pod-btn-export {
-    height: 38px !important;
-    padding: 0 14px !important;
+    height: 40px !important;
+    padding: 0 16px !important;
+    border-radius: 10px !important;
+    font-size: 0.82rem !important;
+    white-space: nowrap !important;
   }
 
-  /* Matrix Cards on Mobile: 2 per row if screen >= 380px, 1 per row for very small */
+  /* Model Section Banner on Mobile */
+  .pod-model-section {
+    margin: 18px 12px 10px !important;
+    padding: 10px 14px !important;
+    border-radius: 12px !important;
+  }
+
+  .pod-model-section-title {
+    font-size: 0.95rem !important;
+  }
+
+  /* Matrix Cards on Mobile: 1 FULL COLUMN per capacity, never squeezed! */
   .pod-matrix-container,
   .storefront-grid {
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)) !important;
-    gap: 8px !important;
-    padding: 0 10px !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    padding: 0 14px !important;
     width: 100% !important;
   }
 
+  .matrix-card {
+    border-radius: 14px !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: var(--bg-card) !important;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25) !important;
+  }
+
   .matrix-card-header {
-    padding: 7px 9px !important;
+    padding: 12px 14px !important;
+    gap: 8px !important;
   }
 
   .matrix-card-title {
+    font-size: 0.86rem !important;
+    font-weight: 800 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    line-height: 1.25 !important;
+  }
+
+  .matrix-card-storage {
+    font-size: 0.78rem !important;
+    padding: 2px 8px !important;
+  }
+
+  .matrix-card-all-btn {
+    padding: 6px 12px !important;
     font-size: 0.74rem !important;
   }
 
   .matrix-color-row {
-    padding: 6px 9px !important;
+    padding: 10px 14px !important;
+    gap: 10px !important;
+  }
+
+  .matrix-color-left {
+    gap: 10px !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+
+  .matrix-color-dot {
+    width: 14px !important;
+    height: 14px !important;
+    flex-shrink: 0 !important;
   }
 
   .matrix-color-name {
-    font-size: 0.70rem !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    color: var(--text-primary) !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+
+  .matrix-color-right {
+    gap: 10px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .matrix-cost-group {
+    align-items: flex-end !important;
+  }
+
+  .matrix-cost-label {
+    font-size: 0.58rem !important;
+    letter-spacing: 0.4px !important;
   }
 
   .matrix-cost-val,
   .matrix-retail-val {
-    font-size: 0.82rem !important;
+    font-size: 0.95rem !important;
+    font-weight: 800 !important;
   }
 
   .matrix-wa-btn {
-    width: 27px !important;
-    height: 27px !important;
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .matrix-wa-btn svg {
+    width: 17px !important;
+    height: 17px !important;
   }
 
   /* Native Bottom Sheet modal for mobile */
