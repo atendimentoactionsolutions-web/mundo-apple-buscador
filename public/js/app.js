@@ -1776,10 +1776,8 @@ window.copyModelPrices = async function(firstArg, secondArg, encStorage, encRam,
       lines.push(`${colorFormatted} • ${formatBRL(c.price)}`);
     });
 
-    lines.push('');
-    if (custoFlag) {
-      lines.push('Preços de custo dos fornecedores em tempo real.');
-    } else {
+    if (!custoFlag) {
+      lines.push('');
       lines.push('Valores válidos para pagamento à vista.');
       lines.push('Consulte opções de parcelamento no cartão.');
     }
@@ -3173,10 +3171,10 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
   }
 
   const footer = isPod 
-    ? ['', 'Preços de custo dos fornecedores em tempo real.'].join('\n')
+    ? '' 
     : ['', 'Valores válidos para pagamento à vista.', 'Consulte opções de parcelamento no cartão.'].join('\n');
 
-  const fullText = blocks.join('\n\n') + '\n' + footer;
+  const fullText = (blocks.join('\n\n') + (footer ? '\n' + footer : '')).trim();
 
   await robustCopyToClipboard(fullText);
 
