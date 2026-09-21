@@ -1468,8 +1468,9 @@ function renderStoreFront() {
     return;
   }
 
+  window.storefrontCardMap = new Map();
   let html = '';
-  sortedFamilies.forEach(fam => {
+  sortedFamilies.forEach((fam, famIdx) => {
     const storages = Array.from(fam.storagesMap.values()).sort((a, b) => {
       const rA = getStorageRank(a.storage);
       const rB = getStorageRank(b.storage);
@@ -1489,7 +1490,7 @@ function renderStoreFront() {
       </div>
     `;
 
-    storages.forEach(grp => {
+    storages.forEach((grp, grpIdx) => {
       const colorsArr = Array.from(grp.colors.values()).map(colObj => {
         const isSemi = grp.isSeminovo;
         const offers = colObj.offers || [];
@@ -1511,6 +1512,16 @@ function renderStoreFront() {
           ram: colObj.ram
         };
       }).sort((a, b) => a.retailPrice - b.retailPrice);
+
+      const cardKey = `sf_${famIdx}_${grpIdx}`;
+      window.storefrontCardMap.set(cardKey, {
+        model: grp.model,
+        rawModel: grp.rawModel,
+        storage: grp.storage,
+        ram: grp.ram,
+        isSeminovo: grp.isSeminovo,
+        colors: colorsArr.map(c => ({ color: c.color, price: c.retailPrice }))
+      });
 
       const colorRowsHtml = colorsArr.map(col => {
         const hex = getAppleColorHex(col.color);
@@ -1553,14 +1564,14 @@ function renderStoreFront() {
               </div>
             </div>
             <div style="display: flex; gap: 5px; align-items: center;">
-              <button class="matrix-card-all-btn" onclick="openClientShowcaseModal('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo}, ${encodeURIComponent(JSON.stringify(colorsArr.map(c => ({ color: c.color, price: c.retailPrice }))))})" title="Expandir vitrine deste modelo para o cliente">
+              <button class="matrix-card-all-btn" onclick="openClientShowcaseModal('${cardKey}')" title="Expandir vitrine deste modelo para o cliente">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
                   <circle cx="12" cy="12" r="3"/>
                 </svg>
                 <span>Ver</span>
               </button>
-              <button class="matrix-card-all-btn" onclick="copyModelPrices(this, '${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(grp.ram || '')}', ${encodeURIComponent(JSON.stringify(colorsArr.map(c => ({ color: c.color, price: c.retailPrice }))))}, false)" title="Copiar lista de preços para WhatsApp">
+              <button class="matrix-card-all-btn" onclick="copyModelPrices('${cardKey}', this)" title="Copiar lista de preços para WhatsApp">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
                   <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
@@ -1580,37 +1591,80 @@ function renderStoreFront() {
   container.innerHTML = html;
 }
 
+// Helper para formatar texto deixando somente a primeira letra maiúscula (e o resto minúsculo)
+function formatOnlyFirstLetterUpper(str) {
+  if (!str) return '';
+  const s = str.trim();
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+// Helper para formatar o nome do modelo para texto copiado
+function formatModelTitleForCopy(model, storage, ram) {
+  const parts = [model || ''];
+  if (ram && !model.toUpperCase().includes(ram.toUpperCase())) parts.push(ram);
+  if (storage) parts.push(storage);
+  let title = parts.join(' ').trim();
+
+  // Se tudo estiver em maiúsculo, passa para Title Case elegante
+  if (title === title.toUpperCase()) {
+    title = title.toLowerCase().replace(/(^|\s)\S/g, l => l.toUpperCase());
+  }
+
+  return title
+    .replace(/\bIphone\b/gi, 'iPhone')
+    .replace(/\bIpad\b/gi, 'iPad')
+    .replace(/\bMacbook\b/gi, 'MacBook')
+    .replace(/\bAirpods\b/gi, 'AirPods')
+    .replace(/\b(\d+)\s*gb\b/gi, '$1GB')
+    .replace(/\b(\d+)\s*tb\b/gi, '$1TB')
+    .replace(/\b(\d+)\s*ram\b/gi, '$1 RAM');
+}
+
 // Modal de Vitrine Limpa para Apresentar ao Cliente
-window.openClientShowcaseModal = function(encModel, encStorage, encRam, isSeminovo, encColorsJson) {
+window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSeminovo, encColorsJson) {
   const modal = document.getElementById('clientShowcaseModal');
   const titleEl = document.getElementById('showcaseModelTitle');
   const subEl = document.getElementById('showcaseModelSubtitle');
   const bodyEl = document.getElementById('clientShowcaseBody');
   if (!modal || !bodyEl) return;
 
-  const model = decodeURIComponent(encModel);
-  const storage = decodeURIComponent(encStorage);
-  const ram = decodeURIComponent(encRam);
-  const colors = JSON.parse(decodeURIComponent(encColorsJson));
+  let model = '', storage = '', ram = '', isSemi = false, colors = [];
 
-  const parts = [model];
-  if (ram && !model.includes(ram)) parts.push(ram);
-  if (storage) parts.push(storage);
+  if (typeof firstArg === 'string' && window.storefrontCardMap && window.storefrontCardMap.has(firstArg)) {
+    const data = window.storefrontCardMap.get(firstArg);
+    model = data.model;
+    storage = data.storage;
+    ram = data.ram;
+    isSemi = Boolean(data.isSeminovo);
+    colors = data.colors || [];
+  } else {
+    model = decodeURIComponent(firstArg || '');
+    storage = decodeURIComponent(encStorage || '');
+    ram = decodeURIComponent(encRam || '');
+    isSemi = Boolean(isSeminovo);
+    try {
+      colors = JSON.parse(decodeURIComponent(encColorsJson || '[]'));
+    } catch (e) {
+      colors = [];
+    }
+  }
 
-  if (titleEl) titleEl.textContent = parts.join(' ');
+  const titleFormatted = formatModelTitleForCopy(model, storage, ram);
+  if (titleEl) titleEl.textContent = titleFormatted;
   if (subEl) {
-    subEl.textContent = `${isSeminovo ? 'Seminovo Selecionado' : 'Produto Novo Lacrado'} • Preços válidos à vista e simulação no cartão`;
+    subEl.textContent = `${isSemi ? 'Seminovo Selecionado' : 'Produto Novo Lacrado'} • Preços válidos à vista e simulação no cartão`;
   }
 
   // Gera lista espaçosa de cores
   let colorsHtml = '';
   colors.forEach(c => {
     const hex = getAppleColorHex(c.color);
+    const colorFormatted = formatOnlyFirstLetterUpper(c.color);
     colorsHtml += `
       <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 8px;">
         <div style="display: flex; align-items: center; gap: 10px;">
           <span style="width: 16px; height: 16px; border-radius: 50%; background-color: ${hex}; border: 1.5px solid rgba(255,255,255,0.3); display: inline-block;"></span>
-          <span style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); text-transform: uppercase;">${c.color}</span>
+          <span style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">${colorFormatted}</span>
         </div>
         <div style="text-align: right;">
           <span style="font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block;">À VISTA</span>
@@ -1656,12 +1710,14 @@ window.openClientShowcaseModal = function(encModel, encStorage, encRam, isSemino
     </div>
   `;
 
-  modal.style.display = 'flex';
+  modal.classList.add('active');
 };
 
 window.closeClientShowcaseModal = function() {
   const modal = document.getElementById('clientShowcaseModal');
-  if (modal) modal.style.display = 'none';
+  if (modal) {
+    modal.classList.remove('active');
+  }
 };
 
 // Helper robusto para copiar texto no PC e Mobile
@@ -1698,25 +1754,41 @@ async function robustCopyToClipboard(text) {
 }
 
 // Helper para copiar tabela de preços formatada para WhatsApp de um modelo específico
-window.copyModelPrices = async function(btn, encModel, encStorage, encRam, encColorsJson, isCusto = false) {
-  try {
-    const model = decodeURIComponent(encModel);
-    const storage = decodeURIComponent(encStorage);
-    const ram = decodeURIComponent(encRam);
-    const colors = JSON.parse(decodeURIComponent(encColorsJson));
+window.copyModelPrices = async function(firstArg, secondArg, encStorage, encRam, encColorsJson, isCusto = false) {
+  let btn, model = '', storage = '', ram = '', colors = [], custoFlag = false;
 
-    const parts = [model];
-    if (ram && !model.includes(ram)) parts.push(ram);
-    if (storage) parts.push(storage);
-    const titleLine = parts.join(' ').toUpperCase();
+  if (typeof firstArg === 'string' && (window.storefrontCardMap?.has(firstArg) || window.matrixCardMap?.has(firstArg))) {
+    const data = window.storefrontCardMap?.get(firstArg) || window.matrixCardMap?.get(firstArg);
+    model = data.model;
+    storage = data.storage;
+    ram = data.ram;
+    colors = data.colors || [];
+    custoFlag = Boolean(data.isCusto);
+    btn = secondArg;
+  } else {
+    btn = firstArg;
+    model = decodeURIComponent(secondArg || '');
+    storage = decodeURIComponent(encStorage || '');
+    ram = decodeURIComponent(encRam || '');
+    custoFlag = Boolean(isCusto);
+    try {
+      colors = JSON.parse(decodeURIComponent(encColorsJson || '[]'));
+    } catch (e) {
+      colors = [];
+    }
+  }
+
+  try {
+    const titleLine = formatModelTitleForCopy(model, storage, ram);
 
     let lines = [titleLine, ''];
     colors.forEach(c => {
-      lines.push(`• ${c.color.toUpperCase()} — ${formatBRL(c.price)}`);
+      const colorFormatted = formatOnlyFirstLetterUpper(c.color);
+      lines.push(`• ${colorFormatted} — ${formatBRL(c.price)}`);
     });
 
     lines.push('');
-    if (isCusto) {
+    if (custoFlag) {
       lines.push('Preços de custo dos fornecedores em tempo real.');
     } else {
       lines.push('Valores válidos para pagamento à vista.');
@@ -2215,8 +2287,9 @@ function renderPricesOfTheDay() {
   }
 
   // Renderiza estruturado por Seção de Modelo + Cards das Capacidades e RAM
+  window.matrixCardMap = new Map();
   let html = '';
-  sortedFamilies.forEach(fam => {
+  sortedFamilies.forEach((fam, famIdx) => {
     // Ordena as capacidades do modelo em ordem lógica (128GB, 256GB, 512GB, 1TB, etc)
     const storages = Array.from(fam.storagesMap.values()).sort((a, b) => {
       const rA = getStorageRank(a.storage);
@@ -2239,7 +2312,7 @@ function renderPricesOfTheDay() {
     `;
 
     // Cards individuais de cada capacidade/RAM para este modelo
-    storages.forEach(grp => {
+    storages.forEach((grp, grpIdx) => {
       const colorsArr = Array.from(grp.colors.values()).map(colObj => {
         const isSemi = grp.isSeminovo;
         const offers = colObj.offers || [];
@@ -2266,6 +2339,17 @@ function renderPricesOfTheDay() {
           count: offers.length
         };
       }).sort((a, b) => a.displayPrice - b.displayPrice);
+
+      const cardKey = `mat_${famIdx}_${grpIdx}`;
+      window.matrixCardMap.set(cardKey, {
+        model: grp.model,
+        rawModel: grp.rawModel,
+        storage: grp.storage,
+        ram: grp.ram,
+        isSeminovo: grp.isSeminovo,
+        isCusto: true,
+        colors: colorsArr.map(c => ({ color: c.color, price: c.displayPrice }))
+      });
 
       const colorRowsHtml = colorsArr.map(col => {
         const hex = getAppleColorHex(col.color);
@@ -2306,7 +2390,7 @@ function renderPricesOfTheDay() {
               </div>
             </div>
             <div style="display: flex; gap: 5px; align-items: center;">
-              <button class="matrix-card-all-btn" onclick="copyModelPrices(this, '${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(grp.ram || '')}', ${encodeURIComponent(JSON.stringify(colorsArr.map(c => ({ color: c.color, price: c.displayPrice }))))}, true)" title="Copiar custos deste modelo para WhatsApp">
+              <button class="matrix-card-all-btn" onclick="copyModelPrices('${cardKey}', this)" title="Copiar custos deste modelo para WhatsApp">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
                   <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
@@ -2927,6 +3011,13 @@ if (closeCardSimulatorModal) {
 if (cardSimulatorModal) {
   cardSimulatorModal.addEventListener('click', (e) => {
     if (e.target === cardSimulatorModal) cardSimulatorModal.classList.remove('active');
+  });
+}
+
+const clientShowcaseModal = document.getElementById('clientShowcaseModal');
+if (clientShowcaseModal) {
+  clientShowcaseModal.addEventListener('click', (e) => {
+    if (e.target === clientShowcaseModal) closeClientShowcaseModal();
   });
 }
 
