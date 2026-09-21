@@ -1552,13 +1552,22 @@ function renderStoreFront() {
                 ${grp.storage ? `<span class="matrix-card-storage">${grp.storage}</span>` : ''}
               </div>
             </div>
-            <button class="matrix-card-all-btn" onclick="copyModelPrices(this, '${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(grp.ram || '')}', ${encodeURIComponent(JSON.stringify(colorsArr.map(c => ({ color: c.color, price: c.retailPrice }))))}, false)" title="Copiar lista de preços para WhatsApp">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
-                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
-              </svg>
-              <span>Copiar</span>
-            </button>
+            <div style="display: flex; gap: 5px; align-items: center;">
+              <button class="matrix-card-all-btn" onclick="openClientShowcaseModal('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo}, ${encodeURIComponent(JSON.stringify(colorsArr.map(c => ({ color: c.color, price: c.retailPrice }))))})" title="Expandir vitrine deste modelo para o cliente">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <span>Ver</span>
+              </button>
+              <button class="matrix-card-all-btn" onclick="copyModelPrices(this, '${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(grp.ram || '')}', ${encodeURIComponent(JSON.stringify(colorsArr.map(c => ({ color: c.color, price: c.retailPrice }))))}, false)" title="Copiar lista de preços para WhatsApp">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                </svg>
+                <span>Copiar</span>
+              </button>
+            </div>
           </div>
           <div class="matrix-card-body">
             ${colorRowsHtml}
@@ -1570,6 +1579,90 @@ function renderStoreFront() {
 
   container.innerHTML = html;
 }
+
+// Modal de Vitrine Limpa para Apresentar ao Cliente
+window.openClientShowcaseModal = function(encModel, encStorage, encRam, isSeminovo, encColorsJson) {
+  const modal = document.getElementById('clientShowcaseModal');
+  const titleEl = document.getElementById('showcaseModelTitle');
+  const subEl = document.getElementById('showcaseModelSubtitle');
+  const bodyEl = document.getElementById('clientShowcaseBody');
+  if (!modal || !bodyEl) return;
+
+  const model = decodeURIComponent(encModel);
+  const storage = decodeURIComponent(encStorage);
+  const ram = decodeURIComponent(encRam);
+  const colors = JSON.parse(decodeURIComponent(encColorsJson));
+
+  const parts = [model];
+  if (ram && !model.includes(ram)) parts.push(ram);
+  if (storage) parts.push(storage);
+
+  if (titleEl) titleEl.textContent = parts.join(' ');
+  if (subEl) {
+    subEl.textContent = `${isSeminovo ? 'Seminovo Selecionado' : 'Produto Novo Lacrado'} • Preços válidos à vista e simulação no cartão`;
+  }
+
+  // Gera lista espaçosa de cores
+  let colorsHtml = '';
+  colors.forEach(c => {
+    const hex = getAppleColorHex(c.color);
+    colorsHtml += `
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="width: 16px; height: 16px; border-radius: 50%; background-color: ${hex}; border: 1.5px solid rgba(255,255,255,0.3); display: inline-block;"></span>
+          <span style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); text-transform: uppercase;">${c.color}</span>
+        </div>
+        <div style="text-align: right;">
+          <span style="font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block;">À VISTA</span>
+          <span style="font-size: 1.15rem; font-weight: 800; color: var(--accent-green);">${formatBRL(c.price)}</span>
+        </div>
+      </div>
+    `;
+  });
+
+  // Pega o menor valor para pré-calcular simulação no cartão
+  const lowestPrice = colors.length > 0 ? colors[0].price : 0;
+  let installmentsHtml = '';
+  if (lowestPrice > 0 && typeof cardRates !== 'undefined' && Array.isArray(cardRates) && cardRates.length > 0) {
+    const customRates = [1, 3, 6, 10, 12, 18];
+    const filteredRates = cardRates.filter(r => customRates.includes(r.installment));
+
+    installmentsHtml = `
+      <div style="margin-top: 20px; padding: 14px; background: rgba(0,0,0,0.15); border: 1px solid var(--border-subtle); border-radius: 14px;">
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); margin-bottom: 10px; text-transform: uppercase;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2.5"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          Simulação de Parcelamento no Cartão (A partir de ${formatBRL(lowestPrice)})
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          ${filteredRates.map(r => {
+            const total = lowestPrice * (1 + (r.rate / 100));
+            const perInstallment = total / r.installment;
+            return `
+              <div style="padding: 8px 10px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">${r.installment}x</span>
+                <span style="font-size: 0.85rem; font-weight: 800; color: var(--text-primary);">${formatBRL(perInstallment)}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  bodyEl.innerHTML = `
+    <div style="display: flex; flex-direction: column;">
+      ${colorsHtml}
+      ${installmentsHtml}
+    </div>
+  `;
+
+  modal.style.display = 'flex';
+};
+
+window.closeClientShowcaseModal = function() {
+  const modal = document.getElementById('clientShowcaseModal');
+  if (modal) modal.style.display = 'none';
+};
 
 // Helper robusto para copiar texto no PC e Mobile
 async function robustCopyToClipboard(text) {
