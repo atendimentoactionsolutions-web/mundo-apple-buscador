@@ -1569,15 +1569,7 @@ function renderStoreFront() {
               </div>
             </div>
             <div style="display: flex; gap: 5px; align-items: center;">
-              ${currentUser ? `
-                <button class="matrix-card-all-btn" onclick="openEditMarginModal('${encodeURIComponent(grp.rawModel || grp.model)}')" title="Editar margem de lucro deste modelo" style="color: #f59e0b; border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.1);">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 20h9"/>
-                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                  </svg>
-                  <span>Margem</span>
-                </button>
-              ` : ''}
+
               <button class="matrix-card-all-btn" onclick="openClientShowcaseModal('${cardKey}')" title="Expandir vitrine deste modelo para o cliente">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
@@ -3508,12 +3500,14 @@ async function checkAuthSession() {
     if (userSessionInfo && userStoreBadge) {
       userSessionInfo.style.display = 'flex';
       let badgeText = user.storeName || user.username;
+      const adminHeaderBtnLabel = document.getElementById('adminHeaderBtnLabel');
       if (user.role === 'admin') {
         badgeText = '👑 ' + badgeText;
-        if (adminHeaderBtn) adminHeaderBtn.style.display = 'inline-flex';
+        if (adminHeaderBtnLabel) adminHeaderBtnLabel.textContent = 'Painel Admin';
       } else {
-        if (adminHeaderBtn) adminHeaderBtn.style.display = 'none';
+        if (adminHeaderBtnLabel) adminHeaderBtnLabel.textContent = 'Configurar Margens';
       }
+      if (adminHeaderBtn) adminHeaderBtn.style.display = 'inline-flex';
       userStoreBadge.textContent = badgeText;
     }
   } catch (err) {

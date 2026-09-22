@@ -63,19 +63,10 @@ app.get('/catalogo', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.get('/admin', async (req, res) => {
+app.get(['/admin', '/admin.html', '/painel', '/painel.html'], async (req, res) => {
   const token = auth.getSessionTokenFromRequest(req);
   const user = await auth.findUserBySessionToken(token);
   if (!user) return res.redirect('/login.html?redirect=admin');
-  if (user.role !== 'admin') return res.redirect('/');
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-
-app.get('/admin.html', async (req, res) => {
-  const token = auth.getSessionTokenFromRequest(req);
-  const user = await auth.findUserBySessionToken(token);
-  if (!user) return res.redirect('/login.html?redirect=admin');
-  if (user.role !== 'admin') return res.redirect('/');
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
