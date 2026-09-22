@@ -2805,9 +2805,8 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
         <table class="sim-exec-table">
           <thead>
             <tr>
-              <th>Parcela</th>
-              <th>Valor Mensal</th>
-              <th class="text-right">Total no Cartão</th>
+              <th style="width: 45%;">Parcela</th>
+              <th class="text-right" style="width: 55%;">Valor da Parcela</th>
             </tr>
           </thead>
           <tbody id="simInstallmentsGrid">
@@ -2851,15 +2850,12 @@ window.recalculateSimulator = function() {
   for (let i = 1; i <= 18; i++) {
     const sim = calculateInstallment(cashVal, entryVal, i);
     const label = i === 1 ? '1x (À vista)' : `${i}x`;
-    const grandTotal = entryVal + sim.totalAmount;
 
     rowsHtml += `
       <tr>
-        <td style="font-weight: 800; color: var(--text-primary);">${label}</td>
-        <td style="color: var(--accent-green); font-weight: 800;">${formatBRL(sim.monthlyAmount)} <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">/mês</span></td>
-        <td class="text-right">
-          <span style="font-weight: 800; color: var(--text-primary);">${formatBRL(sim.totalAmount)}</span>
-          ${entryVal > 0 ? `<div style="font-size: 0.72rem; color: var(--accent-green); font-weight: 700; margin-top: 1px;">Total (PIX+Cartão): ${formatBRL(grandTotal)}</div>` : ''}
+        <td style="font-weight: 800; color: var(--text-primary); font-size: 0.95rem;">${label}</td>
+        <td class="text-right" style="color: var(--accent-green); font-weight: 800; font-size: 1.05rem;">
+          ${formatBRL(sim.monthlyAmount)}
         </td>
       </tr>
     `;
@@ -2893,16 +2889,10 @@ window.copyCardSimulationToWhatsApp = async function(btn) {
   
   const installmentRows = installmentOptions.map(n => {
     const sim = calculateInstallment(cashVal, entryVal, n);
-    const grandTotal = entryVal + sim.totalAmount;
-    
-    if (entryVal > 0) {
-      return `${n}x de ${fmtNum(sim.monthlyAmount)}\n(Cartão: ${fmtNum(sim.totalAmount)} | Total PIX+Cartão: ${fmtNum(grandTotal)})`;
-    } else {
-      return `${n}x de ${fmtNum(sim.monthlyAmount)}\n(Total no Cartão: ${fmtNum(sim.totalAmount)})`;
-    }
+    return `${n}x de ${formatBRL(sim.monthlyAmount)}`;
   });
 
-  text += installmentRows.join('\n\n');
+  text += installmentRows.join('\n');
 
   await robustCopyToClipboard(text);
 
