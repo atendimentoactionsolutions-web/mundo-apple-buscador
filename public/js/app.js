@@ -1325,6 +1325,11 @@ let sfCurrentCategory = 'IPH';
 let sfSearchQuery = '';
 
 window.switchView = function(viewName) {
+  // Se tentar acessar "Preços do dia" sem estar autenticado, força Loja Física
+  if (viewName !== 'storefront' && !currentUser) {
+    viewName = 'storefront';
+  }
+
   currentView = viewName;
   const viewPricesDay = document.getElementById('viewPricesDay');
   const viewStoreFront = document.getElementById('viewStoreFront');
@@ -3345,8 +3350,8 @@ if (sfCategoryNav) {
   });
 }
 
-// Initial boot (Preços do Dia por padrão)
-switchView('prices_of_the_day');
+// Initial boot (Loja Física por padrão até verificar autenticação)
+switchView('storefront');
 loadProducts();
 loadMargins();
 loadCardRates();
@@ -3360,11 +3365,29 @@ let currentUser = null;
 async function checkAuthSession() {
   try {
     const res = await fetch('/api/auth/me');
+    const tabPricesDay = document.getElementById('tabPricesDay');
+    const publicAdminTopBtn = document.getElementById('publicAdminTopBtn');
+    const userSessionInfo = document.getElementById('userSessionInfo');
+    const userStoreBadge = document.getElementById('userStoreBadge');
+    const adminHeaderBtn = document.getElementById('adminHeaderBtn');
+
     if (res.status === 401) {
-      return; // sem login, continua sem badge
+      // Usuário não autenticado: esconde aba Preços do dia e garante exibição da Loja Física
+      currentUser = null;
+      if (tabPricesDay) tabPricesDay.style.display = 'none';
+      if (publicAdminTopBtn) publicAdminTopBtn.style.display = 'inline-flex';
+      if (userSessionInfo) userSessionInfo.style.display = 'none';
+      switchView('storefront');
+      return;
     }
+
     const user = await res.json();
     currentUser = user;
+
+    // Usuário autenticado (Lojista ou Admin): exibe a aba Preços do Dia
+    if (tabPricesDay) {
+      tabPricesDay.style.display = 'inline-flex';
+    }
 
     // Registra sessão no WebSocket para controle anti-pirataria
     const sessionToken = getCookie('fornecedor_session');
@@ -3372,10 +3395,10 @@ async function checkAuthSession() {
       socket.emit('register_session', sessionToken);
     }
 
-    // Exibe identificação no cabeçalho
-    const userSessionInfo = document.getElementById('userSessionInfo');
-    const userStoreBadge = document.getElementById('userStoreBadge');
-    const adminHeaderBtn = document.getElementById('adminHeaderBtn');
+    // Esconde o botão público de login "Painel Admin" e exibe a barra do lojista logado
+    if (publicAdminTopBtn) {
+      publicAdminTopBtn.style.display = 'none';
+    }
 
     if (userSessionInfo && userStoreBadge) {
       userSessionInfo.style.display = 'flex';
@@ -3383,6 +3406,8 @@ async function checkAuthSession() {
       if (user.role === 'admin') {
         badgeText = '👑 ' + badgeText;
         if (adminHeaderBtn) adminHeaderBtn.style.display = 'inline-flex';
+      } else {
+        if (adminHeaderBtn) adminHeaderBtn.style.display = 'none';
       }
       userStoreBadge.textContent = badgeText;
     }
