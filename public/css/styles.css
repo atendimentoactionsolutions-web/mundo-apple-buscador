@@ -4433,7 +4433,17 @@ body.light-theme .mobile-drawer-item:active {
   }
 
   .view-switch-nav {
-    display: none !important;
+    display: flex !important;
+    order: 3;
+    width: 100%;
+    margin-top: 8px;
+    gap: 6px;
+  }
+  .view-tab-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 10px;
+    font-size: 0.82rem;
   }
 
   .header-right-group .calc-top-btn,

@@ -1341,11 +1341,6 @@ let sfCurrentCategory = 'IPH';
 let sfSearchQuery = '';
 
 window.switchView = function(viewName) {
-  // Se tentar acessar "Preços do dia" sem estar autenticado, força Loja Física
-  if (viewName !== 'storefront' && !currentUser) {
-    viewName = 'storefront';
-  }
-
   currentView = viewName;
   const viewPricesDay = document.getElementById('viewPricesDay');
   const viewStoreFront = document.getElementById('viewStoreFront');
@@ -3460,19 +3455,14 @@ async function checkAuthSession() {
     const btnExportSfWhatsapp = document.getElementById('btnExportSfWhatsapp');
 
     if (res.status === 401) {
-      // Usuário não autenticado (Clientes / Visitantes):
-      // - Esconde aba Preços do dia
-      // - Esconde Calculadora de Taxas
-      // - Esconde Exportar para WhatsApp na Loja Física
-      // - Garante exibição da Loja Física
       currentUser = null;
-      if (tabPricesDay) tabPricesDay.style.display = 'none';
-      if (btnOpenCalculator) btnOpenCalculator.style.display = 'none';
-      if (btnExportSfWhatsapp) btnExportSfWhatsapp.style.display = 'none';
+      if (tabPricesDay) tabPricesDay.style.display = 'inline-flex';
+      if (btnOpenCalculator) btnOpenCalculator.style.display = 'inline-flex';
+      if (btnExportSfWhatsapp) btnExportSfWhatsapp.style.display = 'inline-flex';
       if (publicAdminTopBtn) publicAdminTopBtn.style.display = 'inline-flex';
       if (userSessionInfo) userSessionInfo.style.display = 'none';
 
-      // Sincroniza gaveta mobile para cliente
+      // Sincroniza gaveta mobile com acesso total a Preços do dia
       const mobileDrawerUser = document.getElementById('mobileDrawerUser');
       const mobileDrawerAdminLabel = document.getElementById('mobileDrawerAdminLabel');
       const mobileDrawerPricesDayBtn = document.getElementById('mobileDrawerPricesDayBtn');
@@ -3480,11 +3470,11 @@ async function checkAuthSession() {
       const mobileDrawerLogoutBtn = document.getElementById('mobileDrawerLogoutBtn');
       if (mobileDrawerUser) mobileDrawerUser.style.display = 'none';
       if (mobileDrawerAdminLabel) mobileDrawerAdminLabel.textContent = 'Acessar Painel Admin';
-      if (mobileDrawerPricesDayBtn) mobileDrawerPricesDayBtn.style.display = 'none';
-      if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'none';
+      if (mobileDrawerPricesDayBtn) mobileDrawerPricesDayBtn.style.display = 'flex';
+      if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'flex';
       if (mobileDrawerLogoutBtn) mobileDrawerLogoutBtn.style.display = 'none';
 
-      switchView('storefront');
+      refreshCurrentView();
       return;
     }
 
@@ -3596,9 +3586,9 @@ function ensureMobileDrawerMounted() {
             <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
             <polyline points="9 22 9 12 15 12 15 22"/>
           </svg>
-          <span>Loja Física</span>
+          <span>Loja Física (Preço de Venda)</span>
         </button>
-        <button class="mobile-drawer-item" id="mobileDrawerPricesDayBtn" onclick="closeMobileMenu(); switchView('prices_of_the_day');" style="display: none;">
+        <button class="mobile-drawer-item" id="mobileDrawerPricesDayBtn" onclick="closeMobileMenu(); switchView('prices_of_the_day');">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
             <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
@@ -3607,9 +3597,9 @@ function ensureMobileDrawerMounted() {
             <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
             <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
           </svg>
-          <span>Preços do dia (Custo)</span>
+          <span>Preços do dia (Custo Fornecedor)</span>
         </button>
-        <button class="mobile-drawer-item" id="mobileDrawerCalcBtn" onclick="closeMobileMenu(); openFreeCalculator();" style="display: none;">
+        <button class="mobile-drawer-item" id="mobileDrawerCalcBtn" onclick="closeMobileMenu(); openFreeCalculator();">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <rect width="16" height="20" x="4" y="2" rx="2"/>
             <line x1="8" x2="16" y1="6" y2="6"/>
