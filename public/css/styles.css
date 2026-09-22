@@ -4578,3 +4578,19 @@ body.light-theme .mobile-drawer-item:active {
 
 
 
+
+/* Hide mobile drawer entirely on desktop to prevent any layout issues */
+@media (min-width: 769px) {
+  .mobile-drawer,
+  .mobile-drawer-overlay {
+    display: none !important;
+  }
+}
+
+/* Hide admin buttons from header on desktop as requested */
+@media (min-width: 769px) {
+  .admin-top-btn,
+  #adminHeaderBtn {
+    display: none !important;
+  }
+}
