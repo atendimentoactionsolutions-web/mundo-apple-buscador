@@ -1391,8 +1391,8 @@ function renderStoreFront() {
 
     const isSemi = isSeminovoProduct(p);
 
-    // Filtro de Categoria
-    if (sfCurrentCategory !== 'ALL') {
+    // Filtro de Categoria (se houver busca por texto, busca em todo o catalogo)
+    if (searchTokens.length === 0 && sfCurrentCategory !== 'ALL') {
       if (sfCurrentCategory === 'SEMI') {
         if (!isSemi) return false;
       } else {
@@ -2248,8 +2248,8 @@ function renderPricesOfTheDay() {
 
     const isSemi = isSeminovoProduct(p);
 
-    // Category filter
-    if (podCurrentCategory !== 'ALL') {
+    // Category filter (se houver busca por texto, busca em todo o catalogo)
+    if (searchTokens.length === 0 && podCurrentCategory !== 'ALL') {
       if (podCurrentCategory === 'SEMI') {
         if (!isSemi) return false;
       } else {
