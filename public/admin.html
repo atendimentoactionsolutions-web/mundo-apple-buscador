@@ -874,10 +874,30 @@
         </div>
         <div>
           <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">AirPods (PODS)</label>
-          <input type="number" id="margin_PODS" value="200" class="modal-input" placeholder="200">
+          <input type="number" id="margin_PODS" value="400" class="modal-input" placeholder="400">
         </div>
         <div>
-          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Acessórios (ACSS)</label>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Smart Folio</label>
+          <input type="number" id="margin_FOLIO" value="400" class="modal-input" placeholder="400">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Apple Pencil</label>
+          <input type="number" id="margin_PENCIL" value="200" class="modal-input" placeholder="200">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">AirTag (Avulso / 1 un)</label>
+          <input type="number" id="margin_AIRTAG_UNIT" value="100" class="modal-input" placeholder="100">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Pacote de AirTag (4-Pack)</label>
+          <input type="number" id="margin_AIRTAG_PACK" value="350" class="modal-input" placeholder="350">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Magic Keyboard</label>
+          <input type="number" id="margin_MAGIC_KEY" value="400" class="modal-input" placeholder="400">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Outros Acessórios (ACSS)</label>
           <input type="number" id="margin_ACSS" value="100" class="modal-input" placeholder="100">
         </div>
       </div>
@@ -1365,7 +1385,7 @@
 
     function populateMarginsForm() {
       const cats = adminMargins.categories || {};
-      ['SEMINOVOS', 'IPH18', 'IPH', 'MCB_AIR', 'MCB_PRO', 'IPAD', 'RLG', 'IMAC', 'PODS', 'ACSS'].forEach(cat => {
+      ['SEMINOVOS', 'IPH18', 'IPH', 'MCB_AIR', 'MCB_PRO', 'IPAD', 'RLG', 'IMAC', 'PODS', 'ACSS', 'FOLIO', 'PENCIL', 'AIRTAG_UNIT', 'AIRTAG_PACK', 'MAGIC_KEY'].forEach(cat => {
         const input = document.getElementById(`margin_${cat}`);
         if (input && cats[cat] !== undefined) {
           input.value = cats[cat];
@@ -1430,7 +1450,7 @@
 
     async function saveAdminMargins() {
       // Coleta margens de categoria
-      ['SEMINOVOS', 'IPH18', 'IPH', 'MCB_AIR', 'MCB_PRO', 'IPAD', 'RLG', 'IMAC', 'PODS', 'ACSS'].forEach(cat => {
+      ['SEMINOVOS', 'IPH18', 'IPH', 'MCB_AIR', 'MCB_PRO', 'IPAD', 'RLG', 'IMAC', 'PODS', 'ACSS', 'FOLIO', 'PENCIL', 'AIRTAG_UNIT', 'AIRTAG_PACK', 'MAGIC_KEY'].forEach(cat => {
         const input = document.getElementById(`margin_${cat}`);
         if (input) {
           adminMargins.categories[cat] = parseFloat(input.value) || 0;

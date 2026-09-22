@@ -736,8 +736,13 @@ function getDefaultMargins() {
       IPAD: 500,       // iPad: +R$ 500
       RLG: 500,        // Apple Watch: +R$ 500
       IMAC: 1500,      // iMac: +R$ 1.500
-      PODS: 200,       // AirPods: +R$ 200
-      ACSS: 100        // Acessórios: +R$ 100
+      PODS: 400,       // AirPods: +R$ 400
+      ACSS: 100,       // Acessórios em geral: +R$ 100
+      FOLIO: 400,      // Smart Folio: +R$ 400
+      PENCIL: 200,     // Apple Pencil: +R$ 200
+      AIRTAG_UNIT: 100,// AirTag Avulso: +R$ 100
+      AIRTAG_PACK: 350,// Pacote de AirTag (4-Pack): +R$ 350
+      MAGIC_KEY: 400   // Magic Keyboard: +R$ 400
     },
     products: {}  // Exceções por produto específico
   };

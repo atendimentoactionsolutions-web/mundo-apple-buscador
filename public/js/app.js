@@ -1209,8 +1209,13 @@ let margins = {
     IPAD: 500,
     RLG: 500,
     IMAC: 1500,
-    PODS: 200,
-    ACSS: 100
+    PODS: 400,
+    ACSS: 100,
+    FOLIO: 400,
+    PENCIL: 200,
+    AIRTAG_UNIT: 100,
+    AIRTAG_PACK: 350,
+    MAGIC_KEY: 400
   },
   products: {}
 };
@@ -1285,9 +1290,20 @@ function getProductRetailPrice(p) {
     margin = (margins.categories && margins.categories.SEMINOVOS !== undefined) ? margins.categories.SEMINOVOS : 600;
   }
 
-  // 3. Se não houver margem por produto nem for seminovo, usa a margem da categoria
+  // 4. Se não houver margem por produto nem for seminovo, usa a margem da categoria ou acessório específico
   if (margin === undefined && margins.categories) {
-    if (catUpper === 'IPH' || nameUpper.includes('IPHONE')) {
+    // Acessórios Específicos
+    if (nameUpper.includes('FOLIO') || nameUpper.includes('SMART FOLIO')) {
+      margin = margins.categories.FOLIO ?? 400;
+    } else if (nameUpper.includes('PENCIL')) {
+      margin = margins.categories.PENCIL ?? 200;
+    } else if (nameUpper.includes('AIRTAG') && (nameUpper.includes('4 PACK') || nameUpper.includes('4-PACK') || nameUpper.includes('4PACK') || nameUpper.includes('PACOTE') || nameUpper.includes('4PK') || nameUpper.includes('4 UN') || nameUpper.includes('4UN'))) {
+      margin = margins.categories.AIRTAG_PACK ?? 350;
+    } else if (nameUpper.includes('AIRTAG')) {
+      margin = margins.categories.AIRTAG_UNIT ?? 100;
+    } else if (nameUpper.includes('MAGIC KEY') || nameUpper.includes('MAGIC KEYBOARD')) {
+      margin = margins.categories.MAGIC_KEY ?? 400;
+    } else if (catUpper === 'IPH' || nameUpper.includes('IPHONE')) {
       margin = margins.categories.IPH ?? 750;
     } else if (nameUpper.includes('MACBOOK AIR') || nameUpper.includes('AIR M') || (catUpper === 'MCB' && nameUpper.includes('AIR'))) {
       margin = margins.categories.MCB_AIR ?? 1000;
@@ -1300,8 +1316,8 @@ function getProductRetailPrice(p) {
     } else if (catUpper === 'IMAC' || nameUpper.includes('IMAC')) {
       margin = margins.categories.IMAC ?? 1500;
     } else if (catUpper === 'PODS' || nameUpper.includes('AIRPOD')) {
-      margin = margins.categories.PODS ?? 200;
-    } else if (catUpper === 'ACSS' || nameUpper.includes('PENCIL') || nameUpper.includes('MAGIC')) {
+      margin = margins.categories.PODS ?? 400;
+    } else if (catUpper === 'ACSS' || nameUpper.includes('MAGIC')) {
       margin = margins.categories.ACSS ?? 100;
     } else {
       margin = margins.categories.DEFAULT ?? 500;

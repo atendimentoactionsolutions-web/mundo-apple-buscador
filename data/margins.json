@@ -8,8 +8,13 @@
     "IPAD": 500,
     "RLG": 500,
     "IMAC": 1500,
-    "PODS": 200,
-    "ACSS": 100
+    "PODS": 400,
+    "ACSS": 100,
+    "FOLIO": 400,
+    "PENCIL": 200,
+    "AIRTAG_UNIT": 100,
+    "AIRTAG_PACK": 350,
+    "MAGIC_KEY": 400
   },
   "products": {}
 }
