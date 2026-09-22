@@ -3465,6 +3465,19 @@ async function checkAuthSession() {
       if (btnExportSfWhatsapp) btnExportSfWhatsapp.style.display = 'none';
       if (publicAdminTopBtn) publicAdminTopBtn.style.display = 'inline-flex';
       if (userSessionInfo) userSessionInfo.style.display = 'none';
+
+      // Sincroniza gaveta mobile para cliente
+      const mobileDrawerUser = document.getElementById('mobileDrawerUser');
+      const mobileDrawerAdminLabel = document.getElementById('mobileDrawerAdminLabel');
+      const mobileDrawerPricesDayBtn = document.getElementById('mobileDrawerPricesDayBtn');
+      const mobileDrawerCalcBtn = document.getElementById('mobileDrawerCalcBtn');
+      const mobileDrawerLogoutBtn = document.getElementById('mobileDrawerLogoutBtn');
+      if (mobileDrawerUser) mobileDrawerUser.style.display = 'none';
+      if (mobileDrawerAdminLabel) mobileDrawerAdminLabel.textContent = 'Acessar Painel Lojista';
+      if (mobileDrawerPricesDayBtn) mobileDrawerPricesDayBtn.style.display = 'none';
+      if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'none';
+      if (mobileDrawerLogoutBtn) mobileDrawerLogoutBtn.style.display = 'none';
+
       switchView('storefront');
       return;
     }
@@ -3497,23 +3510,69 @@ async function checkAuthSession() {
       publicAdminTopBtn.style.display = 'none';
     }
 
+    let badgeText = user.storeName || user.username;
+    const adminHeaderBtnLabel = document.getElementById('adminHeaderBtnLabel');
+    const mobileDrawerAdminLabel = document.getElementById('mobileDrawerAdminLabel');
+    const mobileDrawerUser = document.getElementById('mobileDrawerUser');
+    const mobileDrawerUserBadge = document.getElementById('mobileDrawerUserBadge');
+    const mobileDrawerPricesDayBtn = document.getElementById('mobileDrawerPricesDayBtn');
+    const mobileDrawerCalcBtn = document.getElementById('mobileDrawerCalcBtn');
+    const mobileDrawerLogoutBtn = document.getElementById('mobileDrawerLogoutBtn');
+
+    if (user.role === 'admin') {
+      badgeText = '👑 ' + badgeText;
+      if (adminHeaderBtnLabel) adminHeaderBtnLabel.textContent = 'Painel Admin';
+      if (mobileDrawerAdminLabel) mobileDrawerAdminLabel.textContent = '👑 Painel Administrador';
+    } else {
+      if (adminHeaderBtnLabel) adminHeaderBtnLabel.textContent = 'Configurar Margens';
+      if (mobileDrawerAdminLabel) mobileDrawerAdminLabel.textContent = '⚙️ Configurar Margens e Loja';
+    }
+
     if (userSessionInfo && userStoreBadge) {
       userSessionInfo.style.display = 'flex';
-      let badgeText = user.storeName || user.username;
-      const adminHeaderBtnLabel = document.getElementById('adminHeaderBtnLabel');
-      if (user.role === 'admin') {
-        badgeText = '👑 ' + badgeText;
-        if (adminHeaderBtnLabel) adminHeaderBtnLabel.textContent = 'Painel Admin';
-      } else {
-        if (adminHeaderBtnLabel) adminHeaderBtnLabel.textContent = 'Configurar Margens';
-      }
       if (adminHeaderBtn) adminHeaderBtn.style.display = 'inline-flex';
       userStoreBadge.textContent = badgeText;
     }
+
+    // Atualiza drawer mobile logado
+    if (mobileDrawerUser && mobileDrawerUserBadge) {
+      mobileDrawerUser.style.display = 'block';
+      mobileDrawerUserBadge.textContent = badgeText;
+    }
+    if (mobileDrawerPricesDayBtn) mobileDrawerPricesDayBtn.style.display = 'flex';
+    if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'flex';
+    if (mobileDrawerLogoutBtn) mobileDrawerLogoutBtn.style.display = 'flex';
+
   } catch (err) {
     console.error('Erro ao verificar sessão do usuário:', err);
   }
 }
+
+// Funções para controle do Menu Hamburger Drawer no Mobile
+window.toggleMobileMenu = function() {
+  const drawer = document.getElementById('mobileDrawer');
+  const overlay = document.getElementById('mobileDrawerOverlay');
+  if (drawer && overlay) {
+    drawer.classList.toggle('open');
+    overlay.classList.toggle('open');
+  }
+};
+
+window.closeMobileMenu = function() {
+  const drawer = document.getElementById('mobileDrawer');
+  const overlay = document.getElementById('mobileDrawerOverlay');
+  if (drawer && overlay) {
+    drawer.classList.remove('open');
+    overlay.classList.remove('open');
+  }
+};
+
+window.toggleThemeFromDrawer = function() {
+  const themeBtn = document.getElementById('themeBtn');
+  if (themeBtn) {
+    themeBtn.click();
+  }
+};
 
 async function handleHeaderLogout() {
   try {
