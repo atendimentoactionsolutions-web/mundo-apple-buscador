@@ -30,6 +30,58 @@
       --radius-full: 9999px;
     }
 
+    /* Light Theme Palette (Modo Claro) */
+    body.light-theme {
+      --bg-base: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-subtle: #f8fafc;
+      --bg-input: #ffffff;
+      --border-color: #cbd5e1;
+      --border-subtle: #e2e8f0;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+    }
+
+    body.light-theme .admin-header {
+      background: rgba(255, 255, 255, 0.92);
+      border-bottom-color: #e2e8f0;
+    }
+
+    body.light-theme .metric-card {
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+    }
+
+    body.light-theme .table-container {
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+    }
+
+    body.light-theme .modal-container {
+      background: #ffffff;
+      border-color: #cbd5e1;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.15);
+    }
+
+    body.light-theme .modal-header {
+      border-bottom-color: #e2e8f0;
+    }
+
+    body.light-theme .modal-footer {
+      border-top-color: #e2e8f0;
+      background: #f8fafc;
+    }
+
+    body.light-theme input,
+    body.light-theme select {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    body.light-theme input::placeholder {
+      color: #94a3b8 !important;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -621,6 +673,22 @@
       </div>
 
       <div class="admin-nav-actions">
+        <!-- Theme Toggle -->
+        <button type="button" class="btn-catalog" id="adminThemeBtn" onclick="toggleAdminTheme()" title="Alternar Modo Escuro / Claro" style="cursor: pointer;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="adminThemeIcon">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2"/>
+            <path d="M12 20v2"/>
+            <path d="m4.93 4.93 1.41 1.41"/>
+            <path d="m17.66 17.66 1.41 1.41"/>
+            <path d="M2 12h2"/>
+            <path d="M20 12h2"/>
+            <path d="m6.34 17.66-1.41 1.41"/>
+            <path d="m19.07 4.93-1.41 1.41"/>
+          </svg>
+          <span id="adminThemeLabel">Modo Claro</span>
+        </button>
+
         <a href="/" class="btn-catalog" title="Ir para a tela principal de produtos">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect width="7" height="7" x="3" y="3" rx="1"/>
@@ -1444,6 +1512,40 @@
     }
 
     fetchCardRates();
+
+    // =========================================================================
+    // TEMA CLARO / ESCURO (MODO BRANCO) NO PAINEL ADMIN
+    // =========================================================================
+    function updateAdminThemeUI(isLight) {
+      const label = document.getElementById('adminThemeLabel');
+      const icon = document.getElementById('adminThemeIcon');
+      if (label) label.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
+      if (icon) {
+        if (isLight) {
+          icon.innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+        } else {
+          icon.innerHTML = `<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>`;
+        }
+      }
+    }
+
+    function initAdminTheme() {
+      const savedTheme = localStorage.getItem('apple_pxt_theme') || 'dark';
+      if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+        updateAdminThemeUI(true);
+      } else {
+        updateAdminThemeUI(false);
+      }
+    }
+
+    function toggleAdminTheme() {
+      const isLight = document.body.classList.toggle('light-theme');
+      localStorage.setItem('apple_pxt_theme', isLight ? 'light' : 'dark');
+      updateAdminThemeUI(isLight);
+    }
+
+    initAdminTheme();
 
     function escapeHtml(str) {
       if (!str) return '';

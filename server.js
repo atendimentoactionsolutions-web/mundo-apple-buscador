@@ -606,7 +606,9 @@ app.get('/api/auth/me', async (req, res) => {
     ownerName: user.owner_name,
     username: user.username,
     role: user.role,
-    expiresAt: user.expires_at
+    expiresAt: user.expires_at,
+    customMargins: user.custom_margins || null,
+    customCardRates: user.custom_card_rates || null
   });
 });
 
@@ -837,12 +839,78 @@ function saveCardRates(ratesData) {
   }
 }
 
-// Rota pública de margens ativas
-app.get('/api/margins', (req, res) => {
-  res.json({ success: true, margins: loadMargins() });
+// Rota de margens ativas (se logado como lojista, retorna as margens DELE; caso contrário, globais)
+app.get('/api/margins', async (req, res) => {
+  const token = auth.getSessionTokenFromRequest(req);
+  if (token) {
+    const user = await auth.findUserBySessionToken(token);
+    if (user && user.role !== 'admin' && user.custom_margins) {
+      return res.json({ success: true, margins: user.custom_margins, isLojistaCustom: true });
+    }
+  }
+  res.json({ success: true, margins: loadMargins(), isLojistaCustom: false });
 });
 
-// Rotas protegidas de Admin para gerenciar margens
+// Endpoint para o lojista ou admin atualizar suas próprias margens (incluindo exceção por modelo)
+app.post('/api/margins/custom', async (req, res) => {
+  const token = auth.getSessionTokenFromRequest(req);
+  if (!token) return res.status(401).json({ error: 'Faça login para salvar margens.' });
+  const user = await auth.findUserBySessionToken(token);
+  if (!user) return res.status(401).json({ error: 'Sessão inválida.' });
+
+  const { categories, products, singleProduct, singleMargin } = req.body || {};
+
+  if (user.role === 'admin') {
+    // Admin atualiza margens globais
+    const current = loadMargins();
+    let updatedProducts = products || { ...current.products };
+    if (singleProduct) {
+      if (singleMargin === null || singleMargin === undefined || singleMargin === '') {
+        delete updatedProducts[singleProduct.toUpperCase()];
+      } else {
+        updatedProducts[singleProduct.toUpperCase()] = Number(singleMargin);
+      }
+    }
+
+    const updated = {
+      categories: categories ? { ...current.categories, ...categories } : current.categories,
+      products: updatedProducts
+    };
+
+    if (saveMargins(updated)) {
+      return res.json({ success: true, margins: updated });
+    }
+    return res.status(500).json({ error: 'Falha ao salvar margens globais' });
+  }
+
+  // Lojista atualiza SUAS margens exclusivas
+  const currentCustom = user.custom_margins || {
+    categories: {
+      SEMINOVOS: 0, IPH18: 0, IPH: 0, MCB_AIR: 0, MCB_PRO: 0,
+      IPAD: 0, RLG: 0, IMAC: 0, PODS: 0, ACSS: 0
+    },
+    products: {}
+  };
+
+  let updatedProducts = products ? { ...products } : { ...(currentCustom.products || {}) };
+  if (singleProduct) {
+    if (singleMargin === null || singleMargin === undefined || singleMargin === '') {
+      delete updatedProducts[singleProduct.toUpperCase()];
+    } else {
+      updatedProducts[singleProduct.toUpperCase()] = Number(singleMargin);
+    }
+  }
+
+  const newCustom = {
+    categories: categories ? { ...(currentCustom.categories || {}), ...categories } : (currentCustom.categories || {}),
+    products: updatedProducts
+  };
+
+  await auth.updateLojistaMargins(user.id, newCustom);
+  res.json({ success: true, margins: newCustom });
+});
+
+// Rotas protegidas de Admin para gerenciar margens globais
 app.get('/api/admin/margins', async (req, res) => {
   const token = auth.getSessionTokenFromRequest(req);
   const user = await auth.findUserBySessionToken(token);
@@ -874,9 +942,55 @@ app.post('/api/admin/margins', async (req, res) => {
   }
 });
 
-// Rota pública de taxas da maquininha
-app.get('/api/card-rates', (req, res) => {
-  res.json({ success: true, rates: loadCardRates() });
+// Rota de taxas da maquininha ativas (se logado como lojista, retorna as taxas DELE; caso contrário, globais)
+app.get('/api/card-rates', async (req, res) => {
+  const token = auth.getSessionTokenFromRequest(req);
+  if (token) {
+    const user = await auth.findUserBySessionToken(token);
+    if (user && user.role !== 'admin' && user.custom_card_rates) {
+      return res.json({ success: true, rates: user.custom_card_rates, isLojistaCustom: true });
+    }
+  }
+  res.json({ success: true, rates: loadCardRates(), isLojistaCustom: false });
+});
+
+// Endpoint para lojista salvar suas próprias taxas de maquininha
+app.post('/api/card-rates/custom', async (req, res) => {
+  const token = auth.getSessionTokenFromRequest(req);
+  if (!token) return res.status(401).json({ error: 'Faça login para salvar taxas.' });
+  const user = await auth.findUserBySessionToken(token);
+  if (!user) return res.status(401).json({ error: 'Sessão inválida.' });
+
+  const { baseRate, calculationMode, installmentRates } = req.body || {};
+
+  if (user.role === 'admin') {
+    const current = loadCardRates();
+    const updated = {
+      baseRate: typeof baseRate === 'number' ? baseRate : (parseFloat(baseRate) || current.baseRate),
+      calculationMode: calculationMode || current.calculationMode,
+      installmentRates: installmentRates ? { ...current.installmentRates, ...installmentRates } : current.installmentRates
+    };
+    if (saveCardRates(updated)) {
+      return res.json({ success: true, rates: updated });
+    }
+    return res.status(500).json({ error: 'Falha ao salvar taxas' });
+  }
+
+  // Lojista salva suas taxas
+  const current = user.custom_card_rates || {
+    baseRate: 0,
+    calculationMode: 'factor',
+    installmentRates: {}
+  };
+
+  const updated = {
+    baseRate: typeof baseRate === 'number' ? baseRate : (parseFloat(baseRate) || 0),
+    calculationMode: calculationMode || 'factor',
+    installmentRates: installmentRates ? { ...current.installmentRates, ...installmentRates } : current.installmentRates
+  };
+
+  await auth.updateLojistaCardRates(user.id, updated);
+  res.json({ success: true, rates: updated });
 });
 
 // Rotas de Admin para taxas da maquininha

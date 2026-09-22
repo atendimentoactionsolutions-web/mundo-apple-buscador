@@ -307,6 +307,8 @@ function formatLojistaResponse(u) {
     expiresAt: u.expires_at,
     daysRemaining,
     lastLoginAt: u.last_login_at,
+    customMargins: u.custom_margins || null,
+    customCardRates: u.custom_card_rates || null,
     createdAt: u.created_at
   };
 }
@@ -340,7 +342,32 @@ async function createLojista({ storeName, ownerName, whatsapp, username, passwor
     role: 'lojista',
     status: 'active',
     expires_at: expiresAt,
-    current_session_token: null
+    current_session_token: null,
+    // Novo lojista inicia com margens e taxas 100% zeradas (personalizáveis por ele)
+    custom_margins: {
+      categories: {
+        SEMINOVOS: 0,
+        IPH18: 0,
+        IPH: 0,
+        MCB_AIR: 0,
+        MCB_PRO: 0,
+        IPAD: 0,
+        RLG: 0,
+        IMAC: 0,
+        PODS: 0,
+        ACSS: 0
+      },
+      products: {}
+    },
+    custom_card_rates: {
+      baseRate: 0,
+      calculationMode: 'factor',
+      installmentRates: {
+        "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0,
+        "7": 0, "8": 0, "9": 0, "10": 0, "11": 0, "12": 0,
+        "13": 0, "14": 0, "15": 0, "16": 0, "17": 0, "18": 0
+      }
+    }
   };
 
   try {
@@ -358,6 +385,36 @@ async function createLojista({ storeName, ownerName, whatsapp, username, passwor
   }
 
   return formatLojistaResponse(newLojista);
+}
+
+// Atualiza margens personalizadas do lojista
+async function updateLojistaMargins(id, customMargins) {
+  try {
+    await supabase.patch(`/lojistas?id=eq.${id}`, { custom_margins: customMargins });
+  } catch (err) {
+    const users = getLocalUsers();
+    const idx = users.findIndex(u => u.id === id);
+    if (idx !== -1) {
+      users[idx].custom_margins = customMargins;
+      saveLocalUsers(users);
+    }
+  }
+  return { success: true, margins: customMargins };
+}
+
+// Atualiza taxas de maquininha personalizadas do lojista
+async function updateLojistaCardRates(id, customCardRates) {
+  try {
+    await supabase.patch(`/lojistas?id=eq.${id}`, { custom_card_rates: customCardRates });
+  } catch (err) {
+    const users = getLocalUsers();
+    const idx = users.findIndex(u => u.id === id);
+    if (idx !== -1) {
+      users[idx].custom_card_rates = customCardRates;
+      saveLocalUsers(users);
+    }
+  }
+  return { success: true, cardRates: customCardRates };
 }
 
 // Renova a assinatura (+30 dias ou período especificado)
@@ -491,6 +548,8 @@ module.exports = {
   renewLojista,
   toggleBlockLojista,
   updateLojistaPassword,
+  updateLojistaMargins,
+  updateLojistaCardRates,
   deleteLojista,
   getSessionTokenFromRequest
 };

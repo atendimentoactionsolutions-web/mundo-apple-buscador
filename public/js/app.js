@@ -1569,6 +1569,15 @@ function renderStoreFront() {
               </div>
             </div>
             <div style="display: flex; gap: 5px; align-items: center;">
+              ${currentUser ? `
+                <button class="matrix-card-all-btn" onclick="openEditMarginModal('${encodeURIComponent(grp.rawModel || grp.model)}')" title="Editar margem de lucro deste modelo" style="color: #f59e0b; border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.1);">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20h9"/>
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                  </svg>
+                  <span>Margem</span>
+                </button>
+              ` : ''}
               <button class="matrix-card-all-btn" onclick="openClientShowcaseModal('${cardKey}')" title="Expandir vitrine deste modelo para o cliente">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
@@ -1799,6 +1808,85 @@ window.copyModelPrices = async function(firstArg, secondArg, encStorage, encRam,
     }
   } catch (err) {
     console.error('Erro ao copiar lista de preços:', err);
+  }
+};
+
+// =========================================================================
+// MODAL: EDITAR MARGEM DIRETA DE UM MODELO ESPECÍFICO
+// =========================================================================
+let currentEditingModel = '';
+
+window.openEditMarginModal = function(encModel) {
+  const modelName = decodeURIComponent(encModel || '').trim();
+  if (!modelName) return;
+
+  currentEditingModel = modelName;
+  const modal = document.getElementById('editMarginModal');
+  const nameEl = document.getElementById('editMarginModelName');
+  const inputEl = document.getElementById('editMarginInput');
+
+  if (nameEl) nameEl.textContent = modelName.toUpperCase();
+
+  const keyUpper = modelName.toUpperCase();
+  const currentMargin = margins.products ? margins.products[keyUpper] : undefined;
+  if (inputEl) {
+    inputEl.value = (currentMargin !== undefined && currentMargin !== null) ? currentMargin : '';
+  }
+
+  if (modal) {
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+  }
+};
+
+window.closeEditMarginModal = function() {
+  const modal = document.getElementById('editMarginModal');
+  if (modal) {
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+  }
+  currentEditingModel = '';
+};
+
+window.saveSingleProductMargin = async function() {
+  if (!currentEditingModel) return;
+  const inputEl = document.getElementById('editMarginInput');
+  const btn = document.getElementById('btnSaveSingleMargin');
+  const val = inputEl ? inputEl.value.trim() : '';
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+  }
+
+  try {
+    const resp = await fetch('/api/margins/custom', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        singleProduct: currentEditingModel.toUpperCase(),
+        singleMargin: val === '' ? null : Number(val)
+      })
+    });
+
+    const data = await resp.json();
+    if (resp.ok && data.success) {
+      margins = data.margins;
+      closeEditMarginModal();
+      if (currentView === 'storefront') {
+        renderStoreFront();
+      }
+    } else {
+      alert(data.error || 'Não foi possível salvar a margem.');
+    }
+  } catch (err) {
+    console.error('Erro ao salvar margem:', err);
+    alert('Erro de conexão ao salvar margem.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Salvar Margem';
+    }
   }
 };
 
