@@ -1341,6 +1341,11 @@ let sfCurrentCategory = 'IPH';
 let sfSearchQuery = '';
 
 window.switchView = function(viewName) {
+  // Se não estiver logado, proibir acesso à visão de preços de fornecedor
+  if (viewName !== 'storefront' && !currentUser) {
+    viewName = 'storefront';
+  }
+
   currentView = viewName;
   const viewPricesDay = document.getElementById('viewPricesDay');
   const viewStoreFront = document.getElementById('viewStoreFront');
@@ -3456,13 +3461,13 @@ async function checkAuthSession() {
 
     if (res.status === 401) {
       currentUser = null;
-      if (tabPricesDay) tabPricesDay.style.display = 'inline-flex';
-      if (btnOpenCalculator) btnOpenCalculator.style.display = 'inline-flex';
+      if (tabPricesDay) tabPricesDay.style.display = 'none';
+      if (btnOpenCalculator) btnOpenCalculator.style.display = 'none';
       if (btnExportSfWhatsapp) btnExportSfWhatsapp.style.display = 'inline-flex';
       if (publicAdminTopBtn) publicAdminTopBtn.style.display = 'inline-flex';
       if (userSessionInfo) userSessionInfo.style.display = 'none';
 
-      // Sincroniza gaveta mobile com acesso total a Preços do dia
+      // Sincroniza gaveta mobile: esconde Preços do Dia e Calculadora para quem não tem login
       const mobileDrawerUser = document.getElementById('mobileDrawerUser');
       const mobileDrawerAdminLabel = document.getElementById('mobileDrawerAdminLabel');
       const mobileDrawerPricesDayBtn = document.getElementById('mobileDrawerPricesDayBtn');
@@ -3470,10 +3475,12 @@ async function checkAuthSession() {
       const mobileDrawerLogoutBtn = document.getElementById('mobileDrawerLogoutBtn');
       if (mobileDrawerUser) mobileDrawerUser.style.display = 'none';
       if (mobileDrawerAdminLabel) mobileDrawerAdminLabel.textContent = 'Acessar Painel Admin';
-      if (mobileDrawerPricesDayBtn) mobileDrawerPricesDayBtn.style.display = 'flex';
-      if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'flex';
+      if (mobileDrawerPricesDayBtn) mobileDrawerPricesDayBtn.style.display = 'none';
+      if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'none';
       if (mobileDrawerLogoutBtn) mobileDrawerLogoutBtn.style.display = 'none';
 
+      // Garante que o visitante fica exclusivamente na Loja Física
+      switchView('storefront');
       refreshCurrentView();
       return;
     }
@@ -3588,7 +3595,7 @@ function ensureMobileDrawerMounted() {
           </svg>
           <span>Loja Física (Preço de Venda)</span>
         </button>
-        <button class="mobile-drawer-item" id="mobileDrawerPricesDayBtn" onclick="closeMobileMenu(); switchView('prices_of_the_day');">
+        <button class="mobile-drawer-item" id="mobileDrawerPricesDayBtn" onclick="closeMobileMenu(); switchView('prices_of_the_day');" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
             <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
@@ -3599,7 +3606,7 @@ function ensureMobileDrawerMounted() {
           </svg>
           <span>Preços do dia (Custo Fornecedor)</span>
         </button>
-        <button class="mobile-drawer-item" id="mobileDrawerCalcBtn" onclick="closeMobileMenu(); openFreeCalculator();">
+        <button class="mobile-drawer-item" id="mobileDrawerCalcBtn" onclick="closeMobileMenu(); openFreeCalculator();" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <rect width="16" height="20" x="4" y="2" rx="2"/>
             <line x1="8" x2="16" y1="6" y2="6"/>
@@ -3634,6 +3641,27 @@ function ensureMobileDrawerMounted() {
 
   document.body.appendChild(overlay);
   document.body.appendChild(drawer);
+
+  // Se o usuário já estiver logado, exibe os itens restritos na gaveta
+  if (currentUser) {
+    const pBtn = drawer.querySelector('#mobileDrawerPricesDayBtn');
+    const cBtn = drawer.querySelector('#mobileDrawerCalcBtn');
+    const lBtn = drawer.querySelector('#mobileDrawerLogoutBtn');
+    const uBox = drawer.querySelector('#mobileDrawerUser');
+    const uBadge = drawer.querySelector('#mobileDrawerUserBadge');
+    const aLabel = drawer.querySelector('#mobileDrawerAdminLabel');
+    if (pBtn) pBtn.style.display = 'flex';
+    if (cBtn) cBtn.style.display = 'flex';
+    if (lBtn) lBtn.style.display = 'flex';
+    if (uBox && uBadge) {
+      uBox.style.display = 'block';
+      uBadge.textContent = currentUser.role === 'admin' ? ('👑 ' + (currentUser.storeName || currentUser.username)) : (currentUser.storeName || currentUser.username);
+    }
+    if (aLabel) {
+      aLabel.textContent = currentUser.role === 'admin' ? '👑 Painel Administrador' : '⚙️ Configurar Margens e Loja';
+    }
+  }
+
   return { drawer, overlay };
 }
 
