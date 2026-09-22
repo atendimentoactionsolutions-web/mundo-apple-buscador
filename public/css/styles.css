@@ -3865,27 +3865,72 @@ body.light-theme .matrix-card:hover {
 
   .header-right-group {
     order: 2;
-    gap: 8px !important;
+    gap: 6px !important;
   }
 
   .calc-top-btn {
-    display: inline-flex !important;
-    padding: 5px 10px !important;
+    padding: 5px 9px !important;
     border-radius: 8px !important;
     font-size: 0.72rem !important;
     height: 30px !important;
+    gap: 4px !important;
   }
   .calc-top-btn span {
     display: inline !important;
   }
 
   .admin-top-btn {
+    display: inline-flex !important;
+    padding: 5px 9px !important;
+    border-radius: 8px !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    height: 30px !important;
+    gap: 4px !important;
+    background: rgba(16, 185, 129, 0.12) !important;
+    border: 1px solid rgba(16, 185, 129, 0.35) !important;
+    color: var(--accent-green) !important;
+  }
+  .admin-top-btn span {
+    display: inline !important;
+  }
+
+  .theme-toggle-btn {
+    padding: 5px 8px !important;
+    height: 30px !important;
+    border-radius: 8px !important;
+    font-size: 0.72rem !important;
+  }
+  .theme-toggle-btn #themeLabel {
     display: none !important;
   }
 
-  .live-indicator {
+  .user-session-info {
+    gap: 6px !important;
+  }
+
+  .user-store-badge {
     padding: 4px 8px !important;
-    font-size: 0.68rem !important;
+    font-size: 0.70rem !important;
+    max-width: 110px !important;
+  }
+
+  .admin-link-btn {
+    padding: 5px 8px !important;
+    font-size: 0.70rem !important;
+    height: 30px !important;
+  }
+
+  .logout-header-btn {
+    padding: 5px 8px !important;
+    font-size: 0.70rem !important;
+    height: 30px !important;
+  }
+
+  .live-indicator {
+    padding: 4px 7px !important;
+    font-size: 0.65rem !important;
+    gap: 5px !important;
   }
 
   /* Elegant iOS-Style Segmented Pill Switcher on Mobile */
@@ -3914,11 +3959,6 @@ body.light-theme .matrix-card:hover {
     font-size: 0.8rem !important;
     font-weight: 700 !important;
     border-radius: 9px !important;
-  }
-
-  .live-indicator {
-    padding: 4px 10px !important;
-    font-size: 0.70rem !important;
   }
 
   /* Elastic horizontal scroll for categories */

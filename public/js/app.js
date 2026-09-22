@@ -3458,11 +3458,19 @@ async function checkAuthSession() {
     const userSessionInfo = document.getElementById('userSessionInfo');
     const userStoreBadge = document.getElementById('userStoreBadge');
     const adminHeaderBtn = document.getElementById('adminHeaderBtn');
+    const btnOpenCalculator = document.getElementById('btnOpenCalculator');
+    const btnExportSfWhatsapp = document.getElementById('btnExportSfWhatsapp');
 
     if (res.status === 401) {
-      // Usuário não autenticado: esconde aba Preços do dia e garante exibição da Loja Física
+      // Usuário não autenticado (Clientes / Visitantes):
+      // - Esconde aba Preços do dia
+      // - Esconde Calculadora de Taxas
+      // - Esconde Exportar para WhatsApp na Loja Física
+      // - Garante exibição da Loja Física
       currentUser = null;
       if (tabPricesDay) tabPricesDay.style.display = 'none';
+      if (btnOpenCalculator) btnOpenCalculator.style.display = 'none';
+      if (btnExportSfWhatsapp) btnExportSfWhatsapp.style.display = 'none';
       if (publicAdminTopBtn) publicAdminTopBtn.style.display = 'inline-flex';
       if (userSessionInfo) userSessionInfo.style.display = 'none';
       switchView('storefront');
@@ -3472,9 +3480,18 @@ async function checkAuthSession() {
     const user = await res.json();
     currentUser = user;
 
-    // Usuário autenticado (Lojista ou Admin): exibe a aba Preços do Dia
+    // Usuário autenticado (Lojista ou Admin):
+    // - Exibe Preços do Dia
+    // - Exibe Calculadora de Taxas
+    // - Exibe Exportar para WhatsApp na Loja Física
     if (tabPricesDay) {
       tabPricesDay.style.display = 'inline-flex';
+    }
+    if (btnOpenCalculator) {
+      btnOpenCalculator.style.display = 'inline-flex';
+    }
+    if (btnExportSfWhatsapp) {
+      btnExportSfWhatsapp.style.display = 'inline-flex';
     }
 
     // Registra sessão no WebSocket para controle anti-pirataria
