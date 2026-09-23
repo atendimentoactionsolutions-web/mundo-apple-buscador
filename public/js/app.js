@@ -1215,7 +1215,8 @@ let margins = {
     PENCIL: 200,
     AIRTAG_UNIT: 100,
     AIRTAG_PACK: 350,
-    MAGIC_KEY: 400
+    MAGIC_KEY: 400,
+    MAGIC_MOUSE: 430
   },
   products: {}
 };
@@ -1301,8 +1302,10 @@ function getProductRetailPrice(p) {
       margin = margins.categories.AIRTAG_PACK ?? 350;
     } else if (nameUpper.includes('AIRTAG')) {
       margin = margins.categories.AIRTAG_UNIT ?? 100;
-    } else if (nameUpper.includes('MAGIC KEY') || nameUpper.includes('MAGIC KEYBOARD')) {
+    } else if (nameUpper.includes('MAGIC KEY') || nameUpper.includes('MAGIC KEYBOARD') || nameUpper.includes('SMART KEYBOARD') || nameUpper.includes('SMART KEY')) {
       margin = margins.categories.MAGIC_KEY ?? 400;
+    } else if (nameUpper.includes('MAGIC MOUSE') || (nameUpper.includes('MOUSE') && (catUpper === 'ACSS' || nameUpper.includes('APPLE')))) {
+      margin = margins.categories.MAGIC_MOUSE ?? 430;
     } else if (catUpper === 'IPH' || nameUpper.includes('IPHONE')) {
       margin = margins.categories.IPH ?? 750;
     } else if (nameUpper.includes('MACBOOK AIR') || nameUpper.includes('AIR M') || (catUpper === 'MCB' && nameUpper.includes('AIR'))) {

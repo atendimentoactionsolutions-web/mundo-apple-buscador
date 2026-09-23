@@ -742,7 +742,8 @@ function getDefaultMargins() {
       PENCIL: 200,     // Apple Pencil: +R$ 200
       AIRTAG_UNIT: 100,// AirTag Avulso: +R$ 100
       AIRTAG_PACK: 350,// Pacote de AirTag (4-Pack): +R$ 350
-      MAGIC_KEY: 400   // Magic Keyboard: +R$ 400
+      MAGIC_KEY: 400,  // Magic Keyboard / Smart Keyboard: +R$ 400
+      MAGIC_MOUSE: 430 // Magic Mouse: +R$ 430
     },
     products: {}  // Exceções por produto específico
   };
