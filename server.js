@@ -165,7 +165,8 @@ function isAppleSeminovo(p) {
     name.includes('apple watch') ||
     name.includes('watch') ||
     name.includes('airpods') ||
-    name.includes('imac')
+    name.includes('imac') ||
+    name.includes('apple tv')
   );
 
   return isApple;
@@ -196,7 +197,7 @@ function isAppleNovo(p) {
   // Exclude Seminovos from Novo filter
   if (isAppleSeminovo(p)) return false;
 
-  // Must be an Apple category (or named iPhone, Mac, iPad, Apple Watch, AirPods, iMac)
+  // Must be an Apple category (or named iPhone, Mac, iPad, Apple Watch, AirPods, iMac, Apple TV)
   if (APPLE_CATEGORIES.has(cat)) return true;
   if (
     name.includes('iphone') ||
@@ -204,7 +205,8 @@ function isAppleNovo(p) {
     name.includes('ipad') ||
     name.includes('apple watch') ||
     name.includes('airpods') ||
-    name.includes('imac')
+    name.includes('imac') ||
+    name.includes('apple tv')
   ) {
     return true;
   }
@@ -743,7 +745,8 @@ function getDefaultMargins() {
       AIRTAG_UNIT: 100,// AirTag Avulso: +R$ 100
       AIRTAG_PACK: 350,// Pacote de AirTag (4-Pack): +R$ 350
       MAGIC_KEY: 400,  // Magic Keyboard / Smart Keyboard: +R$ 400
-      MAGIC_MOUSE: 430 // Magic Mouse: +R$ 430
+      MAGIC_MOUSE: 430, // Magic Mouse: +R$ 430
+      APPLE_TV: 500    // Apple TV: +R$ 500
     },
     products: {}  // Exceções por produto específico
   };

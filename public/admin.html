@@ -901,6 +901,10 @@
           <input type="number" id="margin_MAGIC_MOUSE" value="430" class="modal-input" placeholder="430">
         </div>
         <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Apple TV</label>
+          <input type="number" id="margin_APPLE_TV" value="500" class="modal-input" placeholder="500">
+        </div>
+        <div>
           <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Outros Acessórios (ACSS)</label>
           <input type="number" id="margin_ACSS" value="100" class="modal-input" placeholder="100">
         </div>
@@ -1389,7 +1393,7 @@
 
     function populateMarginsForm() {
       const cats = adminMargins.categories || {};
-      ['SEMINOVOS', 'IPH18', 'IPH', 'MCB_AIR', 'MCB_PRO', 'IPAD', 'RLG', 'IMAC', 'PODS', 'ACSS', 'FOLIO', 'PENCIL', 'AIRTAG_UNIT', 'AIRTAG_PACK', 'MAGIC_KEY', 'MAGIC_MOUSE'].forEach(cat => {
+      ['SEMINOVOS', 'IPH18', 'IPH', 'MCB_AIR', 'MCB_PRO', 'IPAD', 'RLG', 'IMAC', 'PODS', 'ACSS', 'FOLIO', 'PENCIL', 'AIRTAG_UNIT', 'AIRTAG_PACK', 'MAGIC_KEY', 'MAGIC_MOUSE', 'APPLE_TV'].forEach(cat => {
         const input = document.getElementById(`margin_${cat}`);
         if (input && cats[cat] !== undefined) {
           input.value = cats[cat];
@@ -1454,7 +1458,7 @@
 
     async function saveAdminMargins() {
       // Coleta margens de categoria
-      ['SEMINOVOS', 'IPH18', 'IPH', 'MCB_AIR', 'MCB_PRO', 'IPAD', 'RLG', 'IMAC', 'PODS', 'ACSS', 'FOLIO', 'PENCIL', 'AIRTAG_UNIT', 'AIRTAG_PACK', 'MAGIC_KEY', 'MAGIC_MOUSE'].forEach(cat => {
+      ['SEMINOVOS', 'IPH18', 'IPH', 'MCB_AIR', 'MCB_PRO', 'IPAD', 'RLG', 'IMAC', 'PODS', 'ACSS', 'FOLIO', 'PENCIL', 'AIRTAG_UNIT', 'AIRTAG_PACK', 'MAGIC_KEY', 'MAGIC_MOUSE', 'APPLE_TV'].forEach(cat => {
         const input = document.getElementById(`margin_${cat}`);
         if (input) {
           adminMargins.categories[cat] = parseFloat(input.value) || 0;

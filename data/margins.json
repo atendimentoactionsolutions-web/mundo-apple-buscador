@@ -15,7 +15,8 @@
     "AIRTAG_UNIT": 100,
     "AIRTAG_PACK": 350,
     "MAGIC_KEY": 400,
-    "MAGIC_MOUSE": 430
+    "MAGIC_MOUSE": 430,
+    "APPLE_TV": 500
   },
   "products": {}
 }
