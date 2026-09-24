@@ -3462,17 +3462,17 @@ async function checkAuthSession() {
       currentUser = null;
       if (tabPricesDay) tabPricesDay.style.display = 'none';
       if (btnOpenCalculator) btnOpenCalculator.style.display = 'none';
-      if (publicAdminTopBtn) publicAdminTopBtn.style.display = 'inline-flex';
+      if (publicAdminTopBtn) publicAdminTopBtn.style.display = 'none';
       if (userSessionInfo) userSessionInfo.style.display = 'none';
 
-      // Sincroniza gaveta mobile: esconde Preços do Dia e Calculadora para quem não tem login
+      // Sincroniza gaveta mobile: esconde Preços do Dia, Calculadora e Acesso Admin para visitantes
       const mobileDrawerUser = document.getElementById('mobileDrawerUser');
-      const mobileDrawerAdminLabel = document.getElementById('mobileDrawerAdminLabel');
+      const mobileDrawerAdminBtn = document.getElementById('mobileDrawerAdminBtn');
       const mobileDrawerPricesDayBtn = document.getElementById('mobileDrawerPricesDayBtn');
       const mobileDrawerCalcBtn = document.getElementById('mobileDrawerCalcBtn');
       const mobileDrawerLogoutBtn = document.getElementById('mobileDrawerLogoutBtn');
       if (mobileDrawerUser) mobileDrawerUser.style.display = 'none';
-      if (mobileDrawerAdminLabel) mobileDrawerAdminLabel.textContent = 'Acessar Painel Admin';
+      if (mobileDrawerAdminBtn) mobileDrawerAdminBtn.style.display = 'none';
       if (mobileDrawerPricesDayBtn) mobileDrawerPricesDayBtn.style.display = 'none';
       if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'none';
       if (mobileDrawerLogoutBtn) mobileDrawerLogoutBtn.style.display = 'none';
@@ -3509,6 +3509,7 @@ async function checkAuthSession() {
 
     let badgeText = user.storeName || user.username;
     const adminHeaderBtnLabel = document.getElementById('adminHeaderBtnLabel');
+    const mobileDrawerAdminBtn = document.getElementById('mobileDrawerAdminBtn');
     const mobileDrawerAdminLabel = document.getElementById('mobileDrawerAdminLabel');
     const mobileDrawerUser = document.getElementById('mobileDrawerUser');
     const mobileDrawerUserBadge = document.getElementById('mobileDrawerUserBadge');
@@ -3532,6 +3533,7 @@ async function checkAuthSession() {
     }
 
     // Atualiza drawer mobile logado
+    if (mobileDrawerAdminBtn) mobileDrawerAdminBtn.style.display = 'flex';
     if (mobileDrawerUser && mobileDrawerUserBadge) {
       mobileDrawerUser.style.display = 'block';
       mobileDrawerUserBadge.textContent = badgeText;
@@ -3575,7 +3577,7 @@ function ensureMobileDrawerMounted() {
         <span class="mobile-drawer-user-badge" id="mobileDrawerUserBadge">Loja</span>
       </div>
       <div class="mobile-drawer-nav">
-        <a href="/admin" class="mobile-drawer-item" id="mobileDrawerAdminBtn">
+        <a href="/admin" class="mobile-drawer-item" id="mobileDrawerAdminBtn" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
             <circle cx="12" cy="12" r="3"/>
