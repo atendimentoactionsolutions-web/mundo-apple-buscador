@@ -3462,7 +3462,6 @@ async function checkAuthSession() {
       currentUser = null;
       if (tabPricesDay) tabPricesDay.style.display = 'none';
       if (btnOpenCalculator) btnOpenCalculator.style.display = 'none';
-      if (btnExportSfWhatsapp) btnExportSfWhatsapp.style.display = 'inline-flex';
       if (publicAdminTopBtn) publicAdminTopBtn.style.display = 'inline-flex';
       if (userSessionInfo) userSessionInfo.style.display = 'none';
 
@@ -3490,15 +3489,11 @@ async function checkAuthSession() {
     // Usuário autenticado (Lojista ou Admin):
     // - Exibe Preços do Dia
     // - Exibe Calculadora de Taxas
-    // - Exibe Exportar para WhatsApp na Loja Física
     if (tabPricesDay) {
       tabPricesDay.style.display = 'inline-flex';
     }
     if (btnOpenCalculator) {
       btnOpenCalculator.style.display = 'inline-flex';
-    }
-    if (btnExportSfWhatsapp) {
-      btnExportSfWhatsapp.style.display = 'inline-flex';
     }
 
     // Registra sessão no WebSocket para controle anti-pirataria
