@@ -2118,25 +2118,15 @@ body.light-theme .pod-cat-pill.active .pod-cat-count {
   }
 }
 
-/* Model Section Header in Preços do Dia & Loja Física */
+/* Model Section Header in Preços do Dia & Loja Física (Oculto tanto no Desktop quanto no Mobile com espaçamento preservado) */
 .pod-model-section {
-  grid-column: 1 / -1;
-  margin-top: 24px;
-  margin-bottom: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-left: 4px solid var(--accent-green);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  transition: var(--transition);
+  display: none !important;
 }
 
-.pod-model-section:first-child {
-  margin-top: 0;
+.storefront-family-divider {
+  grid-column: 1 / -1;
+  height: 28px;
+  width: 100%;
 }
 
 .pod-model-section-left {

@@ -2375,18 +2375,10 @@ function renderPricesOfTheDay() {
       return (parseInt(a.ram) || 0) - (parseInt(b.ram) || 0);
     });
 
-    const catIcon = getCategoryIcon(fam.rawModelName, fam.category);
-
-    // Cabeçalho / Divisor de Modelo (Zero Mistura!)
-    html += `
-      <div class="pod-model-section">
-        <div class="pod-model-section-left">
-          <span class="pod-model-section-icon">${catIcon}</span>
-          <h2 class="pod-model-section-title">${fam.modelName}</h2>
-        </div>
-        ${fam.isSeminovo ? `<span class="pod-badge-seminovo" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35); padding: 3px 9px; border-radius: 6px; font-size: 0.72rem; font-weight: 800;">SEMINOVO</span>` : ''}
-      </div>
-    `;
+    // Espaçamento limpo entre diferentes famílias de modelos
+    if (famIdx > 0) {
+      html += `<div class="storefront-family-divider"></div>`;
+    }
 
     // Cards individuais de cada capacidade/RAM para este modelo
     storages.forEach((grp, grpIdx) => {
