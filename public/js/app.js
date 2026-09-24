@@ -1505,17 +1505,9 @@ function renderStoreFront() {
       return (parseInt(a.ram) || 0) - (parseInt(b.ram) || 0);
     });
 
-    const catIcon = getCategoryIcon(fam.rawModelName, fam.category);
-
-    html += `
-      <div class="pod-model-section">
-        <div class="pod-model-section-left">
-          <span class="pod-model-section-icon">${catIcon}</span>
-          <h2 class="pod-model-section-title">${fam.modelName}</h2>
-        </div>
-        ${fam.isSeminovo ? `<span class="pod-badge-seminovo" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35); padding: 3px 9px; border-radius: 6px; font-size: 0.72rem; font-weight: 800;">SEMINOVO</span>` : ''}
-      </div>
-    `;
+    if (famIdx > 0) {
+      html += `<div class="storefront-family-divider"></div>`;
+    }
 
     storages.forEach((grp, grpIdx) => {
       const colorsArr = Array.from(grp.colors.values()).map(colObj => {
@@ -1687,24 +1679,22 @@ window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSemino
   // Pega o menor valor para pré-calcular simulação no cartão
   const lowestPrice = colors.length > 0 ? colors[0].price : 0;
   let installmentsHtml = '';
-  if (lowestPrice > 0 && typeof cardRates !== 'undefined' && Array.isArray(cardRates) && cardRates.length > 0) {
-    const customRates = [1, 3, 6, 10, 12, 18];
-    const filteredRates = cardRates.filter(r => customRates.includes(r.installment));
+  if (lowestPrice > 0 && typeof calculateInstallment === 'function') {
+    const customInstallments = [1, 3, 6, 10, 12, 18];
 
     installmentsHtml = `
-      <div style="margin-top: 20px; padding: 14px; background: rgba(0,0,0,0.15); border: 1px solid var(--border-subtle); border-radius: 14px;">
+      <div style="margin-top: 16px; padding: 14px; background: rgba(0,0,0,0.15); border: 1px solid var(--border-subtle); border-radius: 14px;">
         <div style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); margin-bottom: 10px; text-transform: uppercase;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2.5"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
           Simulação de Parcelamento no Cartão (A partir de ${formatBRL(lowestPrice)})
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-          ${filteredRates.map(r => {
-            const total = lowestPrice * (1 + (r.rate / 100));
-            const perInstallment = total / r.installment;
+          ${customInstallments.map(n => {
+            const sim = calculateInstallment(lowestPrice, 0, n);
             return `
               <div style="padding: 8px 10px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">${r.installment}x</span>
-                <span style="font-size: 0.85rem; font-weight: 800; color: var(--text-primary);">${formatBRL(perInstallment)}</span>
+                <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">${n}x</span>
+                <span style="font-size: 0.85rem; font-weight: 800; color: var(--accent-green);">${formatBRL(sim.monthlyAmount)}</span>
               </div>
             `;
           }).join('')}
@@ -3478,6 +3468,8 @@ async function checkAuthSession() {
       if (mobileDrawerLogoutBtn) mobileDrawerLogoutBtn.style.display = 'none';
 
       // Garante que o visitante fica exclusivamente na Loja Física
+      const viewSwitchNav = document.querySelector('.view-switch-nav');
+      if (viewSwitchNav) viewSwitchNav.classList.add('single-tab');
       switchView('storefront');
       refreshCurrentView();
       return;
@@ -3485,6 +3477,9 @@ async function checkAuthSession() {
 
     const user = await res.json();
     currentUser = user;
+
+    const viewSwitchNav = document.querySelector('.view-switch-nav');
+    if (viewSwitchNav) viewSwitchNav.classList.remove('single-tab');
 
     // Usuário autenticado (Lojista ou Admin):
     // - Exibe Preços do Dia
@@ -3643,12 +3638,14 @@ function ensureMobileDrawerMounted() {
     const pBtn = drawer.querySelector('#mobileDrawerPricesDayBtn');
     const cBtn = drawer.querySelector('#mobileDrawerCalcBtn');
     const lBtn = drawer.querySelector('#mobileDrawerLogoutBtn');
+    const aBtn = drawer.querySelector('#mobileDrawerAdminBtn');
     const uBox = drawer.querySelector('#mobileDrawerUser');
     const uBadge = drawer.querySelector('#mobileDrawerUserBadge');
     const aLabel = drawer.querySelector('#mobileDrawerAdminLabel');
     if (pBtn) pBtn.style.display = 'flex';
     if (cBtn) cBtn.style.display = 'flex';
     if (lBtn) lBtn.style.display = 'flex';
+    if (aBtn) aBtn.style.display = 'flex';
     if (uBox && uBadge) {
       uBox.style.display = 'block';
       uBadge.textContent = currentUser.role === 'admin' ? ('👑 ' + (currentUser.storeName || currentUser.username)) : (currentUser.storeName || currentUser.username);
