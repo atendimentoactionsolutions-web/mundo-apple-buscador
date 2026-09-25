@@ -1825,7 +1825,7 @@ body.light-theme .product-card:hover {
   min-width: 260px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
 }
 
 .pod-search-container .pod-search-wrap {
