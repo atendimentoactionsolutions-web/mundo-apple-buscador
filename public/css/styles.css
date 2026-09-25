@@ -3993,8 +3993,8 @@ body.light-theme .matrix-card:hover {
 
   /* Toolbar search & export on mobile */
   .pod-toolbar-wrapper {
-    padding: 10px 0 !important;
-    margin-bottom: 12px !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   .pod-toolbar {
@@ -4480,8 +4480,12 @@ body.light-theme .mobile-drawer-item:active {
 
   /* UNIFIED MOBILE SEARCH QUADRANTE (Card Redondo como na Imagem do Usuário) */
   .pod-toolbar-wrapper {
-    margin-bottom: 0 !important;
-    padding-bottom: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    min-height: 0 !important;
+    height: auto !important;
   }
 
   .pod-toolbar {
