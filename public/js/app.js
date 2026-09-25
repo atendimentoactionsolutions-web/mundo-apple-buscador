@@ -1437,6 +1437,8 @@ function renderStoreFront() {
   const countText = document.getElementById('sfShownCountText');
   if (!container) return;
 
+  renderSfSuggestions(sfSearchQuery);
+
   const sLower = sfSearchQuery.trim().toLowerCase();
   const searchTokens = normalizeSearchText(sLower).split(' ').filter(Boolean);
 
@@ -2267,17 +2269,32 @@ window.selectPodModel = function(modelName) {
   renderPricesOfTheDay();
 };
 
-// Autocomplete Dropdown para a barra de pesquisa da Loja Física (Vitrine de Clientes)
-function renderSfAutocomplete(term) {
-  const dropdown = document.getElementById('sfAutocompleteDropdown');
-  if (!dropdown) return;
-  const t = (term || '').trim();
-  if (!t || t.length < 1) {
-    dropdown.classList.remove('open');
-    return;
+// Helper de ícone por tipo de dispositivo Apple
+function getDeviceIconSvg(name) {
+  const u = (name || '').toUpperCase();
+  if (u.includes('WATCH')) {
+    return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><path d="M12 9v3l2 2"/></svg>`;
   }
+  if (u.includes('MAC') || u.includes('IMAC')) {
+    return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="12" x="3" y="4" rx="2"/><line x1="2" y1="20" x2="22" y2="20"/></svg>`;
+  }
+  if (u.includes('IPAD')) {
+    return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><circle cx="12" cy="18" r="0.5"/></svg>`;
+  }
+  if (u.includes('AIRPOD') || u.includes('PODS')) {
+    return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>`;
+  }
+  return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>`;
+}
 
-  const tokens = normalizeSearchText(t).split(' ').filter(Boolean);
+// Renderizador dos Botões/Pílulas de Sugestões de Modelos na barra da Loja Física
+function renderSfSuggestions(term = '') {
+  const container = document.getElementById('sfSearchSuggestions');
+  const pillsEl = document.getElementById('sfSuggestionsPills');
+  if (!container || !pillsEl) return;
+
+  const t = (term || '').trim();
+  const tokens = t ? normalizeSearchText(t).split(' ').filter(Boolean) : [];
 
   const modelCounts = new Map();
   allProducts.forEach(p => {
@@ -2289,95 +2306,65 @@ function renderSfAutocomplete(term) {
     const displayName = isSemi ? `${baseModel} (Seminovo)` : baseModel;
     if (!displayName) return;
 
-    const normalizedName = normalizeSearchText(displayName);
-    const compactName = normalizedName.replace(/\s+/g, '');
-    const matches = tokens.every(tok => {
-      const compactTok = tok.replace(/\s+/g, '');
-      return normalizedName.includes(tok) || (compactTok && compactName.includes(compactTok));
-    });
-
-    if (matches) {
-      modelCounts.set(displayName, (modelCounts.get(displayName) || 0) + 1);
+    if (tokens.length > 0) {
+      const normalizedName = normalizeSearchText(displayName);
+      const compactName = normalizedName.replace(/\s+/g, '');
+      const matches = tokens.every(tok => {
+        const compactTok = tok.replace(/\s+/g, '');
+        return normalizedName.includes(tok) || (compactTok && compactName.includes(compactTok));
+      });
+      if (matches) {
+        modelCounts.set(displayName, (modelCounts.get(displayName) || 0) + 1);
+      }
+    } else {
+      if (!isSemi) {
+        modelCounts.set(displayName, (modelCounts.get(displayName) || 0) + 1);
+      }
     }
   });
 
   const sorted = Array.from(modelCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8);
 
   if (sorted.length === 0) {
-    dropdown.innerHTML = `
-      <div style="padding: 14px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">
-        Nenhum modelo encontrado para "${term}"
-      </div>
-    `;
-    dropdown.classList.add('open');
+    container.style.display = 'none';
+    pillsEl.innerHTML = '';
     return;
   }
 
-  const itemsHtml = sorted.map(([mName, count]) => {
-    const isWatch = mName.toUpperCase().includes('WATCH');
-    const isMac = mName.toUpperCase().includes('MAC');
-    const isPad = mName.toUpperCase().includes('IPAD');
-    const isAirPods = mName.toUpperCase().includes('AIRPOD') || mName.toUpperCase().includes('PODS');
+  container.style.display = 'flex';
+  const cleanCurrentQuery = (sfSearchQuery || '').trim().toUpperCase();
 
-    let iconSvg = `
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-green); flex-shrink: 0;">
-        <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
-        <path d="M12 18h.01"/>
-      </svg>
-    `;
-    if (isWatch) {
-      iconSvg = `
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-green); flex-shrink: 0;">
-          <circle cx="12" cy="12" r="7"/>
-          <path d="M12 9v3l2 2"/>
-        </svg>
-      `;
-    } else if (isMac) {
-      iconSvg = `
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-green); flex-shrink: 0;">
-          <rect width="18" height="12" x="3" y="4" rx="2"/>
-          <line x1="2" y1="20" x2="22" y2="20"/>
-        </svg>
-      `;
-    } else if (isPad) {
-      iconSvg = `
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-green); flex-shrink: 0;">
-          <rect width="16" height="20" x="4" y="2" rx="2"/>
-          <circle cx="12" cy="18" r="0.5"/>
-        </svg>
-      `;
-    } else if (isAirPods) {
-      iconSvg = `
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-green); flex-shrink: 0;">
-          <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
-          <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
-        </svg>
-      `;
-    }
-
+  const pillsHtml = sorted.map(([mName, count]) => {
+    const isActive = cleanCurrentQuery === mName.toUpperCase();
+    const icon = getDeviceIconSvg(mName);
+    const escaped = mName.replace(/'/g, "\\'");
     return `
-      <div class="autocomplete-item" onclick="selectSfModel('${mName.replace(/'/g, "\\'")}')">
-        <div class="autocomplete-item-name">
-          ${iconSvg}
-          <span>${mName}</span>
-        </div>
-        <span class="autocomplete-item-badge">${count} opções</span>
-      </div>
+      <button type="button" class="sf-suggestion-pill ${isActive ? 'active' : ''}" onclick="selectSfSuggestion('${escaped}')" title="Filtrar por ${mName}">
+        ${icon}
+        <span>${mName}</span>
+      </button>
     `;
   }).join('');
 
-  dropdown.innerHTML = itemsHtml;
-  dropdown.classList.add('open');
+  pillsEl.innerHTML = pillsHtml;
 }
 
-window.selectSfModel = function(modelName) {
+window.selectSfSuggestion = function(modelName) {
   const sfInput = document.getElementById('sfSearchInput');
-  const dropdown = document.getElementById('sfAutocompleteDropdown');
   const clearBtn = document.getElementById('sfSearchClearBtn');
+
+  // Se o usuário clicar na sugestão que já está ativa, limpa o filtro
+  if (sfSearchQuery.trim().toUpperCase() === modelName.trim().toUpperCase()) {
+    if (sfInput) sfInput.value = '';
+    sfSearchQuery = '';
+    if (clearBtn) clearBtn.style.display = 'none';
+    renderSfSuggestions('');
+    renderStoreFront();
+    return;
+  }
 
   if (sfInput) sfInput.value = modelName;
   sfSearchQuery = modelName;
-  if (dropdown) dropdown.classList.remove('open');
   if (clearBtn) clearBtn.style.display = 'flex';
 
   if (sfCategoryNav) {
@@ -2387,7 +2374,11 @@ window.selectSfModel = function(modelName) {
     sfCurrentCategory = 'ALL';
   }
 
+  renderSfSuggestions(modelName);
   renderStoreFront();
+
+  // Fecha o teclado virtual do celular para exibir os produtos imediatamente
+  if (sfInput) sfInput.blur();
 };
 
 // 15. Render Preços do Dia (ESTRITAMENTE ORGANIZADO POR MODELOS COM BANNERS DE SEÇÃO)
@@ -3570,7 +3561,6 @@ if (podCategoryNav) {
 const sfSearchInput = document.getElementById('sfSearchInput');
 const sfSearchClearBtn = document.getElementById('sfSearchClearBtn');
 const sfCategoryNav = document.getElementById('sfCategoryNav');
-const sfAutocompleteDropdown = document.getElementById('sfAutocompleteDropdown');
 
 if (sfSearchInput) {
   sfSearchInput.addEventListener('input', (e) => {
@@ -3583,36 +3573,13 @@ if (sfSearchInput) {
       });
       sfCurrentCategory = 'ALL';
     }
+    renderSfSuggestions(sfSearchQuery);
     renderStoreFront();
-
-    // Sugestões de modelos enquanto digita na Loja Física
-    if (sfSearchQuery.trim().length >= 1) {
-      renderSfAutocomplete(sfSearchQuery);
-    } else if (sfAutocompleteDropdown) {
-      sfAutocompleteDropdown.classList.remove('open');
-    }
   });
 
-  sfSearchInput.addEventListener('focus', () => {
-    if (sfSearchInput.value.trim()) {
-      renderSfAutocomplete(sfSearchInput.value);
-    }
-  });
-
-  // Fecha o teclado virtual do celular quando o usuário aperta Enter ou Esc, ou seleciona o 1º item se aberto
+  // Fecha o teclado virtual do celular quando o usuário aperta Enter ou Esc
   sfSearchInput.addEventListener('keydown', (e) => {
-    const dropdown = document.getElementById('sfAutocompleteDropdown');
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const firstItem = dropdown ? dropdown.querySelector('.autocomplete-item') : null;
-      if (firstItem && dropdown.classList.contains('open')) {
-        firstItem.click();
-      } else {
-        if (dropdown) dropdown.classList.remove('open');
-        sfSearchInput.blur();
-      }
-    } else if (e.key === 'Escape') {
-      if (dropdown) dropdown.classList.remove('open');
+    if (e.key === 'Enter' || e.key === 'Escape') {
       sfSearchInput.blur();
     }
   });
@@ -3623,8 +3590,7 @@ if (sfSearchClearBtn) {
     if (sfSearchInput) sfSearchInput.value = '';
     sfSearchQuery = '';
     sfSearchClearBtn.style.display = 'none';
-    const dropdown = document.getElementById('sfAutocompleteDropdown');
-    if (dropdown) dropdown.classList.remove('open');
+    renderSfSuggestions('');
     renderStoreFront();
   });
 }
@@ -3641,19 +3607,14 @@ if (sfCategoryNav) {
       sfSearchInput.value = '';
       sfSearchQuery = '';
       if (sfSearchClearBtn) sfSearchClearBtn.style.display = 'none';
-      const dropdown = document.getElementById('sfAutocompleteDropdown');
-      if (dropdown) dropdown.classList.remove('open');
     }
+    renderSfSuggestions('');
     renderStoreFront();
   });
 }
 
-// Fechar dropdowns de sugestões ao clicar fora
+// Fechar dropdown de sugestões de modelo do Preços do Dia ao clicar fora
 document.addEventListener('click', (e) => {
-  const sfDropdown = document.getElementById('sfAutocompleteDropdown');
-  if (sfDropdown && !e.target.closest('#viewStoreFront .pod-search-wrap')) {
-    sfDropdown.classList.remove('open');
-  }
   const podDropdown = document.getElementById('podAutocompleteDropdown');
   if (podDropdown && !e.target.closest('#viewPricesDay .pod-search-wrap')) {
     podDropdown.classList.remove('open');

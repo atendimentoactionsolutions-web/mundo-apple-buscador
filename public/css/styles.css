@@ -1818,7 +1818,92 @@ body.light-theme .product-card:hover {
   font-weight: 700;
 }
 
-/* Search Bar in Toolbar */
+/* Search Container & Suggestion Pills */
+.pod-search-container {
+  flex: 1 1 380px;
+  max-width: 620px;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pod-search-container .pod-search-wrap {
+  width: 100%;
+  max-width: 100%;
+  flex: none;
+}
+
+.sf-search-suggestions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.sf-suggestions-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sf-suggestions-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sf-suggestions-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.sf-suggestion-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.sf-suggestion-pill:hover,
+.sf-suggestion-pill:active {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
+.sf-suggestion-pill.active {
+  background: var(--accent-green) !important;
+  border-color: var(--accent-green) !important;
+  color: #ffffff !important;
+}
+
+.sf-suggestion-pill svg {
+  color: var(--accent-green);
+  flex-shrink: 0;
+}
+
+.sf-suggestion-pill.active svg {
+  color: #ffffff;
+}
+
 .pod-search-wrap {
   flex: 1 1 360px;
   max-width: 580px;
@@ -4482,6 +4567,42 @@ body.light-theme .mobile-drawer-item:active {
   }
 
   /* Unir a Busca e as Categorias num único Quadrante Redondo */
+  .pod-search-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    gap: 0 !important;
+  }
+
+  .sf-search-suggestions {
+    margin: 0 12px !important;
+    background: #ffffff !important;
+    border-left: 1px solid #e2e8f0 !important;
+    border-right: 1px solid #e2e8f0 !important;
+    padding: 6px 12px 6px 12px !important;
+    border-radius: 0 !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  body:not(.light-theme) .sf-search-suggestions {
+    background: #171a23 !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .sf-suggestion-pill {
+    padding: 6px 12px !important;
+    font-size: 0.74rem !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  body.light-theme .sf-suggestion-pill {
+    background: #f1f5f9 !important;
+    border-color: #e2e8f0 !important;
+  }
+
   .pod-search-wrap {
     margin: 8px 12px 0 12px !important;
     border-radius: 16px 16px 0 0 !important;
