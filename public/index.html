@@ -78,6 +78,15 @@
 
       <!-- Live metrics & Actions -->
       <div class="header-right-group">
+        <!-- Quick Export Button (Apenas logados) -->
+        <button class="calc-top-btn" id="btnExportTopHeader" onclick="openStorefrontExportModal()" title="Exportar tabela de valores para o WhatsApp" style="display: none; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.35); color: var(--accent-green);">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+          </svg>
+          <span>Exportar Valores</span>
+        </button>
+
         <!-- Quick Card Rate Calculator Button (Apenas logados) -->
         <button class="calc-top-btn" id="btnOpenCalculator" onclick="openFreeCalculator()" title="Calculadora de Taxas da Maquininha" style="display: none;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -295,6 +304,13 @@
       <div class="pod-toolbar">
         <div class="pod-title-group" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
           <h1 class="pod-main-title" id="sfMainTitleText">Loja Física</h1>
+          <button id="btnExportSfWhatsapp" onclick="openStorefrontExportModal()" style="display: none; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981; padding: 7px 14px; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer; align-items: center; gap: 6px; transition: all 0.2s;" title="Selecionar modelos e copiar lista de valores para o WhatsApp">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+              <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+            </svg>
+            <span>Exportar para WhatsApp</span>
+          </button>
         </div>
 
         <div class="pod-search-container">
@@ -526,6 +542,6 @@
     </div>
   </div>
 
-  <script src="/js/app.js?v=24.0"></script>
+  <script src="/js/app.js?v=25.0"></script>
 </body>
 </html>

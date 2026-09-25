@@ -3655,10 +3655,15 @@ async function checkAuthSession() {
     const btnOpenCalculator = document.getElementById('btnOpenCalculator');
     const btnExportSfWhatsapp = document.getElementById('btnExportSfWhatsapp');
 
+    const btnExportTopHeader = document.getElementById('btnExportTopHeader');
+    const mobileDrawerExportBtn = document.getElementById('mobileDrawerExportBtn');
+
     if (res.status === 401) {
       currentUser = null;
       if (tabPricesDay) tabPricesDay.style.display = 'none';
       if (btnOpenCalculator) btnOpenCalculator.style.display = 'none';
+      if (btnExportTopHeader) btnExportTopHeader.style.display = 'none';
+      if (btnExportSfWhatsapp) btnExportSfWhatsapp.style.display = 'none';
       if (publicAdminTopBtn) publicAdminTopBtn.style.display = 'none';
       if (userSessionInfo) userSessionInfo.style.display = 'none';
 
@@ -3672,6 +3677,7 @@ async function checkAuthSession() {
       if (mobileDrawerAdminBtn) mobileDrawerAdminBtn.style.display = 'none';
       if (mobileDrawerPricesDayBtn) mobileDrawerPricesDayBtn.style.display = 'none';
       if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'none';
+      if (mobileDrawerExportBtn) mobileDrawerExportBtn.style.display = 'none';
       if (mobileDrawerLogoutBtn) mobileDrawerLogoutBtn.style.display = 'none';
 
       // Garante que o visitante fica exclusivamente na Loja Física
@@ -3691,11 +3697,18 @@ async function checkAuthSession() {
     // Usuário autenticado (Lojista ou Admin):
     // - Exibe Preços do Dia
     // - Exibe Calculadora de Taxas
+    // - Exibe Exportar Valores (WhatsApp)
     if (tabPricesDay) {
       tabPricesDay.style.display = 'inline-flex';
     }
     if (btnOpenCalculator) {
       btnOpenCalculator.style.display = 'inline-flex';
+    }
+    if (btnExportTopHeader) {
+      btnExportTopHeader.style.display = 'inline-flex';
+    }
+    if (btnExportSfWhatsapp) {
+      btnExportSfWhatsapp.style.display = 'inline-flex';
     }
 
     // Registra sessão no WebSocket para controle anti-pirataria
@@ -3742,7 +3755,17 @@ async function checkAuthSession() {
     }
     if (mobileDrawerPricesDayBtn) mobileDrawerPricesDayBtn.style.display = 'flex';
     if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'flex';
+    if (mobileDrawerExportBtn) mobileDrawerExportBtn.style.display = 'flex';
     if (mobileDrawerLogoutBtn) mobileDrawerLogoutBtn.style.display = 'flex';
+
+    // Se vier do Painel Admin clicando em 'Exportar Valores' (?export=true)
+    if (window.location.search.includes('export=true')) {
+      setTimeout(() => {
+        if (typeof openStorefrontExportModal === 'function') {
+          openStorefrontExportModal();
+        }
+      }, 500);
+    }
 
   } catch (err) {
     console.error('Erro ao verificar sessão do usuário:', err);
@@ -3804,6 +3827,13 @@ function ensureMobileDrawerMounted() {
           </svg>
           <span>Preços do dia (Custo Fornecedor)</span>
         </button>
+        <button class="mobile-drawer-item" id="mobileDrawerExportBtn" onclick="closeMobileMenu(); openStorefrontExportModal();" style="display: none; color: var(--accent-green);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+          </svg>
+          <span>Exportar Valores (WhatsApp)</span>
+        </button>
         <button class="mobile-drawer-item" id="mobileDrawerCalcBtn" onclick="closeMobileMenu(); openFreeCalculator();" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <rect width="16" height="20" x="4" y="2" rx="2"/>
@@ -3816,7 +3846,7 @@ function ensureMobileDrawerMounted() {
           <span>Calculadora de Taxas</span>
         </button>
         <button class="mobile-drawer-item" id="mobileDrawerThemeBtn" onclick="toggleThemeFromDrawer()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="mobileDrawerThemeIcon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" id="mobileDrawerThemeIcon">
             <circle cx="12" cy="12" r="4"/>
             <path d="M12 2v2"/><path d="M12 20v2"/>
             <path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/>
@@ -3844,6 +3874,7 @@ function ensureMobileDrawerMounted() {
   if (currentUser) {
     const pBtn = drawer.querySelector('#mobileDrawerPricesDayBtn');
     const cBtn = drawer.querySelector('#mobileDrawerCalcBtn');
+    const eBtn = drawer.querySelector('#mobileDrawerExportBtn');
     const lBtn = drawer.querySelector('#mobileDrawerLogoutBtn');
     const aBtn = drawer.querySelector('#mobileDrawerAdminBtn');
     const uBox = drawer.querySelector('#mobileDrawerUser');
@@ -3851,6 +3882,7 @@ function ensureMobileDrawerMounted() {
     const aLabel = drawer.querySelector('#mobileDrawerAdminLabel');
     if (pBtn) pBtn.style.display = 'flex';
     if (cBtn) cBtn.style.display = 'flex';
+    if (eBtn) eBtn.style.display = 'flex';
     if (lBtn) lBtn.style.display = 'flex';
     if (aBtn) aBtn.style.display = 'flex';
     if (uBox && uBadge) {
