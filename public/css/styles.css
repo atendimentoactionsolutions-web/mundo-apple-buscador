@@ -1833,6 +1833,7 @@ body.light-theme .product-card:hover {
   height: 52px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
   transition: var(--transition);
+  cursor: text;
 }
 
 .pod-search-wrap:focus-within {
@@ -1845,6 +1846,7 @@ body.light-theme .product-card:hover {
   margin-right: 12px;
   flex-shrink: 0;
   transition: color 0.2s ease;
+  pointer-events: none;
 }
 
 .pod-search-wrap:focus-within .pod-search-icon {

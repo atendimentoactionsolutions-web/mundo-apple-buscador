@@ -394,28 +394,74 @@ function getMacBookRam(p) {
   return '';
 }
 
-// Normalizador de busca inteligente (ignora acentos, pontuação e maiúsculas/minúsculas)
+// Tradutor de cores e termos comuns Apple para busca em português e inglês
+function getColorSynonyms(color) {
+  if (!color) return '';
+  const c = color.toLowerCase();
+  const syn = [];
+  if (c.includes('titanium') || c.includes('titanio')) syn.push('titanio titan');
+  if (c.includes('desert')) syn.push('deserto');
+  if (c.includes('natural')) syn.push('natural');
+  if (c.includes('black')) syn.push('preto escuro');
+  if (c.includes('white')) syn.push('branco claro');
+  if (c.includes('silver')) syn.push('prata prateado');
+  if (c.includes('gold')) syn.push('dourado ouro');
+  if (c.includes('blue')) syn.push('azul');
+  if (c.includes('pink')) syn.push('rosa');
+  if (c.includes('green')) syn.push('verde');
+  if (c.includes('purple')) syn.push('roxo');
+  if (c.includes('yellow')) syn.push('amarelo');
+  if (c.includes('starlight')) syn.push('estelar luz das estrelas');
+  if (c.includes('midnight')) syn.push('meia noite');
+  if (c.includes('space gray') || c.includes('gray') || c.includes('grey')) syn.push('cinza espacial cinza');
+  return syn.join(' ');
+}
+
+// Normalizador de busca inteligente (ignora acentos, pontuação, maiúsculas/minúsculas e junta termos colados)
 function normalizeSearchText(str) {
   if (!str) return '';
-  return str
+  let res = str
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^\w\s]/g, ' ')
-    // Separa letra→número e número→letra: IPHONE17E → iphone 17 e
+    // Separa letra→número e número→letra: IPHONE16 → iphone 16
     .replace(/([a-z])(\d)/g, '$1 $2')
-    .replace(/(\d)([a-z])/g, '$1 $2')
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/(\d)([a-z])/g, '$1 $2');
+
+  // Expansão de termos compostos colados comuns no universo Apple
+  res = res
+    .replace(/\bpromax\b/g, 'pro max')
+    .replace(/\bapplewatch\b/g, 'apple watch')
+    .replace(/\bwatchultra\b/g, 'watch ultra')
+    .replace(/\bmacbookair\b/g, 'macbook air')
+    .replace(/\bmacbookpro\b/g, 'macbook pro')
+    .replace(/\bmacmini\b/g, 'mac mini')
+    .replace(/\bmacstudio\b/g, 'mac studio')
+    .replace(/\bairpodspro\b/g, 'airpods pro')
+    .replace(/\bairpodsmax\b/g, 'airpods max')
+    .replace(/\bipadair\b/g, 'ipad air')
+    .replace(/\bipadpro\b/g, 'ipad pro')
+    .replace(/\bipadmini\b/g, 'ipad mini');
+
+  return res.replace(/\s+/g, ' ').trim();
 }
 
-// Verifica se todos os termos digitados na busca estão presentes no produto
+// Verifica se todos os termos digitados na busca estão presentes no produto (com suporte a compacto e sinônimos)
 function matchSearchTokens(product, tokens) {
   if (!tokens || tokens.length === 0) return true;
   const ram = getMacBookRam(product);
-  const rawText = `${product.name || ''} ${product.description || ''} ${product.storage || ''} ${product.color || ''} ${product.region || ''} ${ram} ${ram ? ram + ' RAM' : ''} ${product.supplier?.name || ''}`;
+  const colorSyn = getColorSynonyms(product.color || '');
+  const rawText = `${product.name || ''} ${product.description || ''} ${product.storage || ''} ${product.color || ''} ${colorSyn} ${product.region || ''} ${ram} ${ram ? ram + ' RAM' : ''} ${product.supplier?.name || ''}`;
   const normalized = normalizeSearchText(rawText);
-  return tokens.every(token => normalized.includes(token));
+  const normalizedCompact = normalized.replace(/\s+/g, '');
+
+  return tokens.every(token => {
+    const cleanToken = token.trim();
+    if (!cleanToken) return true;
+    const cleanCompact = cleanToken.replace(/\s+/g, '');
+    return normalized.includes(cleanToken) || (cleanCompact && normalizedCompact.includes(cleanCompact));
+  });
 }
 
 // Helper para montar mensagem direta e profissional de WhatsApp para o fornecedor
@@ -803,7 +849,11 @@ function renderAutocomplete(term) {
 
     // Token-based match: todos os tokens devem estar no nome normalizado
     const normalizedName = normalizeSearchText(name);
-    const matches = tokens.every(tok => normalizedName.includes(tok));
+    const compactName = normalizedName.replace(/\s+/g, '');
+    const matches = tokens.every(tok => {
+      const compactTok = tok.replace(/\s+/g, '');
+      return normalizedName.includes(tok) || (compactTok && compactName.includes(compactTok));
+    });
     if (matches) {
       modelCounts.set(name, (modelCounts.get(name) || 0) + 1);
     }
@@ -2161,7 +2211,12 @@ function renderPodAutocomplete(term) {
     const name = (p.name || '').trim();
     if (!name) return;
     const normalizedName = normalizeSearchText(name);
-    if (tokens.every(tok => normalizedName.includes(tok))) {
+    const compactName = normalizedName.replace(/\s+/g, '');
+    const matches = tokens.every(tok => {
+      const compactTok = tok.replace(/\s+/g, '');
+      return normalizedName.includes(tok) || (compactTok && compactName.includes(compactTok));
+    });
+    if (matches) {
       modelCounts.set(name, (modelCounts.get(name) || 0) + 1);
     }
   });
@@ -2204,12 +2259,10 @@ window.selectPodModel = function(modelName) {
   if (dropdown) dropdown.classList.remove('open');
   if (clearBtn) clearBtn.style.display = 'flex';
 
-  // Se o modelo selecionado não coincidir com a categoria atual do Preços do Dia, chaveia para a categoria do produto ou IPH
-  if (podCurrentCategory !== 'IPH') {
-    podCurrentCategory = 'IPH';
-    const catPills = document.querySelectorAll('#podCategoryNav .pod-cat-pill');
-    catPills.forEach(p => p.classList.toggle('active', p.dataset.category === 'IPH'));
-  }
+  // Chaveia para ALL para que o modelo selecionado sempre seja visível (independente de ser Mac, Watch, iPad ou iPhone)
+  podCurrentCategory = 'ALL';
+  const catPills = document.querySelectorAll('#podCategoryNav .pod-cat-pill');
+  catPills.forEach(p => p.classList.toggle('active', p.dataset.category === 'ALL'));
 
   renderPricesOfTheDay();
 };
@@ -3380,6 +3433,12 @@ if (podCategoryNav) {
     podCategoryNav.querySelectorAll('.pod-cat-pill').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     podCurrentCategory = btn.dataset.category || 'ALL';
+    // Se clicar em uma categoria e houver termo de busca, limpa o campo de busca
+    if (podSearchInput && podSearchInput.value) {
+      podSearchInput.value = '';
+      if (podSearchClearBtn) podSearchClearBtn.style.display = 'none';
+      if (podAutocompleteDropdown) podAutocompleteDropdown.classList.remove('open');
+    }
     renderPricesOfTheDay();
   });
 }
@@ -3393,7 +3452,21 @@ if (sfSearchInput) {
   sfSearchInput.addEventListener('input', (e) => {
     sfSearchQuery = e.target.value;
     if (sfSearchClearBtn) sfSearchClearBtn.style.display = sfSearchQuery ? 'flex' : 'none';
+    // Ao buscar por texto na Loja Física, sincroniza o botão de categoria para TODOS
+    if (sfCategoryNav && sfSearchQuery.trim()) {
+      sfCategoryNav.querySelectorAll('.pod-cat-pill').forEach(b => {
+        b.classList.toggle('active', b.dataset.sfCategory === 'ALL');
+      });
+      sfCurrentCategory = 'ALL';
+    }
     renderStoreFront();
+  });
+
+  // Fecha o teclado virtual do celular quando o usuário aperta Enter ou Esc
+  sfSearchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === 'Escape') {
+      sfSearchInput.blur();
+    }
   });
 }
 
@@ -3413,9 +3486,26 @@ if (sfCategoryNav) {
     sfCategoryNav.querySelectorAll('.pod-cat-pill').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     sfCurrentCategory = btn.dataset.sfCategory || 'ALL';
+    // Se clicar em uma categoria específica e houver busca ativa, limpa a busca para navegar pela categoria
+    if (sfSearchInput && sfSearchQuery) {
+      sfSearchInput.value = '';
+      sfSearchQuery = '';
+      if (sfSearchClearBtn) sfSearchClearBtn.style.display = 'none';
+    }
     renderStoreFront();
   });
 }
+
+// Ao clicar em qualquer ponto da barra de busca (inclusive na lupa), foca imediatamente no input
+document.querySelectorAll('.pod-search-wrap').forEach(wrap => {
+  wrap.addEventListener('click', (e) => {
+    if (e.target.closest('.search-clear-btn')) return;
+    const inp = wrap.querySelector('input');
+    if (inp && document.activeElement !== inp) {
+      inp.focus();
+    }
+  });
+});
 
 // Initial boot (Loja Física por padrão até verificar autenticação)
 switchView('storefront');
