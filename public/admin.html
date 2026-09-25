@@ -1093,6 +1093,21 @@
       }
     }
 
+    function cleanModelName(rawName) {
+      if (!rawName) return '';
+      let name = rawName.toUpperCase();
+      name = name.replace(/\b(SEMI-NOVO|SEMI NOVO|SEMINOVO|LACRADO|USADO|VITRINE|GRADE [A-Z]|SWAP)\b/gi, '');
+      name = name.replace(/\b(EUA|USA|LL\/A|BR|BRA|ANATEL|PY|PARAGUAI|GLOBAL|J\/A|ZD\/A|HN\/A|CHIP VIRTUAL|E-SIM|ESIM|DUAL SIM|PHYSICAL SIM)\b/gi, '');
+      name = name.replace(/\b(8|16|18|24|32|36|48|64|96|128)\s*GB\s*RAM\b/gi, '');
+      name = name.replace(/\b(RAM\s*(8|16|18|24|32|36|48|64|96|128)\s*GB)\b/gi, '');
+      name = name.replace(/\b(64|128|256|512)\s*GB\b/gi, '');
+      name = name.replace(/\b(1|2)\s*TB\b/gi, '');
+      name = name.replace(/\b(BLACK|WHITE|BLUE|GREEN|PINK|YELLOW|PURPLE|RED|STARLIGHT|MIDNIGHT|SPACE GRAY|SILVER|GOLD|DESERT TITANIUM|NATURAL TITANIUM|BLACK TITANIUM|WHITE TITANIUM|BLUE TITANIUM|GRAPHITE|SIERRA BLUE|ALPINE GREEN|DEEP PURPLE|SPACE BLACK|TITANIUM|TITANIO|PRETO|BRANCO|AZUL|VERDE|ROSA|AMARELO|ROXO|VERMELHO|ESTELAR|MEIA NOITE|CINZA ESPACIAL|PRATA|DOURADO|GRAFITE)\b/gi, '');
+      name = name.replace(/[,\-\|\/\(\)]/g, ' ');
+      name = name.replace(/\s+/g, ' ').trim();
+      return name;
+    }
+
     async function loadAvailableModelsDatalist() {
       try {
         const resp = await fetch('/api/products');
@@ -1103,7 +1118,8 @@
 
         const uniqueModels = new Set();
         products.forEach(p => {
-          if (p.model) uniqueModels.add(p.model.trim().toUpperCase());
+          const m = p.name ? cleanModelName(p.name) : (p.model || '');
+          if (m) uniqueModels.add(m.trim().toUpperCase());
         });
 
         datalist.innerHTML = Array.from(uniqueModels).sort().map(m => `<option value="${escapeHtml(m)}"></option>`).join('');
@@ -1482,8 +1498,6 @@
         alert('Erro de conexão ao salvar margens.');
       }
     }
-
-    fetchMargins();
 
     // =========================================================================
     // GESTÃO DE TAXAS DA MAQUININHA DE CARTÃO (LOJA FÍSICA)
