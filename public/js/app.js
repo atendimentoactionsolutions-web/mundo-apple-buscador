@@ -1437,8 +1437,6 @@ function renderStoreFront() {
   const countText = document.getElementById('sfShownCountText');
   if (!container) return;
 
-  renderSfSuggestions(sfSearchQuery);
-
   const sLower = sfSearchQuery.trim().toLowerCase();
   const searchTokens = normalizeSearchText(sLower).split(' ').filter(Boolean);
 
@@ -2287,99 +2285,7 @@ function getDeviceIconSvg(name) {
   return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>`;
 }
 
-// Renderizador dos Botões/Pílulas de Sugestões de Modelos na barra da Loja Física
-function renderSfSuggestions(term = '') {
-  const container = document.getElementById('sfSearchSuggestions');
-  const pillsEl = document.getElementById('sfSuggestionsPills');
-  if (!container || !pillsEl) return;
 
-  const t = (term || '').trim();
-  const tokens = t ? normalizeSearchText(t).split(' ').filter(Boolean) : [];
-
-  const modelCounts = new Map();
-  allProducts.forEach(p => {
-    if (isCpoProduct(p)) return;
-    if (!p.price || p.price <= 0) return;
-
-    const isSemi = isSeminovoProduct(p);
-    const baseModel = cleanModelName(p.name);
-    const displayName = isSemi ? `${baseModel} (Seminovo)` : baseModel;
-    if (!displayName) return;
-
-    if (tokens.length > 0) {
-      const normalizedName = normalizeSearchText(displayName);
-      const compactName = normalizedName.replace(/\s+/g, '');
-      const matches = tokens.every(tok => {
-        const compactTok = tok.replace(/\s+/g, '');
-        return normalizedName.includes(tok) || (compactTok && compactName.includes(compactTok));
-      });
-      if (matches) {
-        modelCounts.set(displayName, (modelCounts.get(displayName) || 0) + 1);
-      }
-    } else {
-      if (!isSemi) {
-        modelCounts.set(displayName, (modelCounts.get(displayName) || 0) + 1);
-      }
-    }
-  });
-
-  const sorted = Array.from(modelCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8);
-
-  if (sorted.length === 0) {
-    container.style.display = 'none';
-    pillsEl.innerHTML = '';
-    return;
-  }
-
-  container.style.display = 'flex';
-  const cleanCurrentQuery = (sfSearchQuery || '').trim().toUpperCase();
-
-  const pillsHtml = sorted.map(([mName, count]) => {
-    const isActive = cleanCurrentQuery === mName.toUpperCase();
-    const icon = getDeviceIconSvg(mName);
-    const escaped = mName.replace(/'/g, "\\'");
-    return `
-      <button type="button" class="sf-suggestion-pill ${isActive ? 'active' : ''}" onclick="selectSfSuggestion('${escaped}')" title="Filtrar por ${mName}">
-        ${icon}
-        <span>${mName}</span>
-      </button>
-    `;
-  }).join('');
-
-  pillsEl.innerHTML = pillsHtml;
-}
-
-window.selectSfSuggestion = function(modelName) {
-  const sfInput = document.getElementById('sfSearchInput');
-  const clearBtn = document.getElementById('sfSearchClearBtn');
-
-  // Se o usuário clicar na sugestão que já está ativa, limpa o filtro
-  if (sfSearchQuery.trim().toUpperCase() === modelName.trim().toUpperCase()) {
-    if (sfInput) sfInput.value = '';
-    sfSearchQuery = '';
-    if (clearBtn) clearBtn.style.display = 'none';
-    renderSfSuggestions('');
-    renderStoreFront();
-    return;
-  }
-
-  if (sfInput) sfInput.value = modelName;
-  sfSearchQuery = modelName;
-  if (clearBtn) clearBtn.style.display = 'flex';
-
-  if (sfCategoryNav) {
-    sfCategoryNav.querySelectorAll('.pod-cat-pill').forEach(b => {
-      b.classList.toggle('active', b.dataset.sfCategory === 'ALL');
-    });
-    sfCurrentCategory = 'ALL';
-  }
-
-  renderSfSuggestions(modelName);
-  renderStoreFront();
-
-  // Fecha o teclado virtual do celular para exibir os produtos imediatamente
-  if (sfInput) sfInput.blur();
-};
 
 // 15. Render Preços do Dia (ESTRITAMENTE ORGANIZADO POR MODELOS COM BANNERS DE SEÇÃO)
 function renderPricesOfTheDay() {
@@ -3573,7 +3479,6 @@ if (sfSearchInput) {
       });
       sfCurrentCategory = 'ALL';
     }
-    renderSfSuggestions(sfSearchQuery);
     renderStoreFront();
   });
 
@@ -3590,7 +3495,6 @@ if (sfSearchClearBtn) {
     if (sfSearchInput) sfSearchInput.value = '';
     sfSearchQuery = '';
     sfSearchClearBtn.style.display = 'none';
-    renderSfSuggestions('');
     renderStoreFront();
   });
 }
@@ -3608,7 +3512,6 @@ if (sfCategoryNav) {
       sfSearchQuery = '';
       if (sfSearchClearBtn) sfSearchClearBtn.style.display = 'none';
     }
-    renderSfSuggestions('');
     renderStoreFront();
   });
 }
