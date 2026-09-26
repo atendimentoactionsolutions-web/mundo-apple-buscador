@@ -313,7 +313,7 @@
           </button>
         </div>
 
-        <div class="pod-search-container">
+        <div class="pod-search-container sf-search-desktop-only">
           <div class="pod-search-wrap">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="pod-search-icon">
               <circle cx="11" cy="11" r="8"/>
@@ -328,6 +328,17 @@
 
     <!-- Category Nav Pills for StoreFront -->
     <section class="pod-categories-wrapper">
+      <!-- Barra de busca MOBILE: aparece só no mobile, dentro do card unificado -->
+      <div class="pod-search-container sf-search-mobile-only">
+        <div class="pod-search-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="pod-search-icon">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.3-4.3"/>
+          </svg>
+          <input type="text" id="sfSearchInputMobile" placeholder="Buscar produto na loja..." autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
+          <button class="search-clear-btn" id="sfSearchClearBtnMobile" style="display: none;" title="Limpar busca">✕</button>
+        </div>
+      </div>
       <div class="pod-categories-list" id="sfCategoryNav">
         <button class="pod-cat-pill active" data-sf-category="IPH">
           <span class="cat-icon-svg">

@@ -3516,6 +3516,39 @@ if (sfCategoryNav) {
   });
 }
 
+// Event listeners para o input de busca MOBILE (dentro do card de categorias)
+const sfSearchInputMobile = document.getElementById('sfSearchInputMobile');
+const sfSearchClearBtnMobile = document.getElementById('sfSearchClearBtnMobile');
+
+if (sfSearchInputMobile) {
+  sfSearchInputMobile.addEventListener('input', (e) => {
+    sfSearchQuery = e.target.value;
+    if (sfSearchInput) sfSearchInput.value = sfSearchQuery;
+    if (sfSearchClearBtnMobile) sfSearchClearBtnMobile.style.display = sfSearchQuery ? 'flex' : 'none';
+    if (sfCategoryNav && sfSearchQuery.trim()) {
+      sfCategoryNav.querySelectorAll('.pod-cat-pill').forEach(b => {
+        b.classList.toggle('active', b.dataset.sfCategory === 'ALL');
+      });
+      sfCurrentCategory = 'ALL';
+    }
+    renderStoreFront();
+  });
+  sfSearchInputMobile.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === 'Escape') sfSearchInputMobile.blur();
+  });
+}
+
+if (sfSearchClearBtnMobile) {
+  sfSearchClearBtnMobile.addEventListener('click', () => {
+    if (sfSearchInputMobile) sfSearchInputMobile.value = '';
+    if (sfSearchInput) sfSearchInput.value = '';
+    sfSearchQuery = '';
+    sfSearchClearBtnMobile.style.display = 'none';
+    if (sfSearchClearBtn) sfSearchClearBtn.style.display = 'none';
+    renderStoreFront();
+  });
+}
+
 // Fechar dropdown de sugestões de modelo do Preços do Dia ao clicar fora
 document.addEventListener('click', (e) => {
   const podDropdown = document.getElementById('podAutocompleteDropdown');
