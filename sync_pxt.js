@@ -37,62 +37,72 @@ function isAppleProduct(p) {
 async function runSync() {
   console.log('🔄 Iniciando busca por dados recentes no cache do navegador...');
 
-  if (!fs.existsSync(OPERA_CACHE_DIR)) {
-    console.error('❌ Diretório de cache do Opera GX não encontrado:', OPERA_CACHE_DIR);
-    return;
-  }
-
-  const files = fs.readdirSync(OPERA_CACHE_DIR)
-    .filter(f => f.endsWith('_0'))
-    .map(f => path.join(OPERA_CACHE_DIR, f))
-    .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
-
   let latestProducts = null;
   let metadata = {};
 
-  for (const file of files.slice(0, 30)) {
-    try {
-      const buf = fs.readFileSync(file);
-      const httpIdx = buf.indexOf('HTTP/1.1');
-      if (httpIdx === -1) continue;
+  if (fs.existsSync(OPERA_CACHE_DIR)) {
+    const files = fs.readdirSync(OPERA_CACHE_DIR)
+      .filter(f => f.endsWith('_0'))
+      .map(f => path.join(OPERA_CACHE_DIR, f))
+      .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
 
-      const headerSlice = buf.slice(httpIdx, Math.min(buf.length, httpIdx + 500)).toString('latin1');
-      if (!headerSlice.includes('backend-api.buscadorpxt.com.br/products')) continue;
+    for (const file of files.slice(0, 150)) {
+      try {
+        const buf = fs.readFileSync(file);
+        if (!buf.includes('backend-api.buscadorpxt.com.br/products')) continue;
 
-      // Localizar o GZIP do body (1f 8b)
-      for (let i = 24; i < 400; i++) {
-        if (buf[i] === 0x1f && buf[i+1] === 0x8b) {
-          for (let end = httpIdx; end > httpIdx - 100; end--) {
-            try {
-              const d = zlib.gunzipSync(buf.slice(i, end));
-              const rawJson = JSON.parse(d.toString('utf8'));
-              let innerB64 = rawJson.data;
-              if (innerB64.startsWith('"') && innerB64.endsWith('"')) {
-                innerB64 = JSON.parse(innerB64);
-              }
-              const unzipped = zlib.gunzipSync(Buffer.from(innerB64, 'base64'));
-              const payload = JSON.parse(unzipped.toString('utf8'));
-              if (payload && Array.isArray(payload.data) && payload.data.length > 500) {
-                latestProducts = payload.data;
-                metadata = {
-                  dollarRate: payload.dollarRate,
-                  dollarVariation: payload.dollarVariation,
-                  date: payload.data[0]?.priceDate || payload.data[0]?.sheetDate || ''
-                };
-                console.log(`✅ Catálogo encontrado no arquivo de cache! Total de ofertas: ${latestProducts.length}`);
-                break;
-              }
-            } catch (e) {}
+        const httpIdx = buf.indexOf('HTTP/1.1');
+        if (httpIdx === -1) continue;
+
+        // Localizar o GZIP do body (1f 8b)
+        for (let i = 24; i < 400; i++) {
+          if (buf[i] === 0x1f && buf[i+1] === 0x8b) {
+            for (let end = httpIdx; end > httpIdx - 100; end--) {
+              try {
+                const d = zlib.gunzipSync(buf.slice(i, end));
+                const rawJson = JSON.parse(d.toString('utf8'));
+                let innerB64 = rawJson.data;
+                if (innerB64 && typeof innerB64 === 'string') {
+                  if (innerB64.startsWith('"') && innerB64.endsWith('"')) {
+                    innerB64 = JSON.parse(innerB64);
+                  }
+                  const unzipped = zlib.gunzipSync(Buffer.from(innerB64, 'base64'));
+                  const payload = JSON.parse(unzipped.toString('utf8'));
+                  if (payload && Array.isArray(payload.data) && payload.data.length > 500) {
+                    latestProducts = payload.data;
+                    metadata = {
+                      dollarRate: payload.dollarRate,
+                      dollarVariation: payload.dollarVariation,
+                      date: payload.data[0]?.priceDate || payload.data[0]?.sheetDate || ''
+                    };
+                    console.log(`✅ Catálogo encontrado em ${path.basename(file)}! Total de ofertas: ${latestProducts.length}`);
+                    break;
+                  }
+                }
+              } catch (e) {}
+            }
+            if (latestProducts) break;
           }
-          if (latestProducts) break;
         }
-      }
-      if (latestProducts) break;
-    } catch (e) {}
+        if (latestProducts) break;
+      } catch (e) {}
+    }
+  }
+
+  // Fallback para o snapshot_latest se o cache não tiver arquivo novo
+  if (!latestProducts || latestProducts.length === 0) {
+    const snapPath = path.join(__dirname, 'data', 'snapshot_latest.json');
+    if (fs.existsSync(snapPath)) {
+      console.log('📦 Usando produtos do snapshot local mais recente como base...');
+      latestProducts = JSON.parse(fs.readFileSync(snapPath, 'utf8'));
+      metadata = {
+        date: latestProducts[0]?.priceDate || latestProducts[0]?.sheetDate || '28-09'
+      };
+    }
   }
 
   if (!latestProducts || latestProducts.length === 0) {
-    console.log('⚠️ Nenhum catálogo novo encontrado no cache recente. Abra a aba da PXT no navegador para carregar.');
+    console.log('⚠️ Nenhum produto disponível para sincronização.');
     return;
   }
 
@@ -125,7 +135,7 @@ async function runSync() {
     });
 
     if (resp.data && resp.data.success) {
-      console.log(`🚀 SUCESSO! ${resp.data.count} produtos sincronizados ao vivo no servidor Render.`);
+      console.log(`🚀 SUCESSO TOTAL! ${resp.data.count} produtos sincronizados ao vivo no servidor Render.`);
       console.log(`📅 Data do catálogo: ${resp.data.date}`);
     } else {
       console.error('Resposta inesperada do servidor:', resp.data);
