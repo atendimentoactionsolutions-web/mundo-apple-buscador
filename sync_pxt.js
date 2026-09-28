@@ -1,0 +1,138 @@
+/**
+ * sync_pxt.js — Sincronizador Automático PXT -> Servidor Render
+ * 
+ * Este script roda localmente no seu Mac. Ele lê os dados mais recentes recebidos
+ * pelo seu navegador Opera GX (onde você já está autenticado no PXT) e envia 
+ * diretamente para o seu servidor na nuvem (Render) via endpoint seguro.
+ */
+
+const fs = require('fs');
+const path = require('path');
+const zlib = require('zlib');
+const axios = require('axios');
+
+// Configurações
+const RENDER_SERVER_URL = process.env.RENDER_URL || 'https://mundo-apple-buscador.onrender.com';
+const SYNC_SECRET = process.env.SYNC_SECRET || 'apple_mundo_pxt_secret_sync_2026';
+const OPERA_CACHE_DIR = path.join(
+  process.env.HOME || '/Users/imac27',
+  'Library/Caches/com.operasoftware.OperaGX/Default/Cache/Cache_Data'
+);
+
+function isAppleProduct(p) {
+  if (!p || !p.name) return false;
+  const name = p.name.toUpperCase();
+  const cat = (p.category || '').toUpperCase();
+  const desc = (p.description || '').toUpperCase();
+
+  if (name.includes('AS IS') || name.includes('AS-IS') || name.includes('ASIS') || desc.includes('AS IS')) return false;
+  if (name.includes('SAMSUNG') || name.includes('XIAOMI') || name.includes('REDMI') || name.includes('POCO') || name.includes('MOTOROLA') || name.includes('REALME')) return false;
+
+  return (
+    cat === 'IPH' || cat === 'MCB' || cat === 'IPAD' || cat === 'IPD' || cat === 'RLG' || cat === 'IMAC' || cat === 'PODS' || cat === 'ACSS' || cat === 'SEMI' ||
+    name.includes('IPHONE') || name.includes('MACBOOK') || name.includes('IPAD') || name.includes('APPLE WATCH') || name.includes('AIRPOD') || name.includes('IMAC') || name.includes('APPLE TV') || name.includes('AIRTAG') || name.includes('PENCIL') || name.includes('MAGIC KEYBOARD') || name.includes('MAGIC MOUSE')
+  );
+}
+
+async function runSync() {
+  console.log('🔄 Iniciando busca por dados recentes no cache do navegador...');
+
+  if (!fs.existsSync(OPERA_CACHE_DIR)) {
+    console.error('❌ Diretório de cache do Opera GX não encontrado:', OPERA_CACHE_DIR);
+    return;
+  }
+
+  const files = fs.readdirSync(OPERA_CACHE_DIR)
+    .filter(f => f.endsWith('_0'))
+    .map(f => path.join(OPERA_CACHE_DIR, f))
+    .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
+
+  let latestProducts = null;
+  let metadata = {};
+
+  for (const file of files.slice(0, 30)) {
+    try {
+      const buf = fs.readFileSync(file);
+      const httpIdx = buf.indexOf('HTTP/1.1');
+      if (httpIdx === -1) continue;
+
+      const headerSlice = buf.slice(httpIdx, Math.min(buf.length, httpIdx + 500)).toString('latin1');
+      if (!headerSlice.includes('backend-api.buscadorpxt.com.br/products')) continue;
+
+      // Localizar o GZIP do body (1f 8b)
+      for (let i = 24; i < 400; i++) {
+        if (buf[i] === 0x1f && buf[i+1] === 0x8b) {
+          for (let end = httpIdx; end > httpIdx - 100; end--) {
+            try {
+              const d = zlib.gunzipSync(buf.slice(i, end));
+              const rawJson = JSON.parse(d.toString('utf8'));
+              let innerB64 = rawJson.data;
+              if (innerB64.startsWith('"') && innerB64.endsWith('"')) {
+                innerB64 = JSON.parse(innerB64);
+              }
+              const unzipped = zlib.gunzipSync(Buffer.from(innerB64, 'base64'));
+              const payload = JSON.parse(unzipped.toString('utf8'));
+              if (payload && Array.isArray(payload.data) && payload.data.length > 500) {
+                latestProducts = payload.data;
+                metadata = {
+                  dollarRate: payload.dollarRate,
+                  dollarVariation: payload.dollarVariation,
+                  date: payload.data[0]?.priceDate || payload.data[0]?.sheetDate || ''
+                };
+                console.log(`✅ Catálogo encontrado no arquivo de cache! Total de ofertas: ${latestProducts.length}`);
+                break;
+              }
+            } catch (e) {}
+          }
+          if (latestProducts) break;
+        }
+      }
+      if (latestProducts) break;
+    } catch (e) {}
+  }
+
+  if (!latestProducts || latestProducts.length === 0) {
+    console.log('⚠️ Nenhum catálogo novo encontrado no cache recente. Abra a aba da PXT no navegador para carregar.');
+    return;
+  }
+
+  // Filtrar produtos Apple
+  const appleList = latestProducts.filter(isAppleProduct).map(p => {
+    const isSemi = (p.category === 'SEMI' || (p.name || '').toUpperCase().includes('SEMINOVO') || (p.name || '').toUpperCase().includes('SEMI NOVO'));
+    return {
+      ...p,
+      condition: isSemi ? 'SEMINOVO' : 'NOVO',
+      isSeminovo: isSemi
+    };
+  });
+
+  console.log(`🍏 Produtos Apple filtrados: ${appleList.length}`);
+  console.log(`📡 Enviando para o servidor Render (${RENDER_SERVER_URL})...`);
+
+  try {
+    const resp = await axios.post(`${RENDER_SERVER_URL}/api/admin/push-catalog`, {
+      products: appleList,
+      date: metadata.date,
+      dollarRate: metadata.dollarRate,
+      dollarVariation: metadata.dollarVariation
+    }, {
+      headers: {
+        'x-sync-secret': SYNC_SECRET,
+        'Content-Type': 'application/json'
+      },
+      maxBodyLength: 50 * 1024 * 1024,
+      timeout: 30000
+    });
+
+    if (resp.data && resp.data.success) {
+      console.log(`🚀 SUCESSO! ${resp.data.count} produtos sincronizados ao vivo no servidor Render.`);
+      console.log(`📅 Data do catálogo: ${resp.data.date}`);
+    } else {
+      console.error('Resposta inesperada do servidor:', resp.data);
+    }
+  } catch (err) {
+    console.error('❌ Erro ao enviar para o Render:', err.response?.data || err.message);
+  }
+}
+
+runSync();

@@ -1085,6 +1085,45 @@ app.post('/api/sync', requireAdminApi, async (req, res) => {
   }
 });
 
+// Endpoint seguro para o sincronizador local enviar catálogo novo diretamente
+app.post('/api/admin/push-catalog', async (req, res) => {
+  const syncSecret = process.env.SYNC_SECRET || 'apple_mundo_pxt_secret_sync_2026';
+  const authHeader = req.headers['x-sync-secret'];
+  
+  if (authHeader !== syncSecret) {
+    return res.status(403).json({ error: 'Acesso negado: segredo de sincronização inválido.' });
+  }
+
+  const { products, date, dollarRate: newDollar, dollarVariation: newVar } = req.body;
+  if (!Array.isArray(products) || products.length === 0) {
+    return res.status(400).json({ error: 'Lista de produtos vazia ou inválida.' });
+  }
+
+  // Atualizar mapa de produtos em memória
+  productsMap.clear();
+  products.forEach(p => {
+    if (p && p.id) productsMap.set(String(p.id), p);
+  });
+
+  if (date) latestDate = date;
+  if (newDollar) dollarRate = newDollar;
+  if (newVar !== undefined) dollarVariation = newVar;
+
+  // Salvar snapshot em disco
+  saveCatalogSnapshot();
+
+  // Notificar todos os clientes conectados via WebSocket instantaneamente
+  localIo.emit('catalog_reloaded', {
+    total: productsMap.size,
+    latestDate,
+    dollarRate,
+    dollarVariation
+  });
+
+  console.log(`[Push Sync] ✅ Catálogo atualizado com sucesso! ${productsMap.size} produtos recebidos. Data: ${latestDate}`);
+  res.json({ success: true, count: productsMap.size, date: latestDate });
+});
+
 // Local client socket connection com Anti-Pirataria
 localIo.on('connection', (clientSocket) => {
   // O cliente registra seu token de sessão para receber avisos imediatos de sessão única
