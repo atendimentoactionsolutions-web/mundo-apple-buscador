@@ -227,23 +227,50 @@ function processAppleProduct(p) {
   return null;
 }
 
-// 1. Authenticate with Buscador PXT API
+// 1. Authenticate with Buscador PXT API (Suporta Token Fixo ou Login)
 async function authenticate() {
+  // Se houver um token configurado nas variáveis de ambiente ou salvo em arquivo
+  const envToken = process.env.PXT_AUTH_TOKEN;
+  const tokenFilePath = path.join(__dirname, 'data', 'pxt_token.txt');
+  
+  if (envToken && envToken.trim().length > 20) {
+    console.log('[Auth] 🔑 Usando PXT_AUTH_TOKEN das variáveis de ambiente.');
+    authToken = envToken.trim();
+    return authToken;
+  }
+
+  if (fs.existsSync(tokenFilePath)) {
+    try {
+      const savedToken = fs.readFileSync(tokenFilePath, 'utf8').trim();
+      if (savedToken && savedToken.length > 20) {
+        console.log('[Auth] 🔑 Usando token persistente salvo em data/pxt_token.txt.');
+        authToken = savedToken;
+        return authToken;
+      }
+    } catch (e) {}
+  }
+
   try {
-    console.log('[Auth] Autenticando com Buscador PXT...');
+    console.log('[Auth] Autenticando com Buscador PXT via credenciais...');
     const resp = await axios.post(`${PXT_BASE_URL}/auth/login`, {
       email: USER_EMAIL,
       password: USER_PASS,
       forceLogin: true
     }, {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 10000
     });
 
     authToken = resp.data.access_token;
     console.log('[Auth] Autenticação bem-sucedida! Token obtido.');
     return authToken;
   } catch (err) {
-    console.error('[Auth] Erro ao autenticar:', err.response?.data || err.message);
+    const errorMsg = err.response?.data?.message || err.message;
+    console.error('[Auth] Erro ao autenticar:', errorMsg);
+    // Se for bloqueio anti-robô, preserva o catálogo em memória / snapshot
+    if (errorMsg && errorMsg.includes('anti-robô')) {
+      console.warn('[Auth] ⚠️ Bloqueio Cloudflare detectado. O servidor usará o catálogo sincronizado via push ou snapshot.');
+    }
     throw err;
   }
 }

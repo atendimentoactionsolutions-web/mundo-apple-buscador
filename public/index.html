@@ -311,6 +311,12 @@
             </svg>
             <span>Exportar para WhatsApp</span>
           </button>
+          <button id="btnSyncSfPrices" onclick="triggerStorefrontSyncPrices(this)" style="display: none; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #3b82f6; padding: 7px 14px; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer; align-items: center; gap: 6px; transition: all 0.2s;" title="Atualizar preços e catálogo em tempo real">
+            <svg id="sfSyncIconSpin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+            <span id="btnSyncSfPricesText">Atualizar Preços</span>
+          </button>
         </div>
 
         <div class="pod-search-container sf-search-desktop-only">
@@ -548,6 +554,6 @@
     </div>
   </div>
 
-  <script src="/js/app.js?v=26.0"></script>
+  <script src="/js/app.js?v=27.0"></script>
 </body>
 </html>

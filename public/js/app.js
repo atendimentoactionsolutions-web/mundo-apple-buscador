@@ -3694,6 +3694,10 @@ async function checkAuthSession() {
     if (mobileDrawerExportBtn) mobileDrawerExportBtn.style.display = 'flex';
     if (mobileDrawerLogoutBtn) mobileDrawerLogoutBtn.style.display = 'flex';
 
+    // Exibe botão de sincronizar na Loja Física apenas quando logado
+    const sfSyncBtn = document.getElementById('btnSyncSfPrices');
+    if (sfSyncBtn) sfSyncBtn.style.display = 'inline-flex';
+
     // Se vier do Painel Admin clicando em 'Exportar Valores' (?export=true)
     if (window.location.search.includes('export=true')) {
       setTimeout(() => {
@@ -3707,6 +3711,45 @@ async function checkAuthSession() {
     console.error('Erro ao verificar sessão do usuário:', err);
   }
 }
+
+// Sincronizar preços diretamente pela tela da Loja Física
+window.triggerStorefrontSyncPrices = async function(btn) {
+  const textSpan = document.getElementById('btnSyncSfPricesText');
+  const icon = document.getElementById('sfSyncIconSpin');
+  const origText = textSpan ? textSpan.textContent : '';
+
+  if (btn) btn.disabled = true;
+  if (textSpan) textSpan.textContent = 'Atualizando...';
+  if (icon) icon.style.animation = 'spin 0.8s linear infinite';
+
+  try {
+    const resp = await fetch('/api/products');
+    const data = await resp.json();
+
+    if (data && data.success && Array.isArray(data.data)) {
+      allProducts = data.data;
+      if (data.dollarRate) dollarRate = data.dollarRate;
+      if (data.latestDate) latestDate = data.latestDate;
+      renderStoreFront();
+      if (textSpan) textSpan.textContent = `✓ Atualizado (${allProducts.length.toLocaleString('pt-BR')} itens)`;
+      if (btn) btn.style.color = 'var(--accent-green)';
+    } else {
+      if (textSpan) textSpan.textContent = '✓ Catálogo Ativo';
+    }
+  } catch (err) {
+    console.error('Erro ao atualizar preços:', err);
+    if (textSpan) textSpan.textContent = 'Erro ao atualizar';
+  } finally {
+    if (icon) icon.style.animation = '';
+    setTimeout(() => {
+      if (textSpan) textSpan.textContent = origText;
+      if (btn) {
+        btn.disabled = false;
+        btn.style.color = '#3b82f6';
+      }
+    }, 3000);
+  }
+};
 
 // Monta gaveta mobile dinamicamente APENAS em telas móveis quando o usuário clicar
 function ensureMobileDrawerMounted() {

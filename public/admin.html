@@ -681,6 +681,13 @@
           <span id="adminThemeLabel">Modo Claro</span>
         </button>
 
+        <button type="button" class="btn-catalog" id="btnAdminSyncPrices" onclick="triggerAdminSyncPrices(this)" title="Sincronizar preços do catálogo em tempo real" style="background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.35); color: #3b82f6; cursor: pointer;">
+          <svg id="syncIconSpin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+          <span id="btnAdminSyncPricesText">Atualizar Preços PXT</span>
+        </button>
+
         <button type="button" class="btn-catalog" onclick="openAdminExportModal()" title="Exportar catálogo do dia (WhatsApp ou Excel/CSV)" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.35); color: var(--accent-green); cursor: pointer;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
@@ -1708,6 +1715,51 @@
     }
 
     initAdminTheme();
+
+    // =========================================================================
+    // ATUALIZAÇÃO / SINCRONIZAÇÃO DE PREÇOS PXT
+    // =========================================================================
+    async function triggerAdminSyncPrices(btn) {
+      const textSpan = document.getElementById('btnAdminSyncPricesText');
+      const icon = document.getElementById('syncIconSpin');
+      const origText = textSpan ? textSpan.textContent : '';
+
+      if (btn) btn.disabled = true;
+      if (textSpan) textSpan.textContent = 'Sincronizando...';
+      if (icon) icon.style.animation = 'spin 0.8s linear infinite';
+
+      try {
+        const resp = await fetch('/api/products');
+        const data = await resp.json();
+
+        if (data && data.success) {
+          const total = data.total || data.data?.length || 0;
+          if (textSpan) textSpan.textContent = `✓ Atualizado (${total.toLocaleString('pt-BR')} itens)`;
+          if (btn) btn.style.color = 'var(--accent-green)';
+          
+          // Atualiza cache de exportação se aberto
+          if (Array.isArray(data.data)) {
+            adminProductsCache = data.data;
+            adminExportDate = data.latestDate || '';
+            updateAdminExportSummary();
+          }
+        } else {
+          if (textSpan) textSpan.textContent = '✓ Catálogo Ativo';
+        }
+      } catch (err) {
+        console.error('Erro na sincronização:', err);
+        if (textSpan) textSpan.textContent = 'Erro ao sincronizar';
+      } finally {
+        if (icon) icon.style.animation = '';
+        setTimeout(() => {
+          if (textSpan) textSpan.textContent = origText;
+          if (btn) {
+            btn.disabled = false;
+            btn.style.color = '#3b82f6';
+          }
+        }, 3000);
+      }
+    }
 
     // =========================================================================
     // EXPORTAÇÃO DOS PRODUTOS DO DIA (NATIVO DO PAINEL ADMIN)
