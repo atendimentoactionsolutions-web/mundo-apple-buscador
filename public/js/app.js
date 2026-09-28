@@ -3697,6 +3697,10 @@ async function checkAuthSession() {
     // Exibe botão de sincronizar na Loja Física apenas quando logado
     const sfSyncBtn = document.getElementById('btnSyncSfPrices');
     if (sfSyncBtn) sfSyncBtn.style.display = 'inline-flex';
+    const topSyncBtn = document.getElementById('btnSyncTopHeader');
+    if (topSyncBtn) topSyncBtn.style.display = 'inline-flex';
+    const drawerSyncBtn = document.getElementById('mobileDrawerSyncBtn');
+    if (drawerSyncBtn) drawerSyncBtn.style.display = 'flex';
 
     // Se vier do Painel Admin clicando em 'Exportar Valores' (?export=true)
     if (window.location.search.includes('export=true')) {
@@ -3712,15 +3716,24 @@ async function checkAuthSession() {
   }
 }
 
-// Sincronizar preços diretamente pela tela da Loja Física
+// Sincronizar preços diretamente pela tela da Loja Física (Desktop, Top Header e Mobile Drawer)
 window.triggerStorefrontSyncPrices = async function(btn) {
-  const textSpan = document.getElementById('btnSyncSfPricesText');
-  const icon = document.getElementById('sfSyncIconSpin');
-  const origText = textSpan ? textSpan.textContent : '';
+  const spans = [
+    document.getElementById('btnSyncSfPricesText'),
+    document.getElementById('btnSyncTopHeaderText'),
+    document.getElementById('mobileDrawerSyncText')
+  ].filter(Boolean);
+
+  const icons = [
+    document.getElementById('sfSyncIconSpin'),
+    document.getElementById('topSyncIconSpin')
+  ].filter(Boolean);
+
+  const origTexts = spans.map(s => s.textContent);
 
   if (btn) btn.disabled = true;
-  if (textSpan) textSpan.textContent = 'Atualizando...';
-  if (icon) icon.style.animation = 'spin 0.8s linear infinite';
+  spans.forEach(s => s.textContent = 'Atualizando...');
+  icons.forEach(i => i.style.animation = 'spin 0.8s linear infinite');
 
   try {
     const resp = await fetch('/api/products');
@@ -3731,18 +3744,18 @@ window.triggerStorefrontSyncPrices = async function(btn) {
       if (data.dollarRate) dollarRate = data.dollarRate;
       if (data.latestDate) latestDate = data.latestDate;
       renderStoreFront();
-      if (textSpan) textSpan.textContent = `✓ Atualizado (${allProducts.length.toLocaleString('pt-BR')} itens)`;
+      spans.forEach(s => s.textContent = `✓ Atualizado (${allProducts.length.toLocaleString('pt-BR')})`);
       if (btn) btn.style.color = 'var(--accent-green)';
     } else {
-      if (textSpan) textSpan.textContent = '✓ Catálogo Ativo';
+      spans.forEach(s => s.textContent = '✓ Catálogo Ativo');
     }
   } catch (err) {
     console.error('Erro ao atualizar preços:', err);
-    if (textSpan) textSpan.textContent = 'Erro ao atualizar';
+    spans.forEach(s => s.textContent = 'Erro ao atualizar');
   } finally {
-    if (icon) icon.style.animation = '';
+    icons.forEach(i => i.style.animation = '');
     setTimeout(() => {
-      if (textSpan) textSpan.textContent = origText;
+      spans.forEach((s, idx) => s.textContent = origTexts[idx] || 'Atualizar Preços');
       if (btn) {
         btn.disabled = false;
         btn.style.color = '#3b82f6';
@@ -3812,6 +3825,12 @@ function ensureMobileDrawerMounted() {
             <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
           </svg>
           <span>Exportar Valores (WhatsApp)</span>
+        </button>
+        <button class="mobile-drawer-item" id="mobileDrawerSyncBtn" onclick="triggerStorefrontSyncPrices(this)" style="display: none; color: #3b82f6;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+          <span id="mobileDrawerSyncText">Atualizar Preços PXT</span>
         </button>
         <button class="mobile-drawer-item" id="mobileDrawerCalcBtn" onclick="closeMobileMenu(); openFreeCalculator();" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">

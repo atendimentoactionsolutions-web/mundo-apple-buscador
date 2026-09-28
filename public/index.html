@@ -78,6 +78,14 @@
 
       <!-- Live metrics & Actions -->
       <div class="header-right-group">
+        <!-- Quick Sync Button (Apenas logados) -->
+        <button class="calc-top-btn" id="btnSyncTopHeader" onclick="triggerStorefrontSyncPrices(this)" title="Atualizar catálogo e preços PXT" style="display: none; background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.35); color: #3b82f6;">
+          <svg id="topSyncIconSpin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+          <span id="btnSyncTopHeaderText">Atualizar Preços</span>
+        </button>
+
         <!-- Quick Export Button (Apenas logados) -->
         <button class="calc-top-btn" id="btnExportTopHeader" onclick="openStorefrontExportModal()" title="Exportar tabela de valores para o WhatsApp" style="display: none; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.35); color: var(--accent-green);">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -554,6 +562,6 @@
     </div>
   </div>
 
-  <script src="/js/app.js?v=27.0"></script>
+  <script src="/js/app.js?v=28.0"></script>
 </body>
 </html>
