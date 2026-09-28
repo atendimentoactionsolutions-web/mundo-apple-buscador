@@ -442,15 +442,7 @@
       color: #ffffff;
     }
 
-    .act-btn.wa {
-      background: rgba(37, 211, 102, 0.1);
-      border-color: rgba(37, 211, 102, 0.25);
-      color: #25d366;
-    }
-    .act-btn.wa:hover {
-      background: #25d366;
-      color: #ffffff;
-    }
+
 
     .act-btn.block {
       background: rgba(239, 68, 68, 0.1);
@@ -1197,9 +1189,6 @@
           badgeHtml = `<span class="status-badge active">🟢 Ativo (${u.daysRemaining} dias restantes)</span>`;
         }
 
-        const rawPhone = (u.whatsapp || '').replace(/\D/g, '');
-        const waLink = rawPhone ? `https://wa.me/55${rawPhone}?text=${encodeURIComponent(`Olá ${u.ownerName || u.storeName}! Seu acesso ao Fornecedor está ${u.status === 'expired' ? 'vencido' : 'vencendo em breve'}. Deseja renovar seu plano via Pix?`)}` : '#';
-
         return `
           <tr>
             <td class="store-name-col">
@@ -1208,17 +1197,12 @@
             </td>
             <td><code>${escapeHtml(u.username)}</code></td>
             <td>
-              ${rawPhone ? `
-                <a href="${waLink}" target="_blank" style="color: #25d366; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
-                  <span>${u.whatsapp}</span>
-                </a>
-              ` : '<span style="color: var(--text-muted);">—</span>'}
+              ${u.whatsapp ? `<span style="font-weight: 500;">${escapeHtml(u.whatsapp)}</span>` : '<span style="color: var(--text-muted);">—</span>'}
             </td>
             <td>${badgeHtml}</td>
             <td>
               <div class="table-actions">
                 <button class="act-btn renew" onclick="renewLojista('${u.id}', 30)" title="Adicionar +30 dias de acesso">+30 Dias</button>
-                ${rawPhone ? `<a href="${waLink}" target="_blank" class="act-btn wa" title="Cobrar ou falar no WhatsApp">Zap</a>` : ''}
                 <button class="act-btn ${u.status === 'blocked' ? 'renew' : 'block'}" onclick="toggleBlock('${u.id}')">
                   ${u.status === 'blocked' ? 'Desbloquear' : 'Bloquear'}
                 </button>

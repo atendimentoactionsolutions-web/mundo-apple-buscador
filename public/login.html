@@ -235,43 +235,8 @@
       transform: none;
     }
 
-    /* Single session notice */
-    .security-notice {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      font-size: 0.74rem;
-      color: var(--text-muted);
-      margin-top: 20px;
-    }
 
-    /* Footer WhatsApp Support */
-    .support-footer {
-      margin-top: 28px;
-      font-size: 0.82rem;
-      color: var(--text-secondary);
-    }
 
-    .support-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: #25d366;
-      font-weight: 700;
-      text-decoration: none;
-      margin-top: 6px;
-      padding: 6px 14px;
-      border-radius: var(--radius-full);
-      background: rgba(37, 211, 102, 0.1);
-      border: 1px solid rgba(37, 211, 102, 0.25);
-      transition: all 0.2s ease;
-    }
-
-    .support-link:hover {
-      background: rgba(37, 211, 102, 0.2);
-      transform: translateY(-1px);
-    }
 
     /* Loading Spinner */
     .spinner {
@@ -306,19 +271,17 @@
 
   <div class="login-container">
     
-    <!-- Brand -->
+    <!-- Brand / Logo Apple Clean -->
     <div class="brand-group">
-      <div class="logo-icon-wrap">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-          <path d="M2 17l10 5 10-5"/>
-          <path d="M2 12l10 5 10-5"/>
+      <div class="logo-icon-wrap" style="width: 48px; height: 48px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); color: var(--text-primary);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 1.01-2.85-.92.04-2.02.62-2.67 1.37-.58.66-1.09 1.73-1.02 2.76 1.03.08 2.07-.53 2.68-1.28z"/>
         </svg>
       </div>
     </div>
 
-    <h1 class="login-title">Acesso para Lojistas</h1>
-    <p class="login-subtitle">Preços e estoque no atacado em tempo real</p>
+    <h1 class="login-title" style="letter-spacing: -0.3px;">Acesso ao Sistema</h1>
+    <p class="login-subtitle">Informe suas credenciais para continuar</p>
 
     <!-- Error / Expired Alert -->
     <div id="alertBox" class="alert-banner"></div>
@@ -334,7 +297,7 @@
               <circle cx="12" cy="7" r="4"/>
             </svg>
           </span>
-          <input type="text" id="username" placeholder="Digite seu usuário de acesso" autocomplete="username" required autofocus>
+          <input type="text" id="username" placeholder="Digite seu usuário" autocomplete="username" required autofocus>
         </div>
       </div>
 
@@ -361,29 +324,9 @@
       <!-- Submit Button -->
       <button type="submit" class="submit-btn" id="submitBtn">
         <span class="spinner" id="spinner"></span>
-        <span id="btnText">Entrar no Sistema</span>
+        <span id="btnText">Entrar</span>
       </button>
-
-      <!-- Security Notice -->
-      <div class="security-notice">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-        </svg>
-        <span>Proteção anti-pirataria: 1 tela ativa por conta</span>
-      </div>
     </form>
-
-    <!-- Support / Renovation -->
-    <div class="support-footer">
-      <div>Ainda não tem cadastro ou quer renovar seu plano?</div>
-      <a class="support-link" href="https://wa.me/5511999999999?text=Ol%C3%A1!%20Gostaria%20de%20assinar/renovar%20o%20acesso%20ao%20Fornecedor." target="_blank" rel="noopener noreferrer">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M17.472 14.382c-.301-.15-1.781-.879-2.057-.98-.276-.1-.477-.15-.678.15-.2.301-.778.98-.954 1.18-.175.201-.351.226-.652.075-1.933-.969-3.196-1.727-4.464-3.905-.337-.58.338-.538.968-1.799.1-.201.05-.376-.025-.526-.075-.15-.678-1.632-.929-2.235-.244-.588-.493-.508-.678-.517-.175-.008-.376-.01-.577-.01-.201 0-.527.075-.803.376-.276.301-1.054 1.03-1.054 2.511 0 1.481 1.079 2.91 1.23 3.111.15.201 2.123 3.242 5.143 4.546 2.067.893 2.87.897 3.896.744.624-.093 1.781-.728 2.032-1.431.251-.703.251-1.305.175-1.43-.075-.126-.276-.201-.577-.351zM12 21.848c-1.802 0-3.568-.485-5.116-1.405l-.367-.218-3.804.997 1.015-3.708-.239-.38C2.508 15.518 2 13.784 2 12c0-5.514 4.486-10 10-10s10 4.486 10 10-4.486 10-10 10zm0-18.182C7.488 3.666 3.818 7.336 3.818 12c0 1.636.474 3.208 1.371 4.564l.215.324-.606 2.215 2.268-.595.314.186C8.705 19.645 10.33 20.182 12 20.182c4.512 0 8.182-3.67 8.182-8.182 0-4.512-3.67-8.182-8.182-8.182z"/>
-        </svg>
-        <span>Falar no WhatsApp</span>
-      </a>
-    </div>
-
   </div>
 
   <script>
