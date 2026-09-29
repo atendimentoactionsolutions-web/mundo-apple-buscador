@@ -1,47 +1,13 @@
 /**
  * auth.js — Módulo de Autenticação e Gestão de Lojistas
- * Integração Oficial com Supabase (PostgreSQL na Nuvem) + Proteção Anti-Pirataria (Sessão Única)
+ * Armazenamento 100% Local (data/users.json) + Proteção Anti-Pirataria (Sessão Única via Socket.io)
  */
 
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const axios = require('axios');
 
-// Carregar variáveis do .env local se existir
-try {
-  const envPath = path.join(__dirname, '.env');
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf8');
-    envContent.split('\n').forEach(line => {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('#')) {
-        const [k, ...v] = trimmed.split('=');
-        if (k && !process.env[k.trim()]) {
-          process.env[k.trim()] = v.join('=').trim();
-        }
-      }
-    });
-  }
-} catch (e) {}
-
-// Configurações do Supabase
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://fcdtamolcniahnkqfoko.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_KEY || '';
-
-// Cliente HTTP para a API REST do Supabase
-const supabase = axios.create({
-  baseURL: `${SUPABASE_URL}/rest/v1`,
-  headers: {
-    'apikey': SUPABASE_KEY,
-    'Authorization': `Bearer ${SUPABASE_KEY}`,
-    'Content-Type': 'application/json',
-    'Prefer': 'return=representation'
-  },
-  timeout: 8000
-});
-
-// Arquivo de fallback local caso o banco esteja indisponível
+// Diretório e arquivo de dados locais
 const LOCAL_DATA_DIR = path.join(__dirname, 'data');
 const LOCAL_USERS_FILE = path.join(LOCAL_DATA_DIR, 'users.json');
 
@@ -66,7 +32,7 @@ function verifyPassword(password, storedHash) {
   }
 }
 
-// Fallback local: lê e salva em data/users.json
+// Lê usuários de data/users.json
 function getLocalUsers() {
   try {
     if (!fs.existsSync(LOCAL_DATA_DIR)) {
@@ -97,6 +63,7 @@ function getLocalUsers() {
   }
 }
 
+// Salva usuários em data/users.json
 function saveLocalUsers(users) {
   try {
     if (!fs.existsSync(LOCAL_DATA_DIR)) {
@@ -108,67 +75,48 @@ function saveLocalUsers(users) {
   }
 }
 
-// Inicializa a tabela e o admin padrão no Supabase (se necessário)
+// Inicializa a autenticação local e garante o admin padrão
 async function initAuth() {
-  console.log('[Auth] Conectando ao Supabase para verificar usuários...');
-  try {
-    const resp = await supabase.get('/lojistas?username=eq.admin');
-    if (resp.data && resp.data.length === 0) {
-      // Cria o administrador padrão no Supabase
-      console.log('[Auth] Criando usuário admin padrão no Supabase...');
-      await supabase.post('/lojistas', {
-        store_name: 'Administração Fornecedor',
-        owner_name: 'Admin',
-        username: 'admin',
-        password_hash: hashPassword('fornecedor2026!'),
-        role: 'admin',
-        status: 'active',
-        expires_at: null
-      });
-      console.log('[Auth] ✅ Admin padrão criado com sucesso no Supabase (admin / fornecedor2026!)');
-    } else {
-      console.log('[Auth] ✅ Supabase conectado com sucesso! Tabela de lojistas pronta.');
-    }
-  } catch (err) {
-    console.warn('[Auth] ⚠️ Aviso: Supabase ainda não possui a tabela "lojistas" criada ou houve falha de conexão.');
-    console.warn('[Auth] Detalhes do erro:', err.response?.data?.message || err.message);
-    console.log('[Auth] 🔄 Ativando armazenamento local de segurança em data/users.json...');
-    getLocalUsers();
+  console.log('[Auth] Inicializando autenticação local (data/users.json)...');
+  const users = getLocalUsers();
+  const admin = users.find(u => u.username === 'admin');
+  if (!admin) {
+    console.log('[Auth] Criando usuário admin padrão local...');
+    users.unshift({
+      id: 'admin-001',
+      store_name: 'Administração Fornecedor',
+      owner_name: 'Admin',
+      whatsapp: '',
+      username: 'admin',
+      password_hash: hashPassword('fornecedor2026!'),
+      role: 'admin',
+      status: 'active',
+      expires_at: null,
+      current_session_token: null,
+      created_at: new Date().toISOString()
+    });
+    saveLocalUsers(users);
+    console.log('[Auth] ✅ Admin padrão criado com sucesso localmente (admin / fornecedor2026!)');
+  } else {
+    console.log(`[Auth] ✅ Armazenamento local pronto! ${users.length} usuário(s) carregado(s).`);
   }
 }
 
-// Busca usuário por username (Supabase com fallback local)
+// Busca usuário por username
 async function findUserByUsername(username) {
   const cleanUser = (username || '').trim().toLowerCase();
-  try {
-    const resp = await supabase.get(`/lojistas?username=eq.${encodeURIComponent(cleanUser)}`);
-    if (resp.data && resp.data.length > 0) {
-      return resp.data[0];
-    }
-  } catch (err) {
-    // Fallback local
-    const users = getLocalUsers();
-    return users.find(u => u.username.toLowerCase() === cleanUser);
-  }
-  return null;
+  const users = getLocalUsers();
+  return users.find(u => (u.username || '').toLowerCase() === cleanUser) || null;
 }
 
-// Busca usuário por token de sessão única
+// Busca usuário por token de sessão
 async function findUserBySessionToken(token) {
   if (!token) return null;
-  try {
-    const resp = await supabase.get(`/lojistas?current_session_token=eq.${encodeURIComponent(token)}`);
-    if (resp.data && resp.data.length > 0) {
-      return resp.data[0];
-    }
-  } catch (err) {
-    const users = getLocalUsers();
-    return users.find(u => u.current_session_token === token);
-  }
-  return null;
+  const users = getLocalUsers();
+  return users.find(u => u.current_session_token === token) || null;
 }
 
-// Login com verificação de senha, expiração e geração de sessão única anti-pirataria
+// Login de usuário
 async function loginUser(username, password, clientIp, ioInstance) {
   const user = await findUserByUsername(username);
   if (!user) {
@@ -201,33 +149,23 @@ async function loginUser(username, password, clientIp, ioInstance) {
     }
   }
 
-  // =========================================================================
-  // PROTEÇÃO ANTI-PIRATARIA: GERAÇÃO DE SESSÃO ÚNICA (1 TELA POR LOJA)
-  // =========================================================================
+  // GERAÇÃO DE SESSÃO ÚNICA (1 TELA POR LOJA)
   const newSessionToken = crypto.randomUUID();
 
-  // Se já havia alguém conectado nesta mesma conta em outro aparelho, desconecta na hora!
+  // Desconecta sessão anterior se houver
   if (ioInstance && user.current_session_token) {
     ioInstance.to(`user_${user.id}`).emit('session_terminated', {
       reason: 'Sua conta foi acessada em outro dispositivo ou navegador. O sistema permite apenas 1 tela ativa por assinatura.'
     });
   }
 
-  // Atualiza a sessão única e a data de último login no Supabase
-  try {
-    await supabase.patch(`/lojistas?id=eq.${user.id}`, {
-      current_session_token: newSessionToken,
-      last_login_at: new Date().toISOString()
-    });
-  } catch (err) {
-    // Atualiza local se falhar Supabase
-    const users = getLocalUsers();
-    const idx = users.findIndex(u => u.id === user.id);
-    if (idx !== -1) {
-      users[idx].current_session_token = newSessionToken;
-      users[idx].last_login_at = new Date().toISOString();
-      saveLocalUsers(users);
-    }
+  // Atualiza localmente
+  const users = getLocalUsers();
+  const idx = users.findIndex(u => u.id === user.id);
+  if (idx !== -1) {
+    users[idx].current_session_token = newSessionToken;
+    users[idx].last_login_at = new Date().toISOString();
+    saveLocalUsers(users);
   }
 
   user.current_session_token = newSessionToken;
@@ -249,38 +187,15 @@ async function loginUser(username, password, clientIp, ioInstance) {
 // Encerra a sessão
 async function logoutUser(token) {
   if (!token) return;
-  try {
-    await supabase.patch(`/lojistas?current_session_token=eq.${encodeURIComponent(token)}`, {
-      current_session_token: null
-    });
-  } catch (err) {
-    const users = getLocalUsers();
-    const u = users.find(x => x.current_session_token === token);
-    if (u) {
-      u.current_session_token = null;
-      saveLocalUsers(users);
-    }
+  const users = getLocalUsers();
+  const u = users.find(x => x.current_session_token === token);
+  if (u) {
+    u.current_session_token = null;
+    saveLocalUsers(users);
   }
 }
 
-// ===========================================================================
-// FUNÇÕES ADMINISTRATIVAS (CRUD DE LOJISTAS)
-// ===========================================================================
-
-// Lista todos os lojistas cadastrados
-async function listLojistas() {
-  try {
-    const resp = await supabase.get('/lojistas?order=created_at.desc');
-    if (resp.data) {
-      return resp.data.map(formatLojistaResponse);
-    }
-  } catch (err) {
-    const users = getLocalUsers();
-    return users.map(formatLojistaResponse);
-  }
-  return [];
-}
-
+// Formata resposta do lojista para o painel admin
 function formatLojistaResponse(u) {
   let daysRemaining = null;
   let isExpired = false;
@@ -313,6 +228,12 @@ function formatLojistaResponse(u) {
   };
 }
 
+// Lista todos os lojistas cadastrados
+async function listLojistas() {
+  const users = getLocalUsers();
+  return [...users].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).map(formatLojistaResponse);
+}
+
 // Cadastra um novo lojista
 async function createLojista({ storeName, ownerName, whatsapp, username, password, days = 30 }) {
   const cleanUser = (username || '').trim().toLowerCase();
@@ -334,6 +255,7 @@ async function createLojista({ storeName, ownerName, whatsapp, username, passwor
   }
 
   const newLojista = {
+    id: 'lojista_' + Date.now(),
     store_name: storeName.trim(),
     owner_name: (ownerName || '').trim(),
     whatsapp: (whatsapp || '').trim(),
@@ -343,7 +265,7 @@ async function createLojista({ storeName, ownerName, whatsapp, username, passwor
     status: 'active',
     expires_at: expiresAt,
     current_session_token: null,
-    // Novo lojista inicia com margens e taxas 100% zeradas (personalizáveis por ele)
+    created_at: new Date().toISOString(),
     custom_margins: {
       categories: {
         SEMINOVOS: 0,
@@ -370,67 +292,42 @@ async function createLojista({ storeName, ownerName, whatsapp, username, passwor
     }
   };
 
-  try {
-    const resp = await supabase.post('/lojistas', newLojista);
-    if (resp.data && resp.data.length > 0) {
-      return formatLojistaResponse(resp.data[0]);
-    }
-  } catch (err) {
-    const users = getLocalUsers();
-    newLojista.id = 'lojista_' + Date.now();
-    newLojista.created_at = new Date().toISOString();
-    users.push(newLojista);
-    saveLocalUsers(users);
-    return formatLojistaResponse(newLojista);
-  }
+  const users = getLocalUsers();
+  users.push(newLojista);
+  saveLocalUsers(users);
 
   return formatLojistaResponse(newLojista);
 }
 
 // Atualiza margens personalizadas do lojista
 async function updateLojistaMargins(id, customMargins) {
-  try {
-    await supabase.patch(`/lojistas?id=eq.${id}`, { custom_margins: customMargins });
-  } catch (err) {
-    const users = getLocalUsers();
-    const idx = users.findIndex(u => u.id === id);
-    if (idx !== -1) {
-      users[idx].custom_margins = customMargins;
-      saveLocalUsers(users);
-    }
+  const users = getLocalUsers();
+  const idx = users.findIndex(u => u.id === id);
+  if (idx !== -1) {
+    users[idx].custom_margins = customMargins;
+    saveLocalUsers(users);
   }
   return { success: true, margins: customMargins };
 }
 
 // Atualiza taxas de maquininha personalizadas do lojista
 async function updateLojistaCardRates(id, customCardRates) {
-  try {
-    await supabase.patch(`/lojistas?id=eq.${id}`, { custom_card_rates: customCardRates });
-  } catch (err) {
-    const users = getLocalUsers();
-    const idx = users.findIndex(u => u.id === id);
-    if (idx !== -1) {
-      users[idx].custom_card_rates = customCardRates;
-      saveLocalUsers(users);
-    }
+  const users = getLocalUsers();
+  const idx = users.findIndex(u => u.id === id);
+  if (idx !== -1) {
+    users[idx].custom_card_rates = customCardRates;
+    saveLocalUsers(users);
   }
   return { success: true, cardRates: customCardRates };
 }
 
 // Renova a assinatura (+30 dias ou período especificado)
 async function renewLojista(id, daysToAdd = 30) {
-  let user = null;
-  try {
-    const resp = await supabase.get(`/lojistas?id=eq.${id}`);
-    if (resp.data && resp.data.length > 0) user = resp.data[0];
-  } catch (err) {
-    const users = getLocalUsers();
-    user = users.find(u => u.id === id);
-  }
+  const users = getLocalUsers();
+  const idx = users.findIndex(u => u.id === id);
+  if (idx === -1) throw new Error('Lojista não encontrado.');
 
-  if (!user) throw new Error('Lojista não encontrado.');
-
-  // Se já estava vencido, conta a partir de hoje; se ainda tinha dias, soma aos dias restantes!
+  const user = users[idx];
   const now = new Date();
   let baseDate = now;
   if (user.expires_at) {
@@ -443,50 +340,24 @@ async function renewLojista(id, daysToAdd = 30) {
   baseDate.setDate(baseDate.getDate() + Number(daysToAdd));
   const newExpiresAt = baseDate.toISOString();
 
-  try {
-    await supabase.patch(`/lojistas?id=eq.${id}`, {
-      expires_at: newExpiresAt,
-      status: 'active'
-    });
-  } catch (err) {
-    const users = getLocalUsers();
-    const idx = users.findIndex(u => u.id === id);
-    if (idx !== -1) {
-      users[idx].expires_at = newExpiresAt;
-      users[idx].status = 'active';
-      saveLocalUsers(users);
-    }
-  }
+  users[idx].expires_at = newExpiresAt;
+  users[idx].status = 'active';
+  saveLocalUsers(users);
 
   return { success: true, expiresAt: newExpiresAt };
 }
 
 // Bloqueia ou Desbloqueia manualmente um lojista
 async function toggleBlockLojista(id) {
-  let user = null;
-  try {
-    const resp = await supabase.get(`/lojistas?id=eq.${id}`);
-    if (resp.data && resp.data.length > 0) user = resp.data[0];
-  } catch (err) {
-    const users = getLocalUsers();
-    user = users.find(u => u.id === id);
-  }
+  const users = getLocalUsers();
+  const idx = users.findIndex(u => u.id === id);
+  if (idx === -1) throw new Error('Lojista não encontrado.');
 
-  if (!user) throw new Error('Lojista não encontrado.');
-  if (user.role === 'admin') throw new Error('Não é permitido bloquear a conta de Administrador.');
+  if (users[idx].role === 'admin') throw new Error('Não é permitido bloquear a conta de Administrador.');
 
-  const newStatus = user.status === 'blocked' ? 'active' : 'blocked';
-
-  try {
-    await supabase.patch(`/lojistas?id=eq.${id}`, { status: newStatus });
-  } catch (err) {
-    const users = getLocalUsers();
-    const idx = users.findIndex(u => u.id === id);
-    if (idx !== -1) {
-      users[idx].status = newStatus;
-      saveLocalUsers(users);
-    }
-  }
+  const newStatus = users[idx].status === 'blocked' ? 'active' : 'blocked';
+  users[idx].status = newStatus;
+  saveLocalUsers(users);
 
   return { success: true, status: newStatus };
 }
@@ -497,35 +368,22 @@ async function updateLojistaPassword(id, newPassword) {
     throw new Error('A nova senha deve ter no mínimo 4 caracteres.');
   }
 
-  const passwordHash = hashPassword(newPassword);
+  const users = getLocalUsers();
+  const idx = users.findIndex(u => u.id === id);
+  if (idx === -1) throw new Error('Lojista não encontrado.');
 
-  try {
-    await supabase.patch(`/lojistas?id=eq.${id}`, {
-      password_hash: passwordHash,
-      current_session_token: null // Obriga a reconectar
-    });
-  } catch (err) {
-    const users = getLocalUsers();
-    const idx = users.findIndex(u => u.id === id);
-    if (idx !== -1) {
-      users[idx].password_hash = passwordHash;
-      users[idx].current_session_token = null;
-      saveLocalUsers(users);
-    }
-  }
+  users[idx].password_hash = hashPassword(newPassword);
+  users[idx].current_session_token = null; // Obriga a reconectar
+  saveLocalUsers(users);
 
   return { success: true };
 }
 
 // Exclui um lojista
 async function deleteLojista(id) {
-  try {
-    await supabase.delete(`/lojistas?id=eq.${id}`);
-  } catch (err) {
-    let users = getLocalUsers();
-    users = users.filter(u => u.id !== id);
-    saveLocalUsers(users);
-  }
+  let users = getLocalUsers();
+  users = users.filter(u => u.id !== id);
+  saveLocalUsers(users);
   return { success: true };
 }
 
