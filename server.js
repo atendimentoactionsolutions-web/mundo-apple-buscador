@@ -567,6 +567,11 @@ function connectPxtWebSocket() {
 // 4. AUTENTICAÇÃO, ANTI-PIRATARIA & ENDPOINTS REST
 // =========================================================================
 
+// Endpoint leve de Health Check para UptimeRobot / Keep-Alive
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
 // Middleware de Proteção de API para Usuários Autenticados
 async function requireAuthApi(req, res, next) {
   const token = auth.getSessionTokenFromRequest(req);
