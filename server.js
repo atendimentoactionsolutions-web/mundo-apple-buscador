@@ -759,10 +759,11 @@ function getDefaultMargins() {
   return {
     categories: {
       SEMINOVOS: 600,  // Apple Seminovos: +R$ 600
-      IPH18: 1100,     // iPhone Linha 18 (Lançamento Importante): +R$ 1.100
+      IPH18: 1300,     // iPhone Linha 18 (Lançamento Importante): +R$ 1.300
       IPH: 750,        // iPhone (Outros modelos): +R$ 750
       MCB_AIR: 1000,   // Mac Air: +R$ 1.000
       MCB_PRO: 1300,   // Outros Modelos Mac / Pro: +R$ 1.300
+      MCB_MAX: 2500,   // MacBook Pro Max: +R$ 2.500
       IPAD: 500,       // iPad: +R$ 500
       RLG: 500,        // Apple Watch: +R$ 500
       IMAC: 1500,      // iMac: +R$ 1.500

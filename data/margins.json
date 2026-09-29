@@ -1,10 +1,11 @@
 {
   "categories": {
     "SEMINOVOS": 600,
-    "IPH18": 1100,
+    "IPH18": 1300,
     "IPH": 750,
     "MCB_AIR": 1000,
     "MCB_PRO": 1300,
+    "MCB_MAX": 2500,
     "IPAD": 500,
     "RLG": 500,
     "IMAC": 1500,
@@ -18,5 +19,9 @@
     "MAGIC_MOUSE": 430,
     "APPLE_TV": 500
   },
-  "products": {}
+  "products": {
+    "MACBOOK PRO M5 MAX 14\"": 2500,
+    "MACBOOK PRO M5 MAX 16\"": 2500,
+    "MACBOOK PRO M4 MAX 16\"": 2500
+  }
 }

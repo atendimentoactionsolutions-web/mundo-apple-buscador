@@ -1253,9 +1253,11 @@ function calculateSupplierReferencePrice(offers, isSeminovo = false) {
 let margins = {
   categories: {
     SEMINOVOS: 600,
+    IPH18: 1300,
     IPH: 750,
     MCB_AIR: 1000,
     MCB_PRO: 1300,
+    MCB_MAX: 2500,
     IPAD: 500,
     RLG: 500,
     IMAC: 1500,
@@ -1332,9 +1334,9 @@ function getProductRetailPrice(p) {
   // 1. Exceção de modelo específico se cadastrada no painel admin
   let margin = margins.products ? margins.products[nameUpper] : undefined;
 
-  // 2. Se for Linha iPhone 18 (Lançamento Importante), aplica a margem de R$ 1.100
+  // 2. Se for Linha iPhone 18 (Lançamento Importante), aplica a margem de R$ 1.300
   if (margin === undefined && (nameUpper.includes('IPHONE 18') || nameUpper.includes('IPH 18'))) {
-    margin = (margins.categories && margins.categories.IPH18 !== undefined) ? margins.categories.IPH18 : 1100;
+    margin = (margins.categories && margins.categories.IPH18 !== undefined) ? margins.categories.IPH18 : 1300;
   }
 
   // 3. Se for Seminovo, aplica a margem de Seminovos (padrão R$ 600)
@@ -1361,6 +1363,8 @@ function getProductRetailPrice(p) {
       margin = margins.categories.APPLE_TV ?? 500;
     } else if (catUpper === 'IPH' || nameUpper.includes('IPHONE')) {
       margin = margins.categories.IPH ?? 750;
+    } else if ((nameUpper.includes('MACBOOK') || catUpper === 'MCB') && nameUpper.includes('MAX')) {
+      margin = (margins.categories && margins.categories.MCB_MAX !== undefined) ? margins.categories.MCB_MAX : 2500;
     } else if (nameUpper.includes('MACBOOK AIR') || nameUpper.includes('AIR M') || (catUpper === 'MCB' && nameUpper.includes('AIR'))) {
       margin = margins.categories.MCB_AIR ?? 1000;
     } else if (catUpper === 'MCB' || nameUpper.includes('MACBOOK') || nameUpper.includes('MAC MINI') || nameUpper.includes('MAC STUDIO') || nameUpper.includes('MAC PRO')) {
