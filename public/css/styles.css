@@ -4454,8 +4454,23 @@ body.light-theme .mobile-drawer-item:active {
     display: inline-flex !important;
   }
 
+  /* Alternador Preços do dia & Loja Física visível na tela inicial no mobile quando logado */
   .view-switch-nav {
-    display: none !important; /* escondido no header mobile — troca via drawer */
+    display: flex !important;
+    order: 3;
+    width: 100% !important;
+    flex-basis: 100% !important;
+    margin-top: 6px !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-full) !important;
+    padding: 3px !important;
+    gap: 4px !important;
+    box-sizing: border-box !important;
+  }
+  body.light-theme .view-switch-nav {
+    background: rgba(0, 0, 0, 0.05) !important;
+    border-color: rgba(0, 0, 0, 0.1) !important;
   }
   .view-switch-nav.single-tab {
     display: none !important;
@@ -4476,11 +4491,12 @@ body.light-theme .mobile-drawer-item:active {
   }
 
   .top-header .header-inner {
-    flex-wrap: nowrap !important;
+    flex-wrap: wrap !important;
     align-items: center !important;
     justify-content: space-between !important;
-    padding: 0 16px !important;
-    height: 56px !important;
+    padding: 8px 16px !important;
+    height: auto !important;
+    min-height: 56px !important;
   }
 
 
@@ -4493,8 +4509,8 @@ body.light-theme .mobile-drawer-item:active {
     display: none !important;
   }
 
-  /* Esconde a section do toolbar completamente no mobile */
-  .pod-toolbar-wrapper {
+  /* Esconde a section do toolbar apenas no storefront no mobile (pois usa o card unificado) */
+  #viewStoreFront .pod-toolbar-wrapper {
     display: none !important;
   }
 
