@@ -1195,10 +1195,22 @@ function cleanModelName(name) {
   return cleaned;
 }
 
+// Modelos de seminovos não permitidos (apenas a partir do iPhone 13, excluindo 13 Mini)
+function isDisallowedSeminovo(name) {
+  if (!name) return false;
+  const n = name.toUpperCase();
+  if (n.includes('13 MINI') || n.includes('13-MINI') || n.includes('13MINI')) return true;
+  if (/\b(IPHONE|IPH)\s+(11|12|X|XR|XS|SE|8|7|6)\b/i.test(n)) {
+    return true;
+  }
+  return false;
+}
+
 // Helper to detect if a product is an Apple Seminovo
 function isSeminovoProduct(p) {
   if (!p) return false;
   if (isAsIsProduct(p)) return false;
+  if (isDisallowedSeminovo(p.name)) return false;
   if (p.isSeminovo === true || p.condition === 'SEMINOVO') return true;
   const cat = (p.category || '').toUpperCase().trim();
   const name = (p.name || '').toLowerCase();
@@ -1448,6 +1460,10 @@ function renderStoreFront() {
   const filtered = allProducts.filter(p => {
     if (isCpoProduct(p)) return false;
     if (!p.price || p.price <= 0) return false;
+
+    // Descarta seminovos não permitidos (< 13 ou 13 Mini)
+    const rawSemi = p.isSeminovo === true || p.condition === 'SEMINOVO' || p.category === 'SEMI' || (p.name || '').toUpperCase().includes('SEMI');
+    if (rawSemi && isDisallowedSeminovo(p.name)) return false;
 
     const isSemi = isSeminovoProduct(p);
 
@@ -2311,6 +2327,10 @@ function renderPricesOfTheDay() {
   const filtered = allProducts.filter(p => {
     if (!p.price || p.price <= 0) return false;
     if (isCpoProduct(p)) return false;
+
+    // Descarta seminovos não permitidos (< 13 ou 13 Mini)
+    const rawSemi = p.isSeminovo === true || p.condition === 'SEMINOVO' || p.category === 'SEMI' || (p.name || '').toUpperCase().includes('SEMI');
+    if (rawSemi && isDisallowedSeminovo(p.name)) return false;
 
     const isSemi = isSeminovoProduct(p);
 

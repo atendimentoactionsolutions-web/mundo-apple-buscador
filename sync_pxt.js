@@ -19,6 +19,16 @@ const OPERA_CACHE_DIR = path.join(
   'Library/Caches/com.operasoftware.OperaGX/Default/Cache/Cache_Data'
 );
 
+function isDisallowedSeminovo(name) {
+  if (!name) return false;
+  const n = name.toUpperCase();
+  if (n.includes('13 MINI') || n.includes('13-MINI') || n.includes('13MINI')) return true;
+  if (/\b(IPHONE|IPH)\s+(11|12|X|XR|XS|SE|8|7|6)\b/i.test(n)) {
+    return true;
+  }
+  return false;
+}
+
 function isAppleProduct(p) {
   if (!p || !p.name) return false;
   const name = p.name.toUpperCase();
@@ -27,6 +37,9 @@ function isAppleProduct(p) {
 
   if (name.includes('AS IS') || name.includes('AS-IS') || name.includes('ASIS') || desc.includes('AS IS')) return false;
   if (name.includes('SAMSUNG') || name.includes('XIAOMI') || name.includes('REDMI') || name.includes('POCO') || name.includes('MOTOROLA') || name.includes('REALME')) return false;
+
+  const isSemi = cat === 'SEMI' || name.includes('SEMINOVO') || name.includes('SEMI NOVO') || name.includes('SEMI-NOVO') || name.includes('USADO') || name.includes('VITRINE');
+  if (isSemi && isDisallowedSeminovo(name)) return false;
 
   return (
     cat === 'IPH' || cat === 'MCB' || cat === 'IPAD' || cat === 'IPD' || cat === 'RLG' || cat === 'IMAC' || cat === 'PODS' || cat === 'ACSS' || cat === 'SEMI' ||

@@ -113,6 +113,17 @@ function isAsIsProduct(p) {
   );
 }
 
+// Modelos de seminovos não permitidos (apenas a partir do iPhone 13, excluindo 13 Mini)
+function isDisallowedSeminovo(name) {
+  if (!name) return false;
+  const n = name.toUpperCase();
+  if (n.includes('13 MINI') || n.includes('13-MINI') || n.includes('13MINI')) return true;
+  if (/\b(IPHONE|IPH)\s+(11|12|X|XR|XS|SE|8|7|6)\b/i.test(n)) {
+    return true;
+  }
+  return false;
+}
+
 // Filter & Classification for Apple Products (New and Seminovos)
 function isAppleSeminovo(p) {
   if (!p) return false;
@@ -156,6 +167,9 @@ function isAppleSeminovo(p) {
 
   if (!isSeminovoText) return false;
 
+  // Filtro de Seminovos: apenas do iPhone 13 para cima (exclui 13 Mini e anteriores ao 13)
+  if (isDisallowedSeminovo(p.name)) return false;
+
   // Must be an Apple device
   const isApple = (
     APPLE_CATEGORIES.has(cat) ||
@@ -195,8 +209,25 @@ function isAppleNovo(p) {
     return false;
   }
 
-  // Exclude Seminovos from Novo filter
-  if (isAppleSeminovo(p)) return false;
+  // Exclude Seminovos from Novo filter (mesmo os desconsiderados de seminovos não entram em novos)
+  const isSeminovoText = (
+    cat === 'SEMI' ||
+    name.includes('semi novo') ||
+    name.includes('semi-novo') ||
+    name.includes('seminovo') ||
+    name.includes('usado') ||
+    name.includes('vitrine') ||
+    name.includes('grade a') ||
+    name.includes('grade b') ||
+    name.includes('recondicionado') ||
+    name.includes('swp') ||
+    name.includes('swap') ||
+    desc.includes('semi novo') ||
+    desc.includes('seminovo') ||
+    desc.includes('vitrine') ||
+    desc.includes('usado')
+  );
+  if (isSeminovoText) return false;
 
   // Must be an Apple category (or named iPhone, Mac, iPad, Apple Watch, AirPods, iMac, Apple TV)
   if (APPLE_CATEGORIES.has(cat)) return true;
@@ -1136,7 +1167,10 @@ app.post('/api/admin/push-catalog', async (req, res) => {
   // Atualizar mapa de produtos em memória
   productsMap.clear();
   products.forEach(p => {
-    if (p && p.id) productsMap.set(String(p.id), p);
+    if (!p || !p.id) return;
+    const isSemi = p.isSeminovo === true || p.condition === 'SEMINOVO' || p.category === 'SEMI' || (p.name && (p.name.toUpperCase().includes('SEMINOVO') || p.name.toUpperCase().includes('SEMI NOVO')));
+    if (isSemi && isDisallowedSeminovo(p.name)) return;
+    productsMap.set(String(p.id), p);
   });
 
   if (date) latestDate = date;
@@ -1211,7 +1245,11 @@ async function start() {
       const initialSnapshot = getHistoricalCatalog('latest');
       if (initialSnapshot && initialSnapshot.length > 0) {
         initialSnapshot.forEach(p => {
-          if (p && p.id) productsMap.set(String(p.id), p);
+          if (p && p.id) {
+            const isSemi = p.isSeminovo === true || p.condition === 'SEMINOVO' || p.category === 'SEMI' || (p.name && (p.name.toUpperCase().includes('SEMINOVO') || p.name.toUpperCase().includes('SEMI NOVO')));
+            if (isSemi && isDisallowedSeminovo(p.name)) return;
+            productsMap.set(String(p.id), p);
+          }
         });
         console.log(`[Startup] 📦 ${productsMap.size} produtos pré-carregados instantaneamente do snapshot.`);
       }
