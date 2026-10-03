@@ -83,7 +83,7 @@ async function loadProducts(dateParam) {
     const res = await fetch(`/api/products?date=${target}`);
     if (!res.ok) return;
     const json = await res.json();
-    if (json.success && Array.isArray(json.data)) {
+    if (json.success && Array.isArray(json.data) && json.data.length > 0) {
       allProducts = json.data.filter(p => !isCpoProduct(p) && !isAsIsProduct(p));
       if (totalCountEl) totalCountEl.textContent = allProducts.length;
 

@@ -343,7 +343,8 @@ async function fetchProducts() {
       return Array.from(productsMap.values());
     }
 
-    productsMap.clear();
+    // SWAP ATÔMICO: Monta em mapa secundário para NUNCA zerar o catálogo em memória
+    const nextMap = new Map();
     let novosCount = 0;
     let seminovosCount = 0;
     let ignoredCount = 0;
@@ -351,11 +352,18 @@ async function fetchProducts() {
     for (const p of rawList) {
       const processed = processAppleProduct(p);
       if (processed) {
-        productsMap.set(String(processed.id), processed);
+        nextMap.set(String(processed.id), processed);
         if (processed.isSeminovo) seminovosCount++;
         else novosCount++;
       } else {
         ignoredCount++;
+      }
+    }
+
+    if (nextMap.size > 0) {
+      productsMap.clear();
+      for (const [k, v] of nextMap.entries()) {
+        productsMap.set(k, v);
       }
     }
 
@@ -526,45 +534,57 @@ function connectPxtWebSocket() {
     const updated = delta.updated || [];
     const deleted = delta.deleted || [];
 
-    // Se veio data nova ou é snapshot, atualiza a data e limpa catálogo antigo somente se houver dados a inserir
-    if (delta.date && delta.date !== latestDate) {
+    // Se veio data nova ou é snapshot, atualiza a data
+    const isNewDate = delta.date && delta.date !== latestDate;
+    if (isNewDate) {
       console.log(`[Tempo Real] 📅 Nova data de catálogo recebida via delta: ${latestDate} -> ${delta.date}`);
       latestDate = delta.date;
-      if (created.length > 0 || updated.length > 0) {
-        productsMap.clear();
-      }
-    } else if (delta.snapshot === true) {
-      if (created.length > 0 || updated.length > 0) {
-        productsMap.clear();
-      }
     }
 
     if (delta.dollarRate) dollarRate = delta.dollarRate;
     if (delta.dollarVariation) dollarVariation = delta.dollarVariation;
     if (delta.totalSuppliers) totalSuppliers = delta.totalSuppliers;
 
-    const isMassive = created.length > 30 || delta.snapshot === true;
+    const isMassive = created.length > 30 || delta.snapshot === true || isNewDate;
 
-    let addedApple = 0;
-    for (const rawItem of created) {
-      const item = processAppleProduct(rawItem);
-      if (item) {
-        productsMap.set(String(item.id), item);
-        addedApple++;
-        if (!isMassive) {
-          localIo.emit('product_created', item);
+    // Se for uma virada de dia ou snapshot maciço com itens novos, prepara os itens antes de substituir
+    if ((isNewDate || delta.snapshot === true) && (created.length > 50)) {
+      const freshMap = new Map();
+      for (const rawItem of created) {
+        const item = processAppleProduct(rawItem);
+        if (item) freshMap.set(String(item.id), item);
+      }
+      for (const rawItem of updated) {
+        const item = processAppleProduct(rawItem);
+        if (item) freshMap.set(String(item.id), item);
+      }
+      if (freshMap.size > 0) {
+        productsMap.clear();
+        for (const [k, v] of freshMap.entries()) {
+          productsMap.set(k, v);
+        }
+      }
+    } else {
+      for (const rawItem of created) {
+        const item = processAppleProduct(rawItem);
+        if (item) {
+          productsMap.set(String(item.id), item);
+          if (!isMassive) {
+            localIo.emit('product_created', item);
+          }
+        }
+      }
+      for (const rawItem of updated) {
+        const item = processAppleProduct(rawItem);
+        if (item) {
+          productsMap.set(String(item.id), item);
+          if (!isMassive) {
+            localIo.emit('product_updated', item);
+          }
         }
       }
     }
-    for (const rawItem of updated) {
-      const item = processAppleProduct(rawItem);
-      if (item) {
-        productsMap.set(String(item.id), item);
-        if (!isMassive) {
-          localIo.emit('product_updated', item);
-        }
-      }
-    }
+
     for (const id of deleted) {
       const sId = String(typeof id === 'object' ? id.id : id);
       if (productsMap.has(sId)) {
@@ -1164,14 +1184,21 @@ app.post('/api/admin/push-catalog', async (req, res) => {
     return res.status(400).json({ error: 'Lista de produtos vazia ou inválida.' });
   }
 
-  // Atualizar mapa de produtos em memória
-  productsMap.clear();
+  // Atualizar mapa de produtos em memória com SWAP ATÔMICO
+  const newMap = new Map();
   products.forEach(p => {
     if (!p || !p.id) return;
     const isSemi = p.isSeminovo === true || p.condition === 'SEMINOVO' || p.category === 'SEMI' || (p.name && (p.name.toUpperCase().includes('SEMINOVO') || p.name.toUpperCase().includes('SEMI NOVO')));
     if (isSemi && isDisallowedSeminovo(p.name)) return;
-    productsMap.set(String(p.id), p);
+    newMap.set(String(p.id), p);
   });
+
+  if (newMap.size > 0) {
+    productsMap.clear();
+    for (const [k, v] of newMap.entries()) {
+      productsMap.set(k, v);
+    }
+  }
 
   if (date) latestDate = date;
   if (newDollar) dollarRate = newDollar;
