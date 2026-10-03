@@ -377,12 +377,8 @@
 
         if (resp.ok && data.success) {
           btnText.textContent = 'Acesso Autorizado!';
-          // Redireciona para o painel de admin se for administrador
-          if (data.user && (data.user.role === 'admin' || window.location.search.includes('redirect=admin'))) {
-            window.location.href = '/admin';
-          } else {
-            window.location.href = '/';
-          }
+          // Redireciona sempre diretamente para o catálogo principal
+          window.location.href = '/';
         } else {
           alertBox.style.display = 'block';
           alertBox.textContent = data.error || 'Não foi possível realizar o login.';
