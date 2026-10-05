@@ -1382,9 +1382,17 @@ function getProductRetailPrice(p) {
     } else if (catUpper === 'MCB' || nameUpper.includes('MACBOOK') || nameUpper.includes('MAC MINI') || nameUpper.includes('MAC STUDIO') || nameUpper.includes('MAC PRO')) {
       margin = margins.categories.MCB_PRO ?? 1300;
     } else if (catUpper === 'IPAD' || catUpper === 'IPD' || nameUpper.includes('IPAD')) {
-      margin = margins.categories.IPAD ?? 500;
+      if (nameUpper.includes('PRO') || nameUpper.includes('AIR')) {
+        margin = margins.categories.IPAD_PRO_AIR ?? 750;
+      } else {
+        margin = margins.categories.IPAD ?? 500;
+      }
     } else if (catUpper === 'RLG' || nameUpper.includes('WATCH') || nameUpper.includes('SERIES') || nameUpper.includes('ULTRA')) {
-      margin = margins.categories.RLG ?? 500;
+      if (nameUpper.includes('ULTRA') || nameUpper.includes('S12')) {
+        margin = margins.categories.RLG_ULTRA_S12 ?? 800;
+      } else {
+        margin = margins.categories.RLG ?? 500;
+      }
     } else if (catUpper === 'IMAC' || nameUpper.includes('IMAC')) {
       margin = margins.categories.IMAC ?? 1500;
     } else if (catUpper === 'PODS' || nameUpper.includes('AIRPOD')) {

@@ -821,7 +821,9 @@ function getDefaultMargins() {
       MCB_PRO: 1300,   // Outros Modelos Mac / Pro: +R$ 1.300
       MCB_MAX: 2500,   // MacBook Pro Max: +R$ 2.500
       IPAD: 500,       // iPad: +R$ 500
+      IPAD_PRO_AIR: 750, // iPad Pro / Air: +R$ 750
       RLG: 500,        // Apple Watch: +R$ 500
+      RLG_ULTRA_S12: 800, // Apple Watch Ultra / S12: +R$ 800
       IMAC: 1500,      // iMac: +R$ 1.500
       PODS: 400,       // AirPods: +R$ 400
       ACSS: 100,       // Acessórios em geral: +R$ 100
