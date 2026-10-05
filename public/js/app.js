@@ -3348,7 +3348,7 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
     btn.style.background = '#059669';
     setTimeout(() => {
       btn.innerHTML = origHtml;
-      btn.style.background = '';
+      btn.style.background = 'var(--accent-green)';
       btn.disabled = false;
       closePdfSelectionModal();
     }, 1200);
