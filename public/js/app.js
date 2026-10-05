@@ -2473,15 +2473,22 @@ function renderPricesOfTheDay() {
       const colorsArr = Array.from(grp.colors.values()).map(colObj => {
         const isSemi = grp.isSeminovo;
         const offers = colObj.offers || [];
-        const refPrice = calculateSupplierReferencePrice(offers, isSemi);
+        const rawRefPrice = calculateSupplierReferencePrice(offers, isSemi);
         
         let repOffer = offers[0];
         if (isSemi) {
           repOffer = offers.reduce((prev, curr) => {
-            return (Math.abs(curr.price - refPrice) < Math.abs(prev.price - refPrice) ? curr : prev);
+            return (Math.abs(curr.price - rawRefPrice) < Math.abs(prev.price - rawRefPrice) ? curr : prev);
           }, offers[0]);
         } else {
           repOffer = offers.reduce((prev, curr) => (curr.price < prev.price ? curr : prev), offers[0]);
+        }
+
+        let refPrice = rawRefPrice;
+        const isIphone = fam.category === 'IPH' || grp.rawModel.toUpperCase().includes('IPHONE');
+        const isMac = fam.category === 'MCB' || grp.rawModel.toUpperCase().includes('MAC');
+        if (isIphone || isMac) {
+           refPrice += 100;
         }
 
         return {
@@ -2615,7 +2622,14 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
   }
 
   const lowestPrice = offers[0].price;
-  const refPrice = calculateSupplierReferencePrice(offers, isSeminovo);
+  const rawRefPrice = calculateSupplierReferencePrice(offers, isSeminovo);
+
+  const isIphone = model.toUpperCase().includes('IPHONE');
+  const isMac = model.toUpperCase().includes('MAC');
+  let headerRefPrice = rawRefPrice;
+  if (isIphone || isMac) {
+    headerRefPrice += 100;
+  }
 
   const offersHtml = offers.map((p) => {
     const sName = p.supplier?.name || 'Fornecedor';
@@ -2624,11 +2638,16 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
     const isVerified = p.supplier?.isVerified;
     const whatsapp = (p.supplier?.whatsappNumber || '').replace(/\D/g, '');
     const isLowest = !isSeminovo && p.price === lowestPrice;
-    const isRef = isSeminovo && (Math.abs(p.price - refPrice) < 30);
+    const isRef = isSeminovo && (Math.abs(p.price - rawRefPrice) < 30);
     const colHex = getAppleColorHex(p.color);
     const ram = getMacBookRam(p);
 
-    const orderMsg = buildSupplierWhatsAppMessage(cleanModelName(p.name) + (isSeminovo ? ' (Seminovo)' : ''), p.storage, p.color, p.price, ram);
+    let displayPrice = p.price;
+    if (isIphone || isMac) {
+      displayPrice += 100;
+    }
+
+    const orderMsg = buildSupplierWhatsAppMessage(cleanModelName(p.name) + (isSeminovo ? ' (Seminovo)' : ''), p.storage, p.color, displayPrice, ram);
     const waLink = whatsapp ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(orderMsg)}` : '#';
 
     return `
@@ -2657,7 +2676,7 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
         </div>
 
         <div class="all-offer-price-group">
-          <span class="all-offer-price-val">${formatBRL(p.price)}</span>
+          <span class="all-offer-price-val">${formatBRL(displayPrice)}</span>
         </div>
 
         <a class="all-offer-wa-btn" href="${waLink}" target="_blank" rel="noopener noreferrer">
@@ -2673,7 +2692,7 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
   body.innerHTML = `
     <div class="all-offers-header-info">
       <div>
-        <strong>${model} ${storage}</strong> ${isSeminovo ? '<span style="color: #f59e0b; font-weight: 700;">(Seminovo • Preço Médio: ' + formatBRL(refPrice) + ')</span>' : '— Todos os fornecedores cadastrados'}
+        <strong>${model} ${storage}</strong> ${isSeminovo ? '<span style="color: #f59e0b; font-weight: 700;">(Seminovo • Preço Médio: ' + formatBRL(headerRefPrice) + ')</span>' : '— Todos os fornecedores cadastrados'}
       </div>
       <span class="all-offers-count-badge">${offers.length} opções disponíveis</span>
     </div>
@@ -3305,6 +3324,12 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
             marginVal = getProductRetailPrice(dummyProd) - refCost;
           }
           finalPrice = refCost + (Number(marginVal) || 0);
+        } else {
+          const isIphone = fam.category === 'IPH' || grp.rawModel.toUpperCase().includes('IPHONE');
+          const isMac = fam.category === 'MCB' || grp.rawModel.toUpperCase().includes('MAC');
+          if (isIphone || isMac) {
+             finalPrice += 100;
+          }
         }
 
         return {
