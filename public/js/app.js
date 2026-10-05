@@ -1760,26 +1760,9 @@ window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSemino
   if (lowestPrice > 0 && typeof calculateInstallment === 'function') {
     const customInstallments = [1, 3, 6, 10, 12, 18];
 
-    installmentsHtml = `
-      <div style="margin-top: 16px; padding: 14px; background: rgba(0,0,0,0.15); border: 1px solid var(--border-subtle); border-radius: 14px;">
-        <div style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); margin-bottom: 10px; text-transform: uppercase;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2.5"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-          Simulação de Parcelamento no Cartão (A partir de ${formatBRL(lowestPrice)})
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-          ${customInstallments.map(n => {
-            const sim = calculateInstallment(lowestPrice, 0, n);
-            return `
-              <div style="padding: 8px 10px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">${n}x</span>
-                <span style="font-size: 0.85rem; font-weight: 800; color: var(--accent-green);">${formatBRL(sim.monthlyAmount)}</span>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-    `;
+    installmentsHtml = ``; // REMOVIDO A PEDIDO DO USUARIO
   }
+
 
   bodyEl.innerHTML = `
     <div style="display: flex; flex-direction: column;">
@@ -3712,14 +3695,14 @@ async function checkAuthSession() {
     if (userSessionInfo && userStoreBadge) {
       userSessionInfo.style.display = 'flex';
       if (adminHeaderBtn) adminHeaderBtn.style.display = 'inline-flex';
-      userStoreBadge.textContent = badgeText;
+      userStoreBadge.style.display = 'none'; // REMOVIDO A PEDIDO DO USUARIO
     }
 
     // Atualiza drawer mobile logado
     if (mobileDrawerAdminBtn) mobileDrawerAdminBtn.style.display = 'flex';
     if (mobileDrawerUser && mobileDrawerUserBadge) {
       mobileDrawerUser.style.display = 'block';
-      mobileDrawerUserBadge.textContent = badgeText;
+      mobileDrawerUserBadge.style.display = 'none'; // REMOVIDO A PEDIDO DO USUARIO
     }
     if (mobileDrawerPricesDayBtn) mobileDrawerPricesDayBtn.style.display = 'flex';
     if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'flex';
@@ -3728,11 +3711,11 @@ async function checkAuthSession() {
 
     // Exibe botão de sincronizar na Loja Física apenas quando logado
     const sfSyncBtn = document.getElementById('btnSyncSfPrices');
-    if (sfSyncBtn) sfSyncBtn.style.display = 'inline-flex';
+    if (sfSyncBtn) sfSyncBtn.style.display = 'none';
     const topSyncBtn = document.getElementById('btnSyncTopHeader');
-    if (topSyncBtn) topSyncBtn.style.display = 'inline-flex';
+    if (topSyncBtn) topSyncBtn.style.display = 'none';
     const drawerSyncBtn = document.getElementById('mobileDrawerSyncBtn');
-    if (drawerSyncBtn) drawerSyncBtn.style.display = 'flex';
+    if (drawerSyncBtn) drawerSyncBtn.style.display = 'none';
 
     // Se vier do Painel Admin clicando em 'Exportar Valores' (?export=true)
     if (window.location.search.includes('export=true')) {
@@ -3917,7 +3900,7 @@ function ensureMobileDrawerMounted() {
     if (aBtn) aBtn.style.display = 'flex';
     if (uBox && uBadge) {
       uBox.style.display = 'block';
-      uBadge.textContent = currentUser.role === 'admin' ? ('👑 ' + (currentUser.storeName || currentUser.username)) : (currentUser.storeName || currentUser.username);
+      uBadge.style.display = 'none'; // REMOVIDO A PEDIDO DO USUARIO
     }
     if (aLabel) {
       aLabel.textContent = currentUser.role === 'admin' ? '👑 Painel Administrador' : '⚙️ Configurar Margens e Loja';
