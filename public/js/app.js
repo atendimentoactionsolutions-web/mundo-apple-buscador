@@ -3051,7 +3051,7 @@ window.openExportSelectionModal = function(scope = 'SF') {
       if (isCpoProduct(p)) return false;
       const isSemi = isSeminovoProduct(p);
 
-      if (podCurrentCategory !== 'ALL') {
+      if (searchTokens.length === 0 && podCurrentCategory !== 'ALL') {
         if (podCurrentCategory === 'SEMI') {
           if (!isSemi) return false;
         } else {
@@ -3101,7 +3101,7 @@ window.openExportSelectionModal = function(scope = 'SF') {
       if (!p.price || p.price <= 0) return false;
       const isSemi = isSeminovoProduct(p);
 
-      if (sfCurrentCategory !== 'ALL') {
+      if (searchTokens.length === 0 && sfCurrentCategory !== 'ALL') {
         if (sfCurrentCategory === 'SEMI') {
           if (!isSemi) return false;
         } else {
@@ -3342,12 +3342,14 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
   await robustCopyToClipboard(fullText);
 
   if (btn) {
+    btn.disabled = true;
     const origHtml = btn.innerHTML;
     btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>Copiado com Sucesso!</span>`;
     btn.style.background = '#059669';
     setTimeout(() => {
       btn.innerHTML = origHtml;
       btn.style.background = '';
+      btn.disabled = false;
       closePdfSelectionModal();
     }, 1200);
   } else {
