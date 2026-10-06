@@ -3275,12 +3275,17 @@ window.openExportSelectionModal = function(scope = 'SF') {
 
   body.innerHTML = html;
 
-  // Delegação de evento segura para os checkboxes (sem problemas de aspas ou caracteres especiais)
-  body.onchange = function(e) {
-    if (e.target && e.target.dataset && e.target.dataset.varId) {
-      pdfSelectedVariantsMap.set(e.target.dataset.varId, Boolean(e.target.checked));
+  // Sincronização direta e contínua dos checkboxes
+  const handleSelectionUpdate = function(e) {
+    const cb = e.target.closest('input[type="checkbox"]');
+    if (cb && cb.dataset && cb.dataset.varId) {
+      pdfSelectedVariantsMap.set(cb.dataset.varId, Boolean(cb.checked));
       updatePdfSelectedCountBadge();
     }
+  };
+  body.onchange = handleSelectionUpdate;
+  body.onclick = function() {
+    setTimeout(updatePdfSelectedCountBadge, 20);
   };
 
   updatePdfSelectedCountBadge();
@@ -3304,21 +3309,39 @@ window.toggleAllPdfSelections = function(selectState) {
   const checkboxes = document.querySelectorAll('#pdfSelectionListBody input[type="checkbox"]');
   checkboxes.forEach(cb => {
     cb.checked = state;
+    if (cb.dataset && cb.dataset.varId) {
+      pdfSelectedVariantsMap.set(cb.dataset.varId, state);
+    }
   });
   updatePdfSelectedCountBadge();
 };
 
 function updatePdfSelectedCountBadge() {
   const badge = document.getElementById('pdfSelectedCountBadge');
-  let selected = 0;
-  pdfSelectedVariantsMap.forEach(val => { if (val === true) selected++; });
-  if (badge) badge.textContent = `${selected} selecionados`;
+  const checkedCbs = document.querySelectorAll('#pdfSelectionListBody input[type="checkbox"]:checked');
+  let count = checkedCbs.length;
+  if (count === 0 && !document.querySelector('#pdfSelectionListBody input[type="checkbox"]')) {
+    pdfSelectedVariantsMap.forEach(val => { if (val === true) count++; });
+  }
+  if (badge) badge.textContent = `${count} selecionados`;
 }
 
 // Copia lista completa formatada para WhatsApp com os modelos selecionados
 window.copySelectedStorefrontWhatsApp = async function(btn) {
-  let selectedCount = 0;
-  pdfSelectedVariantsMap.forEach(val => { if (val === true) selectedCount++; });
+  // Sincroniza com os checkboxes reais que estão fisicamente marcados na tela
+  const checkedCbs = document.querySelectorAll('#pdfSelectionListBody input[type="checkbox"]:checked');
+  const checkedIds = new Set();
+  checkedCbs.forEach(cb => {
+    if (cb.dataset && cb.dataset.varId) {
+      checkedIds.add(cb.dataset.varId);
+      pdfSelectedVariantsMap.set(cb.dataset.varId, true);
+    }
+  });
+
+  let selectedCount = checkedIds.size;
+  if (selectedCount === 0) {
+    pdfSelectedVariantsMap.forEach(val => { if (val === true) selectedCount++; });
+  }
 
   if (selectedCount === 0) {
     alert('Por favor, selecione pelo menos 1 modelo para exportar.');
@@ -3337,7 +3360,8 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
     });
 
     variants.forEach(grp => {
-      if (pdfSelectedVariantsMap.get(grp.varId) !== true) return;
+      const isSelected = checkedIds.has(grp.varId) || (pdfSelectedVariantsMap.get(grp.varId) === true);
+      if (!isSelected) return;
 
       const colorsArr = Array.from(grp.colors.values()).map(colObj => {
         const isSemi = grp.isSeminovo;
