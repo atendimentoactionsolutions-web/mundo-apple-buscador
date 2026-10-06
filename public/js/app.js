@@ -19,7 +19,9 @@ window.DFU_ACTIVE = true;
 window.DFU_VALUE = 100;
 
 function applyDFU(cost, category, rawModel) {
-  if (!window.DFU_ACTIVE) return cost;
+  if (!window.DFU_ACTIVE) return Number(cost) || 0;
+  const numCost = Number(cost) || 0;
+  if (numCost <= 0) return 0;
   if (!rawModel) rawModel = '';
   if (!category) category = '';
   
@@ -27,9 +29,9 @@ function applyDFU(cost, category, rawModel) {
   const isMac = category === 'MCB' || rawModel.toUpperCase().includes('MAC');
   
   if (isIphone || isMac) {
-    return cost + window.DFU_VALUE;
+    return numCost + window.DFU_VALUE;
   }
-  return cost;
+  return numCost;
 }
 // ==========================================
 
@@ -1264,7 +1266,8 @@ function isSeminovoProduct(p) {
 function calculateSupplierReferencePrice(offers, isSeminovo = false) {
   if (!offers || offers.length === 0) return 0;
   if (!isSeminovo) {
-    return Math.min(...offers.map(o => Number(o.price) || 0).filter(p => p > 0));
+    const valid = offers.map(o => Number(o.price) || 0).filter(p => p > 0);
+    return valid.length > 0 ? Math.min(...valid) : 0;
   }
 
   const validPrices = offers
@@ -1357,76 +1360,80 @@ socket.on('card_rates_updated', (newRates) => {
   cardRates = newRates;
 });
 
-function getProductRetailPrice(p) {
-  if (!p || !p.price) return 0;
-  const rawCost = Number(p.price);
-  const cost = applyDFU(rawCost, p.category, p.name);
-  const nameUpper = (p.name || '').trim().toUpperCase();
-  const catUpper = (p.category || '').trim().toUpperCase();
-  const isSemi = isSeminovoProduct(p);
+function getProductMargin(rawModel, category, isSemi = false) {
+  const nameUpper = (rawModel || '').trim().toUpperCase();
+  const catUpper = (category || '').trim().toUpperCase();
 
   // 1. Exceção de modelo específico se cadastrada no painel admin
   let margin = margins.products ? margins.products[nameUpper] : undefined;
+  if (margin !== undefined) return Number(margin) || 0;
 
   // 2. Se for Linha iPhone 18 (Lançamento Importante), aplica a margem de R$ 1.300
-  if (margin === undefined && (nameUpper.includes('IPHONE 18') || nameUpper.includes('IPH 18'))) {
-    margin = (margins.categories && margins.categories.IPH18 !== undefined) ? margins.categories.IPH18 : 1300;
+  if (nameUpper.includes('IPHONE 18') || nameUpper.includes('IPH 18')) {
+    return (margins.categories && margins.categories.IPH18 !== undefined) ? Number(margins.categories.IPH18) : 1300;
   }
 
   // 3. Se for Seminovo, aplica a margem de Seminovos (padrão R$ 600)
-  if (margin === undefined && isSemi) {
-    margin = (margins.categories && margins.categories.SEMINOVOS !== undefined) ? margins.categories.SEMINOVOS : 600;
+  if (isSemi) {
+    return (margins.categories && margins.categories.SEMINOVOS !== undefined) ? Number(margins.categories.SEMINOVOS) : 600;
   }
 
-  // 4. Se não houver margem por produto nem for seminovo, usa a margem da categoria ou acessório específico
-  if (margin === undefined && margins.categories) {
-    // Acessórios Específicos
+  // 4. Margem padrão por Categoria
+  if (margins.categories) {
     if (nameUpper.includes('FOLIO') || nameUpper.includes('SMART FOLIO')) {
-      margin = margins.categories.FOLIO ?? 400;
+      return margins.categories.FOLIO ?? 400;
     } else if (nameUpper.includes('PENCIL')) {
-      margin = margins.categories.PENCIL ?? 200;
+      return margins.categories.PENCIL ?? 200;
     } else if (nameUpper.includes('AIRTAG') && (nameUpper.includes('4 PACK') || nameUpper.includes('4-PACK') || nameUpper.includes('4PACK') || nameUpper.includes('PACOTE') || nameUpper.includes('4PK') || nameUpper.includes('4 UN') || nameUpper.includes('4UN'))) {
-      margin = margins.categories.AIRTAG_PACK ?? 350;
+      return margins.categories.AIRTAG_PACK ?? 350;
     } else if (nameUpper.includes('AIRTAG')) {
-      margin = margins.categories.AIRTAG_UNIT ?? 100;
+      return margins.categories.AIRTAG_UNIT ?? 100;
     } else if (nameUpper.includes('MAGIC KEY') || nameUpper.includes('MAGIC KEYBOARD') || nameUpper.includes('SMART KEYBOARD') || nameUpper.includes('SMART KEY')) {
-      margin = margins.categories.MAGIC_KEY ?? 400;
+      return margins.categories.MAGIC_KEY ?? 400;
     } else if (nameUpper.includes('MAGIC MOUSE') || (nameUpper.includes('MOUSE') && (catUpper === 'ACSS' || nameUpper.includes('APPLE')))) {
-      margin = margins.categories.MAGIC_MOUSE ?? 430;
+      return margins.categories.MAGIC_MOUSE ?? 430;
     } else if (nameUpper.includes('APPLE TV') || nameUpper.includes('APPLETV') || nameUpper.includes('TV 4K') || nameUpper.includes('TV HD')) {
-      margin = margins.categories.APPLE_TV ?? 500;
+      return margins.categories.APPLE_TV ?? 500;
     } else if (catUpper === 'IPH' || nameUpper.includes('IPHONE')) {
-      margin = margins.categories.IPH ?? 750;
+      return margins.categories.IPH ?? 750;
     } else if ((nameUpper.includes('MACBOOK') || catUpper === 'MCB') && nameUpper.includes('MAX')) {
-      margin = (margins.categories && margins.categories.MCB_MAX !== undefined) ? margins.categories.MCB_MAX : 2500;
+      return (margins.categories && margins.categories.MCB_MAX !== undefined) ? margins.categories.MCB_MAX : 2500;
     } else if (nameUpper.includes('MACBOOK AIR') || nameUpper.includes('AIR M') || (catUpper === 'MCB' && nameUpper.includes('AIR'))) {
-      margin = margins.categories.MCB_AIR ?? 1000;
+      return margins.categories.MCB_AIR ?? 1000;
     } else if (catUpper === 'MCB' || nameUpper.includes('MACBOOK') || nameUpper.includes('MAC MINI') || nameUpper.includes('MAC STUDIO') || nameUpper.includes('MAC PRO')) {
-      margin = margins.categories.MCB_PRO ?? 1300;
+      return margins.categories.MCB_PRO ?? 1300;
     } else if (catUpper === 'IPAD' || catUpper === 'IPD' || nameUpper.includes('IPAD')) {
       if (nameUpper.includes('PRO') || nameUpper.includes('AIR')) {
-        margin = margins.categories.IPAD_PRO_AIR ?? 750;
+        return margins.categories.IPAD_PRO_AIR ?? 750;
       } else {
-        margin = margins.categories.IPAD ?? 500;
+        return margins.categories.IPAD ?? 500;
       }
     } else if (catUpper === 'RLG' || nameUpper.includes('WATCH') || nameUpper.includes('SERIES') || nameUpper.includes('ULTRA')) {
       if (nameUpper.includes('ULTRA') || nameUpper.includes('S12')) {
-        margin = margins.categories.RLG_ULTRA_S12 ?? 800;
+        return margins.categories.RLG_ULTRA_S12 ?? 800;
       } else {
-        margin = margins.categories.RLG ?? 500;
+        return margins.categories.RLG ?? 500;
       }
     } else if (catUpper === 'IMAC' || nameUpper.includes('IMAC')) {
-      margin = margins.categories.IMAC ?? 1500;
+      return margins.categories.IMAC ?? 1500;
     } else if (catUpper === 'PODS' || nameUpper.includes('AIRPOD')) {
-      margin = margins.categories.PODS ?? 400;
+      return margins.categories.PODS ?? 400;
     } else if (catUpper === 'ACSS' || nameUpper.includes('MAGIC')) {
-      margin = margins.categories.ACSS ?? 100;
+      return margins.categories.ACSS ?? 100;
     } else {
-      margin = margins.categories.DEFAULT ?? 500;
+      return margins.categories.DEFAULT ?? 500;
     }
   }
 
-  return cost + (Number(margin) || 0);
+  return 500;
+}
+
+function getProductRetailPrice(p) {
+  if (!p || !p.price) return 0;
+  const cost = Number(p.price);
+  const isSemi = isSeminovoProduct(p);
+  const margin = getProductMargin(p.name, p.category, isSemi);
+  return cost + margin;
 }
 
 // =========================================================================
@@ -1616,15 +1623,8 @@ function renderStoreFront() {
         const rawRefCost = calculateSupplierReferencePrice(offers, isSemi);
         const refCost = applyDFU(rawRefCost, fam.category, grp.rawModel);
         
-        let marginVal = margins.products ? margins.products[grp.rawModel.toUpperCase()] : undefined;
-        if (marginVal === undefined && isSemi) {
-          marginVal = (margins.categories && margins.categories.SEMINOVOS !== undefined) ? margins.categories.SEMINOVOS : 600;
-        }
-        if (marginVal === undefined) {
-          const dummyProd = { name: grp.rawModel, category: fam.category, price: refCost };
-          marginVal = getProductRetailPrice(dummyProd) - refCost;
-        }
-        const retailPrice = refCost + (Number(marginVal) || 0);
+        const marginVal = getProductMargin(grp.rawModel, fam.category, isSemi);
+        const retailPrice = refCost + marginVal;
 
         return {
           color: colObj.color,
@@ -3328,15 +3328,8 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
         
         let finalPrice = refCost;
         if (!isPod) {
-          let marginVal = margins.products ? margins.products[grp.rawModel.toUpperCase()] : undefined;
-          if (marginVal === undefined && isSemi) {
-            marginVal = (margins.categories && margins.categories.SEMINOVOS !== undefined) ? margins.categories.SEMINOVOS : 600;
-          }
-          if (marginVal === undefined) {
-            const dummyProd = { name: grp.rawModel, category: fam.category, price: refCost };
-            marginVal = getProductRetailPrice(dummyProd) - refCost;
-          }
-          finalPrice = refCost + (Number(marginVal) || 0);
+          const marginVal = getProductMargin(grp.rawModel, fam.category, isSemi);
+          finalPrice = refCost + marginVal;
         }
 
         return {
@@ -4025,7 +4018,7 @@ let isClientMode = window.location.pathname.includes('/catalogo') || window.loca
 function initClientModeCheck() {
   if (isClientMode) {
     document.body.classList.add('client-mode-active');
-    switchView('store_front');
+    switchView('storefront');
     const txtBtn = document.getElementById('txtClientModeBtn');
     if (txtBtn) txtBtn.textContent = 'Modo Lojista';
   }
@@ -4035,7 +4028,7 @@ window.toggleClientMode = function() {
   isClientMode = !isClientMode;
   if (isClientMode) {
     document.body.classList.add('client-mode-active');
-    switchView('store_front');
+    switchView('storefront');
     const txtBtn = document.getElementById('txtClientModeBtn');
     if (txtBtn) txtBtn.textContent = 'Modo Lojista';
   } else {
