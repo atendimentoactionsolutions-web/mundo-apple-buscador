@@ -10,20 +10,23 @@
   
   <style>
     :root {
-      --bg-base: #06080d;
-      --bg-card: rgba(17, 24, 39, 0.75);
-      --bg-input: rgba(15, 23, 42, 0.85);
-      --border-color: rgba(255, 255, 255, 0.1);
+      --bg-base: #f5f5f7;
+      --bg-card: #ffffff;
+      --bg-input: #f8fafc;
+      --border-color: #e2e8f0;
+      --border-input: #cbd5e1;
+      --border-focus: #10b981;
       --accent-green: #10b981;
       --accent-green-hover: #059669;
       --accent-red: #ef4444;
-      --text-primary: #f8fafc;
-      --text-secondary: #94a3b8;
-      --text-muted: #64748b;
-      --radius-lg: 20px;
+      --text-primary: #0f172a;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --radius-lg: 24px;
       --radius-md: 12px;
       --radius-full: 9999px;
-      --shadow-glow: 0 0 35px rgba(16, 185, 129, 0.25);
+      --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 20px 40px -15px rgba(0, 0, 0, 0.08);
+      --shadow-btn: 0 4px 14px rgba(16, 185, 129, 0.35);
     }
 
     * {
@@ -37,8 +40,8 @@
     body {
       background-color: var(--bg-base);
       background-image: 
-        radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12) 0%, transparent 50%),
-        radial-gradient(circle at 10% 90%, rgba(59, 130, 246, 0.08) 0%, transparent 40%);
+        radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
       color: var(--text-primary);
       min-height: 100vh;
       display: flex;
@@ -53,11 +56,9 @@
       max-width: 440px;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
       border-radius: var(--radius-lg);
-      padding: 40px 32px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), var(--shadow-glow);
+      padding: 44px 36px;
+      box-shadow: var(--shadow-card);
       text-align: center;
       animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -70,39 +71,33 @@
     .brand-group {
       display: inline-flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 24px;
+      justify-content: center;
+      margin-bottom: 20px;
     }
 
     .logo-icon-wrap {
-      width: 44px;
-      height: 44px;
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.05) 100%);
-      border: 1.5px solid rgba(16, 185, 129, 0.4);
-      border-radius: 12px;
+      width: 52px;
+      height: 52px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--accent-green);
-    }
-
-    .brand-title {
-      font-size: 1.4rem;
-      font-weight: 800;
-      letter-spacing: 1.5px;
-      background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: #0f172a;
+      transition: all 0.2s ease;
     }
 
     .login-title {
-      font-size: 1.25rem;
-      font-weight: 700;
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--text-primary);
       margin-bottom: 6px;
+      letter-spacing: -0.5px;
     }
 
     .login-subtitle {
-      font-size: 0.88rem;
+      font-size: 0.9rem;
       color: var(--text-secondary);
       margin-bottom: 28px;
     }
@@ -115,12 +110,12 @@
 
     .form-label {
       display: block;
-      font-size: 0.8rem;
-      font-weight: 600;
+      font-size: 0.76rem;
+      font-weight: 700;
       color: var(--text-secondary);
       margin-bottom: 6px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
     }
 
     .input-wrap {
@@ -128,16 +123,17 @@
       display: flex;
       align-items: center;
       background: var(--bg-input);
-      border: 1.5px solid var(--border-color);
+      border: 1.5px solid var(--border-input);
       border-radius: var(--radius-md);
       padding: 0 14px;
-      height: 50px;
+      height: 52px;
       transition: all 0.2s ease;
     }
 
     .input-wrap:focus-within {
+      background: #ffffff;
       border-color: var(--accent-green);
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
     }
 
     .input-icon {
@@ -155,12 +151,26 @@
       outline: none;
       color: var(--text-primary);
       font-size: 0.96rem;
-      font-weight: 500;
+      font-weight: 600;
     }
 
     .input-wrap input::placeholder {
       color: var(--text-muted);
       font-size: 0.9rem;
+      font-weight: 400;
+    }
+
+    /* Correção visual perfeita do Autocomplete/Autofill do Navegador */
+    .input-wrap input:-webkit-autofill,
+    .input-wrap input:-webkit-autofill:hover, 
+    .input-wrap input:-webkit-autofill:focus, 
+    .input-wrap input:-webkit-autofill:active {
+      -webkit-box-shadow: 0 0 0 1000px #f8fafc inset !important;
+      -webkit-text-fill-color: #0f172a !important;
+      font-family: inherit !important;
+      font-size: 0.96rem !important;
+      font-weight: 600 !important;
+      border-radius: 6px !important;
     }
 
     .toggle-pass-btn {
@@ -172,6 +182,7 @@
       align-items: center;
       padding: 4px;
       margin-left: 6px;
+      transition: color 0.15s ease;
     }
     .toggle-pass-btn:hover {
       color: var(--text-primary);
@@ -180,47 +191,47 @@
     /* Error and Warning Banner */
     .alert-banner {
       display: none;
-      padding: 12px 14px;
+      padding: 12px 16px;
       border-radius: var(--radius-md);
-      font-size: 0.84rem;
+      font-size: 0.86rem;
       font-weight: 600;
       line-height: 1.4;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
       text-align: left;
     }
 
     .alert-banner.error {
       display: block;
-      background: rgba(239, 68, 68, 0.12);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      color: #fca5a5;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #b91c1c;
     }
 
     .alert-banner.expired {
       display: block;
-      background: rgba(245, 158, 11, 0.12);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-      color: #fcd34d;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #b45309;
     }
 
     /* Submit Button */
     .submit-btn {
       width: 100%;
-      height: 50px;
+      height: 52px;
       background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-green-hover) 100%);
       color: #ffffff;
       border: none;
       border-radius: var(--radius-md);
-      font-size: 0.96rem;
+      font-size: 0.98rem;
       font-weight: 700;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.2px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      margin-top: 10px;
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+      margin-top: 14px;
+      box-shadow: var(--shadow-btn);
       transition: all 0.2s ease;
     }
 
@@ -229,20 +240,21 @@
       box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
     }
 
+    .submit-btn:active {
+      transform: translateY(0);
+    }
+
     .submit-btn:disabled {
       opacity: 0.65;
       cursor: not-allowed;
       transform: none;
     }
 
-
-
-
     /* Loading Spinner */
     .spinner {
       width: 18px;
       height: 18px;
-      border: 2.5px solid rgba(255, 255, 255, 0.3);
+      border: 2.5px solid rgba(255, 255, 255, 0.4);
       border-top-color: #ffffff;
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
@@ -255,14 +267,14 @@
 
     @media (max-width: 480px) {
       body {
-        padding: 14px;
+        padding: 16px;
       }
       .login-container {
-        padding: 30px 20px;
-        border-radius: 16px;
+        padding: 34px 22px;
+        border-radius: 20px;
       }
-      .brand-title {
-        font-size: 1.22rem;
+      .login-title {
+        font-size: 1.25rem;
       }
     }
   </style>
@@ -273,14 +285,14 @@
     
     <!-- Brand / Logo Apple Clean -->
     <div class="brand-group">
-      <div class="logo-icon-wrap" style="width: 48px; height: 48px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); color: var(--text-primary);">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+      <div class="logo-icon-wrap">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
           <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 1.01-2.85-.92.04-2.02.62-2.67 1.37-.58.66-1.09 1.73-1.02 2.76 1.03.08 2.07-.53 2.68-1.28z"/>
         </svg>
       </div>
     </div>
 
-    <h1 class="login-title" style="letter-spacing: -0.3px;">Acesso ao Sistema</h1>
+    <h1 class="login-title">Acesso ao Sistema</h1>
     <p class="login-subtitle">Informe suas credenciais para continuar</p>
 
     <!-- Error / Expired Alert -->
