@@ -1804,31 +1804,43 @@ window.closeClientShowcaseModal = function() {
   }
 };
 
-// Helper robusto para copiar texto no PC e Mobile
+// Helper robusto para copiar texto no PC e Mobile (Opera GX, Chrome, Safari iOS/Mac)
 async function robustCopyToClipboard(text) {
+  if (!text) return false;
+
+  // 1. Tenta API moderna do Clipboard
   if (navigator.clipboard && window.isSecureContext) {
     try {
       await navigator.clipboard.writeText(text);
       return true;
     } catch (e) {
-      // Continua para o fallback de textarea caso o browser bloqueie
+      console.warn('[Clipboard] Falha no navigator.clipboard, usando fallback compatível:', e);
     }
   }
 
-  // Fallback 100% compatível com PC e Safari
+  // 2. Fallback universal (elementos a -999999px são bloqueados por segurança em novos browsers)
+  let successful = false;
   const textArea = document.createElement("textarea");
   textArea.value = text;
   textArea.style.position = "fixed";
-  textArea.style.left = "-999999px";
-  textArea.style.top = "-999999px";
+  textArea.style.top = "0";
+  textArea.style.left = "0";
+  textArea.style.width = "2em";
+  textArea.style.height = "2em";
+  textArea.style.padding = "0";
+  textArea.style.border = "none";
+  textArea.style.outline = "none";
+  textArea.style.boxShadow = "none";
+  textArea.style.background = "transparent";
+  textArea.style.opacity = "0.01";
+  textArea.style.zIndex = "-1";
   textArea.setAttribute('readonly', '');
   document.body.appendChild(textArea);
-  textArea.focus();
-  textArea.select();
-  textArea.setSelectionRange(0, 99999);
-
-  let successful = false;
+  
   try {
+    textArea.focus();
+    textArea.select();
+    textArea.setSelectionRange(0, text.length);
     successful = document.execCommand('copy');
   } catch (err) {
     successful = false;
@@ -3165,6 +3177,7 @@ window.openExportSelectionModal = function(scope = 'SF') {
   pdfSelectedVariantsMap.clear();
 
   const modelFamilies = new Map();
+  let variantCounter = 0;
 
   filtered.forEach(p => {
     const isSemi = isSeminovoProduct(p);
@@ -3187,7 +3200,9 @@ window.openExportSelectionModal = function(scope = 'SF') {
 
     const fam = modelFamilies.get(modelKey);
     if (!fam.variantsMap.has(variantKey)) {
+      const varId = 'var_' + (++variantCounter);
       fam.variantsMap.set(variantKey, {
+        varId: varId,
         variantKey: variantKey,
         model: displayName,
         rawModel: baseModelName,
@@ -3196,7 +3211,7 @@ window.openExportSelectionModal = function(scope = 'SF') {
         isSeminovo: isSemi,
         colors: new Map()
       });
-      pdfSelectedVariantsMap.set(variantKey, true);
+      pdfSelectedVariantsMap.set(varId, true);
     }
 
     const stGrp = fam.variantsMap.get(variantKey);
@@ -3241,12 +3256,12 @@ window.openExportSelectionModal = function(scope = 'SF') {
     });
 
     variants.forEach(v => {
-      const isChecked = pdfSelectedVariantsMap.get(v.variantKey) === true;
+      const isChecked = pdfSelectedVariantsMap.get(v.varId) === true;
       const labelText = v.ram ? `${v.storage} (${v.ram} RAM)` : (v.storage || 'Padrão');
 
       html += `
-        <label style="display: flex; align-items: center; gap: 8px; background: var(--bg-body); border: 1px solid var(--border-color); padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: 700; color: var(--text-primary);">
-          <input type="checkbox" data-pdf-variant="${v.variantKey}" ${isChecked ? 'checked' : ''} onchange="onPdfVariantCheckboxChange('${v.variantKey}', this.checked)" style="width: 16px; height: 16px; accent-color: var(--accent-green); cursor: pointer;">
+        <label style="display: flex; align-items: center; gap: 8px; background: var(--bg-body); border: 1px solid var(--border-color); padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: 700; color: var(--text-primary); user-select: none;">
+          <input type="checkbox" data-var-id="${v.varId}" ${isChecked ? 'checked' : ''} style="width: 16px; height: 16px; accent-color: var(--accent-green); cursor: pointer;">
           <span>${labelText}</span>
         </label>
       `;
@@ -3259,6 +3274,15 @@ window.openExportSelectionModal = function(scope = 'SF') {
   });
 
   body.innerHTML = html;
+
+  // Delegação de evento segura para os checkboxes (sem problemas de aspas ou caracteres especiais)
+  body.onchange = function(e) {
+    if (e.target && e.target.dataset && e.target.dataset.varId) {
+      pdfSelectedVariantsMap.set(e.target.dataset.varId, Boolean(e.target.checked));
+      updatePdfSelectedCountBadge();
+    }
+  };
+
   updatePdfSelectedCountBadge();
   modal.classList.add('active');
   modal.style.display = 'flex';
@@ -3270,11 +3294,6 @@ window.closePdfSelectionModal = function() {
     modal.classList.remove('active');
     modal.style.display = 'none';
   }
-};
-
-window.onPdfVariantCheckboxChange = function(variantKey, isChecked) {
-  pdfSelectedVariantsMap.set(variantKey, Boolean(isChecked));
-  updatePdfSelectedCountBadge();
 };
 
 window.toggleAllPdfSelections = function(selectState) {
@@ -3318,12 +3337,13 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
     });
 
     variants.forEach(grp => {
-      if (pdfSelectedVariantsMap.get(grp.variantKey) !== true) return;
+      if (pdfSelectedVariantsMap.get(grp.varId) !== true) return;
 
       const colorsArr = Array.from(grp.colors.values()).map(colObj => {
         const isSemi = grp.isSeminovo;
         const offers = colObj.offers || [];
         const rawRefCost = calculateSupplierReferencePrice(offers, isSemi);
+        if (!rawRefCost || rawRefCost <= 0) return null;
         const refCost = applyDFU(rawRefCost, fam.category, grp.rawModel);
         
         let finalPrice = refCost;
@@ -3337,7 +3357,7 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
           retailPrice: finalPrice,
           ram: colObj.ram
         };
-      }).sort((a, b) => a.retailPrice - b.retailPrice);
+      }).filter(Boolean).sort((a, b) => a.retailPrice - b.retailPrice);
 
       if (colorsArr.length === 0) return;
 
@@ -3364,19 +3384,26 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
 
   const fullText = (blocks.join('\n\n') + (footer ? '\n' + footer : '')).trim();
 
-  await robustCopyToClipboard(fullText);
+  const copySuccess = await robustCopyToClipboard(fullText);
 
   if (btn) {
-    btn.disabled = true;
     const origHtml = btn.innerHTML;
-    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>Copiado com Sucesso!</span>`;
-    btn.style.background = '#059669';
-    setTimeout(() => {
+    if (copySuccess) {
+      btn.disabled = true;
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>Copiado com Sucesso!</span>`;
+      btn.style.background = '#059669';
+      setTimeout(() => {
+        btn.innerHTML = origHtml;
+        btn.style.background = 'var(--accent-green)';
+        btn.disabled = false;
+        closePdfSelectionModal();
+      }, 1200);
+    } else {
+      // Fallback em caso de bloqueio rígido do navegador
+      btn.innerHTML = `<span>Copiar Manualmente</span>`;
+      prompt('Pressione Ctrl+C (ou Cmd+C) para copiar a lista para o WhatsApp:', fullText);
       btn.innerHTML = origHtml;
-      btn.style.background = 'var(--accent-green)';
-      btn.disabled = false;
-      closePdfSelectionModal();
-    }, 1200);
+    }
   } else {
     closePdfSelectionModal();
   }
