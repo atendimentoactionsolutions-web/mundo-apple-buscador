@@ -12,6 +12,27 @@ let sortMode = 'price_asc';
 // Connect to Local Socket.io server
 const socket = io();
 
+// ==========================================
+// MODO DFU (Ajuste Global de Custo Base)
+// ==========================================
+window.DFU_ACTIVE = true;
+window.DFU_VALUE = 100;
+
+function applyDFU(cost, category, rawModel) {
+  if (!window.DFU_ACTIVE) return cost;
+  if (!rawModel) rawModel = '';
+  if (!category) category = '';
+  
+  const isIphone = category === 'IPH' || rawModel.toUpperCase().includes('IPHONE');
+  const isMac = category === 'MCB' || rawModel.toUpperCase().includes('MAC');
+  
+  if (isIphone || isMac) {
+    return cost + window.DFU_VALUE;
+  }
+  return cost;
+}
+// ==========================================
+
 // DOM elements
 const productsGrid = document.getElementById('productsGrid');
 const shownCountEl = document.getElementById('shownCount');
@@ -1338,7 +1359,8 @@ socket.on('card_rates_updated', (newRates) => {
 
 function getProductRetailPrice(p) {
   if (!p || !p.price) return 0;
-  const cost = Number(p.price);
+  const rawCost = Number(p.price);
+  const cost = applyDFU(rawCost, p.category, p.name);
   const nameUpper = (p.name || '').trim().toUpperCase();
   const catUpper = (p.category || '').trim().toUpperCase();
   const isSemi = isSeminovoProduct(p);
@@ -1591,7 +1613,8 @@ function renderStoreFront() {
       const colorsArr = Array.from(grp.colors.values()).map(colObj => {
         const isSemi = grp.isSeminovo;
         const offers = colObj.offers || [];
-        const refCost = calculateSupplierReferencePrice(offers, isSemi);
+        const rawRefCost = calculateSupplierReferencePrice(offers, isSemi);
+        const refCost = applyDFU(rawRefCost, fam.category, grp.rawModel);
         
         let marginVal = margins.products ? margins.products[grp.rawModel.toUpperCase()] : undefined;
         if (marginVal === undefined && isSemi) {
@@ -2484,12 +2507,7 @@ function renderPricesOfTheDay() {
           repOffer = offers.reduce((prev, curr) => (curr.price < prev.price ? curr : prev), offers[0]);
         }
 
-        let refPrice = rawRefPrice;
-        const isIphone = fam.category === 'IPH' || grp.rawModel.toUpperCase().includes('IPHONE');
-        const isMac = fam.category === 'MCB' || grp.rawModel.toUpperCase().includes('MAC');
-        if (isIphone || isMac) {
-           refPrice += 100;
-        }
+        const refPrice = applyDFU(rawRefPrice, fam.category, grp.rawModel);
 
         return {
           color: colObj.color,
@@ -2624,12 +2642,9 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
   const lowestPrice = offers[0].price;
   const rawRefPrice = calculateSupplierReferencePrice(offers, isSeminovo);
 
-  const isIphone = model.toUpperCase().includes('IPHONE');
-  const isMac = model.toUpperCase().includes('MAC');
-  let headerRefPrice = rawRefPrice;
-  if (isIphone || isMac) {
-    headerRefPrice += 100;
-  }
+  // We don't have category here easily, but we have model.
+  // We can pass empty string for category, the model check inside applyDFU is enough.
+  const headerRefPrice = applyDFU(rawRefPrice, '', model);
 
   const offersHtml = offers.map((p) => {
     const sName = p.supplier?.name || 'Fornecedor';
@@ -2642,10 +2657,7 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
     const colHex = getAppleColorHex(p.color);
     const ram = getMacBookRam(p);
 
-    let displayPrice = p.price;
-    if (isIphone || isMac) {
-      displayPrice += 100;
-    }
+    const displayPrice = applyDFU(p.price, '', model);
 
     const orderMsg = buildSupplierWhatsAppMessage(cleanModelName(p.name) + (isSeminovo ? ' (Seminovo)' : ''), p.storage, p.color, displayPrice, ram);
     const waLink = whatsapp ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(orderMsg)}` : '#';
@@ -3311,7 +3323,8 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
       const colorsArr = Array.from(grp.colors.values()).map(colObj => {
         const isSemi = grp.isSeminovo;
         const offers = colObj.offers || [];
-        const refCost = calculateSupplierReferencePrice(offers, isSemi);
+        const rawRefCost = calculateSupplierReferencePrice(offers, isSemi);
+        const refCost = applyDFU(rawRefCost, fam.category, grp.rawModel);
         
         let finalPrice = refCost;
         if (!isPod) {
@@ -3324,12 +3337,6 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
             marginVal = getProductRetailPrice(dummyProd) - refCost;
           }
           finalPrice = refCost + (Number(marginVal) || 0);
-        } else {
-          const isIphone = fam.category === 'IPH' || grp.rawModel.toUpperCase().includes('IPHONE');
-          const isMac = fam.category === 'MCB' || grp.rawModel.toUpperCase().includes('MAC');
-          if (isIphone || isMac) {
-             finalPrice += 100;
-          }
         }
 
         return {
