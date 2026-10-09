@@ -15,7 +15,7 @@ const socket = io();
 // ==========================================
 // MODO DFU (Ajuste Global de Custo Base)
 // ==========================================
-window.DFU_ACTIVE = true;
+window.DFU_ACTIVE = false;
 window.DFU_VALUE = 100;
 
 function applyDFU(cost, category, rawModel) {
