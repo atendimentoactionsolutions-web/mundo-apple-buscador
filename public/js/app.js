@@ -520,8 +520,11 @@ function getAppleColorHex(colorName) {
   // Natural Titanium / Titânio Natural
   if (c.includes('NATURAL')) return '#9f9a93';
 
-  // Cosmic Orange / Laranja / Orange / Citrus / Coral
-  if (c.includes('COSMIC') || c.includes('ORANGE') || c.includes('LARANJ') || c.includes('CITRUS') || c.includes('CORAL')) return '#e06d53';
+  // Citrus / Lime / Limão (Apple Neo / Pastel Lime Yellow)
+  if (c.includes('CITRUS') || c.includes('LIME') || c.includes('LIMÃO') || c.includes('LIMAO')) return '#d9d686';
+
+  // Cosmic Orange / Laranja / Orange / Coral
+  if (c.includes('COSMIC') || c.includes('ORANGE') || c.includes('LARANJ') || c.includes('CORAL')) return '#e06d53';
 
   // Teal / Sage / Verde-azulado / Cyprus
   if (c.includes('TEAL') || c.includes('SAGE') || c.includes('CYPRUS')) return '#3b827e';
