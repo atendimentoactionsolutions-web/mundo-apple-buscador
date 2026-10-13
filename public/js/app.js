@@ -97,6 +97,69 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+// ==========================================
+// CACHE LOCAL ULTRA-RÁPIDO (INDEXEDDB)
+// Carrega valores e produtos instantaneamente (<15ms)
+// ==========================================
+const DB_NAME = 'BuscadorAppleCache';
+const STORE_NAME = 'catalog';
+
+function openCatalogDb() {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || !window.indexedDB) return resolve(null);
+    try {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => {
+        try { req.result.createObjectStore(STORE_NAME); } catch (e) {}
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    } catch (e) {
+      resolve(null);
+    }
+  });
+}
+
+async function getCachedCatalog() {
+  try {
+    const db = await openCatalogDb();
+    if (!db) return null;
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.get('latest_products');
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => resolve(null);
+      } catch (e) {
+        resolve(null);
+      }
+    });
+  } catch (e) {
+    return null;
+  }
+}
+
+async function saveCachedCatalog(data) {
+  try {
+    const db = await openCatalogDb();
+    if (!db) return;
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    store.put(data, 'latest_products');
+  } catch (e) {}
+}
+
+// Inicializa cache em memória instantaneamente antes da rede
+getCachedCatalog().then((cached) => {
+  if (cached && Array.isArray(cached) && cached.length > 0 && allProducts.length === 0) {
+    allProducts = cached;
+    if (totalCountEl) totalCountEl.textContent = allProducts.length;
+    updateDynamicFilters();
+    refreshCurrentView();
+  }
+});
+
 let selectedDateMode = 'today';
 
 // 1. Fetch initial dataset from backend API (suporta alternar entre Hoje e Ontem)
@@ -108,6 +171,7 @@ async function loadProducts(dateParam) {
     const json = await res.json();
     if (json.success && Array.isArray(json.data) && json.data.length > 0) {
       allProducts = json.data.filter(p => !isCpoProduct(p) && !isAsIsProduct(p));
+      saveCachedCatalog(allProducts);
       if (totalCountEl) totalCountEl.textContent = allProducts.length;
 
       // Status Badge e indicador de data ativa
@@ -1596,6 +1660,16 @@ function renderStoreFront() {
   }
 
   if (sortedFamilies.length === 0) {
+    if (allProducts.length === 0) {
+      container.innerHTML = `
+        <div class="app-catalog-loader">
+          <div class="app-spinner"></div>
+          <p style="color: var(--text-primary, #fff); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Carregando vitrine com preços atualizados...</p>
+          <span style="color: var(--text-muted, #888); font-size: 0.85rem;">Calculando margens e parcelamentos da loja</span>
+        </div>
+      `;
+      return;
+    }
     container.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
         <h3 style="font-size: 1.25rem; color: var(--text-primary); margin-bottom: 8px;">Nenhum produto encontrado na loja com estes filtros.</h3>
@@ -2479,6 +2553,16 @@ function renderPricesOfTheDay() {
   updatePricesDayCategoryCounts();
 
   if (sortedFamilies.length === 0) {
+    if (allProducts.length === 0) {
+      container.innerHTML = `
+        <div class="app-catalog-loader">
+          <div class="app-spinner"></div>
+          <p style="color: var(--text-primary, #fff); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Sincronizando cotações Apple em tempo real...</p>
+          <span style="color: var(--text-muted, #888); font-size: 0.85rem;">Carregando modelos, cores e melhores preços dos fornecedores</span>
+        </div>
+      `;
+      return;
+    }
     container.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
         <h3 style="font-size: 1.25rem; color: var(--text-primary); margin-bottom: 8px;">Nenhum produto encontrado nesta categoria ou busca.</h3>

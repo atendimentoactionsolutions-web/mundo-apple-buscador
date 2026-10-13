@@ -1113,6 +1113,29 @@ app.post('/api/admin/card-rates', async (req, res) => {
   }
 });
 
+function formatProductForClient(p) {
+  if (!p) return null;
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    price: p.price,
+    category: p.category,
+    storage: p.storage,
+    color: p.color,
+    region: p.region,
+    isSeminovo: p.isSeminovo || false,
+    condition: p.condition || (p.isSeminovo ? 'SEMINOVO' : 'NOVO'),
+    supplier: p.supplier ? {
+      name: p.supplier.name,
+      whatsappNumber: p.supplier.whatsappNumber,
+      address: p.supplier.address,
+      isVerified: p.supplier.isVerified,
+      profileImageUrl: p.supplier.profileImageUrl
+    } : null
+  };
+}
+
 // --- ROTAS DE PRODUTOS (ACESSO DIRETO) ---
 let cachedProductsJson = null;
 let lastProductsCacheTime = 0;
@@ -1124,14 +1147,15 @@ app.get('/api/products', (req, res) => {
   // Se for busca de histórico por data (ex: 'yesterday' ou data específica)
   if (targetDate && targetDate !== 'today' && targetDate !== latestDate) {
     const historical = getHistoricalCatalog(targetDate);
+    const formattedHistorical = historical.map(formatProductForClient).filter(Boolean);
     return res.json({
       success: true,
-      total: historical.length,
+      total: formattedHistorical.length,
       dollarRate,
       dollarVariation,
       latestDate: targetDate,
       isHistorical: true,
-      data: historical
+      data: formattedHistorical
     });
   }
 
@@ -1155,13 +1179,15 @@ app.get('/api/products', (req, res) => {
     }
   }
 
+  const formattedProducts = products.map(formatProductForClient).filter(Boolean);
+
   cachedProductsJson = JSON.stringify({
     success: true,
-    total: products.length,
+    total: formattedProducts.length,
     dollarRate,
     dollarVariation,
     latestDate: latestDate || `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
-    data: products
+    data: formattedProducts
   });
   lastProductsCacheTime = now;
 

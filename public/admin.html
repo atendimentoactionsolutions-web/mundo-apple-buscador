@@ -1332,10 +1332,11 @@
         if (!resp.ok) return;
         const products = await resp.json();
         const datalist = document.getElementById('availableModelsList');
-        if (!datalist || !Array.isArray(products)) return;
+        const list = Array.isArray(products) ? products : (products.data || []);
+        if (!datalist || !Array.isArray(list)) return;
 
         const uniqueModels = new Set();
-        products.forEach(p => {
+        list.forEach(p => {
           const m = p.name ? cleanModelName(p.name) : (p.model || '');
           if (m) uniqueModels.add(m.trim().toUpperCase());
         });
