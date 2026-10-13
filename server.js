@@ -1114,7 +1114,33 @@ app.post('/api/admin/card-rates', async (req, res) => {
 });
 
 // --- ROTAS DE PRODUTOS (ACESSO DIRETO) ---
+let cachedProductsJson = null;
+let lastProductsCacheTime = 0;
+const PRODUCTS_CACHE_TTL_MS = 2000; // Cache de 2 segundos para respostas instantâneas (1ms)
+
 app.get('/api/products', (req, res) => {
+  const targetDate = req.query.date;
+  
+  // Se for busca de histórico por data (ex: 'yesterday' ou data específica)
+  if (targetDate && targetDate !== 'today' && targetDate !== latestDate) {
+    const historical = getHistoricalCatalog(targetDate);
+    return res.json({
+      success: true,
+      total: historical.length,
+      dollarRate,
+      dollarVariation,
+      latestDate: targetDate,
+      isHistorical: true,
+      data: historical
+    });
+  }
+
+  const now = Date.now();
+  if (cachedProductsJson && (now - lastProductsCacheTime < PRODUCTS_CACHE_TTL_MS)) {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    return res.send(cachedProductsJson);
+  }
+
   let products = Array.from(productsMap.values()).filter(p => !isCpoProduct(p));
   
   // Fallback de Segurança Nível Máximo: Se o servidor na nuvem acabou de subir e o mapa está zerado, carrega o snapshot em disco!
@@ -1129,7 +1155,7 @@ app.get('/api/products', (req, res) => {
     }
   }
 
-  res.json({
+  cachedProductsJson = JSON.stringify({
     success: true,
     total: products.length,
     dollarRate,
@@ -1137,6 +1163,10 @@ app.get('/api/products', (req, res) => {
     latestDate: latestDate || `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
     data: products
   });
+  lastProductsCacheTime = now;
+
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.send(cachedProductsJson);
 });
 
 app.get('/api/price-history/:id', async (req, res) => {

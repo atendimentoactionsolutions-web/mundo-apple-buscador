@@ -296,7 +296,11 @@
 
     <!-- Grouped Matrix Grid (4 Columns Desktop / 2 Tablet / 1 Mobile) -->
     <main class="pod-matrix-container" id="podMatrixGrid">
-      <!-- Populated dynamically via JS -->
+      <div class="app-catalog-loader">
+        <div class="app-spinner"></div>
+        <p style="color: var(--text-primary, #fff); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Sincronizando cotações Apple em tempo real...</p>
+        <span style="color: var(--text-muted, #888); font-size: 0.85rem;">Carregando modelos, cores e melhores preços dos fornecedores</span>
+      </div>
     </main>
   </div>
 
@@ -429,7 +433,11 @@
 
     <!-- Storefront Display Grid -->
     <main class="storefront-grid" id="storefrontGrid">
-      <!-- Populated dynamically via JS -->
+      <div class="app-catalog-loader">
+        <div class="app-spinner"></div>
+        <p style="color: var(--text-primary, #fff); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Carregando vitrine com preços atualizados...</p>
+        <span style="color: var(--text-muted, #888); font-size: 0.85rem;">Calculando margens e parcelamentos da loja</span>
+      </div>
     </main>
   </div>
 

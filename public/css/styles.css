@@ -4727,3 +4727,26 @@ body.light-theme .mobile-drawer-item:active {
     display: none !important;
   }
 }
+
+/* Global App Initial Loader */
+.app-catalog-loader {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 20px;
+  text-align: center;
+}
+.app-spinner {
+  width: 42px;
+  height: 42px;
+  border: 3.5px solid rgba(255, 255, 255, 0.08);
+  border-top-color: var(--accent-green, #10b981);
+  border-radius: 50%;
+  animation: appSpin 0.75s linear infinite;
+  margin-bottom: 16px;
+}
+@keyframes appSpin {
+  to { transform: rotate(360deg); }
+}
