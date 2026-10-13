@@ -926,7 +926,7 @@ function saveCardRates(ratesData) {
   }
 }
 
-// Rota de margens ativas (se logado como lojista, retorna as margens DELE; caso contrário, globais)
+// Rota de margens ativas (se logado como lojista, retorna as margens DELE; se admin, globais; se NÃO LOGADO, esconde tudo)
 app.get('/api/margins', async (req, res) => {
   const token = auth.getSessionTokenFromRequest(req);
   if (token) {
@@ -934,8 +934,12 @@ app.get('/api/margins', async (req, res) => {
     if (user && user.role !== 'admin' && user.custom_margins) {
       return res.json({ success: true, margins: user.custom_margins, isLojistaCustom: true });
     }
+    if (user) {
+      return res.json({ success: true, margins: loadMargins(), isLojistaCustom: false });
+    }
   }
-  res.json({ success: true, margins: loadMargins(), isLojistaCustom: false });
+  // Visitante não autenticado: esconde completamente as margens secretas
+  res.json({ success: true, margins: { categories: {}, products: {} }, isShielded: true });
 });
 
 // Endpoint para o lojista ou admin atualizar suas próprias margens (incluindo exceção por modelo)
@@ -1113,41 +1117,158 @@ app.post('/api/admin/card-rates', async (req, res) => {
   }
 });
 
-function formatProductForClient(p) {
+// =========================================================================
+// BLINDAGEM DE SEGURANÇA E DADOS (ANTI-INSPEÇÃO PARA VISITANTES)
+// =========================================================================
+const SERVER_DFU_ACTIVE = true;
+const SERVER_DFU_VALUE = 100;
+
+function applyServerDFU(cost, category, rawModel) {
+  if (!SERVER_DFU_ACTIVE) return Number(cost) || 0;
+  const numCost = Number(cost) || 0;
+  if (numCost <= 0) return 0;
+  const isIphone = (category || '') === 'IPH' || (rawModel || '').toUpperCase().includes('IPHONE');
+  const isMac = (category || '') === 'MCB' || (rawModel || '').toUpperCase().includes('MAC');
+  if (isIphone || isMac) {
+    return numCost + SERVER_DFU_VALUE;
+  }
+  return numCost;
+}
+
+function getServerProductMargin(rawModel, category, isSemi, marginsData) {
+  const margins = marginsData || loadMargins();
+  const nameUpper = (rawModel || '').trim().toUpperCase();
+  const catUpper = (category || '').trim().toUpperCase();
+
+  // 1. Exceção de modelo específico se cadastrada no painel admin
+  let margin = margins.products ? margins.products[nameUpper] : undefined;
+  if (margin !== undefined) return Number(margin) || 0;
+
+  // 2. Se for Linha iPhone 18 (Lançamento Importante), aplica a margem de R$ 1.300
+  if (nameUpper.includes('IPHONE 18') || nameUpper.includes('IPH 18')) {
+    return (margins.categories && margins.categories.IPH18 !== undefined) ? Number(margins.categories.IPH18) : 1300;
+  }
+
+  // 3. Se for Seminovo, aplica a margem de Seminovos (padrão R$ 600)
+  if (isSemi) {
+    return (margins.categories && margins.categories.SEMINOVOS !== undefined) ? Number(margins.categories.SEMINOVOS) : 600;
+  }
+
+  // 4. Margem padrão por Categoria
+  if (margins.categories) {
+    if (nameUpper.includes('FOLIO') || nameUpper.includes('SMART FOLIO')) {
+      return margins.categories.FOLIO ?? 400;
+    } else if (nameUpper.includes('PENCIL')) {
+      return margins.categories.PENCIL ?? 200;
+    } else if (nameUpper.includes('AIRTAG') && (nameUpper.includes('4 PACK') || nameUpper.includes('4-PACK') || nameUpper.includes('4PACK') || nameUpper.includes('PACOTE') || nameUpper.includes('4PK') || nameUpper.includes('4 UN') || nameUpper.includes('4UN'))) {
+      return margins.categories.AIRTAG_PACK ?? 350;
+    } else if (nameUpper.includes('AIRTAG')) {
+      return margins.categories.AIRTAG_UNIT ?? 100;
+    } else if (nameUpper.includes('MAGIC KEY') || nameUpper.includes('MAGIC KEYBOARD') || nameUpper.includes('SMART KEYBOARD') || nameUpper.includes('SMART KEY')) {
+      return margins.categories.MAGIC_KEY ?? 400;
+    } else if (nameUpper.includes('MAGIC MOUSE') || (nameUpper.includes('MOUSE') && (catUpper === 'ACSS' || nameUpper.includes('APPLE')))) {
+      return margins.categories.MAGIC_MOUSE ?? 430;
+    } else if (nameUpper.includes('APPLE TV') || nameUpper.includes('APPLETV') || nameUpper.includes('TV 4K') || nameUpper.includes('TV HD')) {
+      return margins.categories.APPLE_TV ?? 500;
+    } else if (catUpper === 'IPH' || nameUpper.includes('IPHONE')) {
+      return margins.categories.IPH ?? 750;
+    } else if ((nameUpper.includes('MACBOOK') || catUpper === 'MCB') && nameUpper.includes('MAX')) {
+      return (margins.categories && margins.categories.MCB_MAX !== undefined) ? margins.categories.MCB_MAX : 2500;
+    } else if (nameUpper.includes('MACBOOK AIR') || nameUpper.includes('AIR M') || (catUpper === 'MCB' && nameUpper.includes('AIR'))) {
+      return margins.categories.MCB_AIR ?? 1000;
+    } else if (catUpper === 'MCB' || nameUpper.includes('MACBOOK') || nameUpper.includes('MAC MINI') || nameUpper.includes('MAC STUDIO') || nameUpper.includes('MAC PRO')) {
+      return margins.categories.MCB_PRO ?? 1300;
+    } else if (catUpper === 'IPAD' || catUpper === 'IPD' || nameUpper.includes('IPAD')) {
+      if (nameUpper.includes('PRO') || nameUpper.includes('AIR')) {
+        return margins.categories.IPAD_PRO_AIR ?? 750;
+      } else {
+        return margins.categories.IPAD ?? 500;
+      }
+    } else if (catUpper === 'RLG' || nameUpper.includes('WATCH') || nameUpper.includes('SERIES') || nameUpper.includes('ULTRA')) {
+      if (nameUpper.includes('ULTRA') || nameUpper.includes('S12')) {
+        return margins.categories.RLG_ULTRA_S12 ?? 800;
+      } else {
+        return margins.categories.RLG ?? 500;
+      }
+    } else if (catUpper === 'IMAC' || nameUpper.includes('IMAC')) {
+      return margins.categories.IMAC ?? 1500;
+    } else if (catUpper === 'PODS' || nameUpper.includes('AIRPOD')) {
+      return margins.categories.PODS ?? 400;
+    } else if (catUpper === 'ACSS' || nameUpper.includes('CABO') || nameUpper.includes('FONTE') || nameUpper.includes('CARREGADOR')) {
+      return margins.categories.ACSS ?? 100;
+    }
+  }
+
+  return 500;
+}
+
+function formatProductForClient(p, isAuthed = false, marginsData = null) {
   if (!p) return null;
+  
+  if (isAuthed) {
+    return {
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      price: p.price,
+      category: p.category,
+      storage: p.storage,
+      color: p.color,
+      region: p.region,
+      isSeminovo: p.isSeminovo || false,
+      condition: p.condition || (p.isSeminovo ? 'SEMINOVO' : 'NOVO'),
+      supplier: p.supplier ? {
+        name: p.supplier.name,
+        whatsappNumber: p.supplier.whatsappNumber,
+        address: p.supplier.address,
+        isVerified: p.supplier.isVerified,
+        profileImageUrl: p.supplier.profileImageUrl
+      } : null
+    };
+  }
+
+  // Visitante não autenticado: TOTALMENTE BLINDADO!
+  // Preço de venda final da loja com DFU e Margem de Lucro incorporados no servidor
+  const rawCost = Number(p.price) || 0;
+  const dfuCost = applyServerDFU(rawCost, p.category, p.name);
+  const margin = getServerProductMargin(p.name, p.category, p.isSeminovo, marginsData);
+  const retailPrice = dfuCost + margin;
+
   return {
     id: p.id,
     name: p.name,
     description: p.description,
-    price: p.price,
+    price: retailPrice,
     category: p.category,
     storage: p.storage,
     color: p.color,
     region: p.region,
     isSeminovo: p.isSeminovo || false,
     condition: p.condition || (p.isSeminovo ? 'SEMINOVO' : 'NOVO'),
-    supplier: p.supplier ? {
-      name: p.supplier.name,
-      whatsappNumber: p.supplier.whatsappNumber,
-      address: p.supplier.address,
-      isVerified: p.supplier.isVerified,
-      profileImageUrl: p.supplier.profileImageUrl
-    } : null
+    supplier: null // BLINDADO: Nenhum dado de fornecedor exposto!
   };
 }
 
 // --- ROTAS DE PRODUTOS (ACESSO DIRETO) ---
-let cachedProductsJson = null;
-let lastProductsCacheTime = 0;
+let cachedAuthedProductsJson = null;
+let lastAuthedCacheTime = 0;
+let cachedShieldedProductsJson = null;
+let lastShieldedCacheTime = 0;
 const PRODUCTS_CACHE_TTL_MS = 2000; // Cache de 2 segundos para respostas instantâneas (1ms)
 
-app.get('/api/products', (req, res) => {
+app.get('/api/products', async (req, res) => {
   const targetDate = req.query.date;
-  
+  const token = auth.getSessionTokenFromRequest(req);
+  const user = token ? await auth.findUserBySessionToken(token) : null;
+  const isAuthed = !!user;
+
   // Se for busca de histórico por data (ex: 'yesterday' ou data específica)
   if (targetDate && targetDate !== 'today' && targetDate !== latestDate) {
+    if (!isAuthed) {
+      return res.status(401).json({ error: 'Acesso restrito a usuários autorizados.' });
+    }
     const historical = getHistoricalCatalog(targetDate);
-    const formattedHistorical = historical.map(formatProductForClient).filter(Boolean);
+    const formattedHistorical = historical.map(p => formatProductForClient(p, true)).filter(Boolean);
     return res.json({
       success: true,
       total: formattedHistorical.length,
@@ -1160,9 +1281,16 @@ app.get('/api/products', (req, res) => {
   }
 
   const now = Date.now();
-  if (cachedProductsJson && (now - lastProductsCacheTime < PRODUCTS_CACHE_TTL_MS)) {
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    return res.send(cachedProductsJson);
+  if (isAuthed) {
+    if (cachedAuthedProductsJson && (now - lastAuthedCacheTime < PRODUCTS_CACHE_TTL_MS)) {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      return res.send(cachedAuthedProductsJson);
+    }
+  } else {
+    if (cachedShieldedProductsJson && (now - lastShieldedCacheTime < PRODUCTS_CACHE_TTL_MS)) {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      return res.send(cachedShieldedProductsJson);
+    }
   }
 
   let products = Array.from(productsMap.values()).filter(p => !isCpoProduct(p));
@@ -1179,23 +1307,32 @@ app.get('/api/products', (req, res) => {
     }
   }
 
-  const formattedProducts = products.map(formatProductForClient).filter(Boolean);
+  const currentMargins = loadMargins();
+  const formattedProducts = products.map(p => formatProductForClient(p, isAuthed, currentMargins)).filter(Boolean);
 
-  cachedProductsJson = JSON.stringify({
+  const payload = JSON.stringify({
     success: true,
     total: formattedProducts.length,
     dollarRate,
     dollarVariation,
     latestDate: latestDate || `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
+    isShielded: !isAuthed,
     data: formattedProducts
   });
-  lastProductsCacheTime = now;
+
+  if (isAuthed) {
+    cachedAuthedProductsJson = payload;
+    lastAuthedCacheTime = now;
+  } else {
+    cachedShieldedProductsJson = payload;
+    lastShieldedCacheTime = now;
+  }
 
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.send(cachedProductsJson);
+  res.send(payload);
 });
 
-app.get('/api/price-history/:id', async (req, res) => {
+app.get('/api/price-history/:id', requireAuthApi, async (req, res) => {
   const { id } = req.params;
   try {
     const resp = await axios.get(`${PXT_BASE_URL}/products/${id}/price-history`, {

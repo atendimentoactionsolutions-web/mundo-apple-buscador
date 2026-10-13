@@ -17,8 +17,10 @@ const socket = io();
 // ==========================================
 window.DFU_ACTIVE = true;
 window.DFU_VALUE = 100;
+window.IS_CATALOG_SHIELDED = false;
 
 function applyDFU(cost, category, rawModel) {
+  if (window.IS_CATALOG_SHIELDED) return Number(cost) || 0;
   if (!window.DFU_ACTIVE) return Number(cost) || 0;
   const numCost = Number(cost) || 0;
   if (numCost <= 0) return 0;
@@ -152,11 +154,17 @@ async function saveCachedCatalog(data) {
 
 // Inicializa cache em memória instantaneamente antes da rede
 getCachedCatalog().then((cached) => {
-  if (cached && Array.isArray(cached) && cached.length > 0 && allProducts.length === 0) {
-    allProducts = cached;
-    if (totalCountEl) totalCountEl.textContent = allProducts.length;
-    updateDynamicFilters();
-    refreshCurrentView();
+  if (cached && allProducts.length === 0) {
+    const list = Array.isArray(cached) ? cached : (cached.products || []);
+    if (list.length > 0) {
+      if (cached.isShielded !== undefined) {
+        window.IS_CATALOG_SHIELDED = !!cached.isShielded;
+      }
+      allProducts = list;
+      if (totalCountEl) totalCountEl.textContent = allProducts.length;
+      updateDynamicFilters();
+      refreshCurrentView();
+    }
   }
 });
 
@@ -170,8 +178,9 @@ async function loadProducts(dateParam) {
     if (!res.ok) return;
     const json = await res.json();
     if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+      window.IS_CATALOG_SHIELDED = !!json.isShielded;
       allProducts = json.data.filter(p => !isCpoProduct(p) && !isAsIsProduct(p));
-      saveCachedCatalog(allProducts);
+      saveCachedCatalog({ isShielded: window.IS_CATALOG_SHIELDED, products: allProducts });
       if (totalCountEl) totalCountEl.textContent = allProducts.length;
 
       // Status Badge e indicador de data ativa
@@ -1428,6 +1437,7 @@ socket.on('card_rates_updated', (newRates) => {
 });
 
 function getProductMargin(rawModel, category, isSemi = false) {
+  if (window.IS_CATALOG_SHIELDED) return 0; // Margem e DFU já embutidos no preço pelo backend
   const nameUpper = (rawModel || '').trim().toUpperCase();
   const catUpper = (category || '').trim().toUpperCase();
 
