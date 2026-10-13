@@ -389,13 +389,7 @@
 
         if (resp.ok && data.success) {
           btnText.textContent = 'Acesso Autorizado!';
-          const urlParams = new URLSearchParams(window.location.search);
-          const redirectTarget = urlParams.get('redirect');
-          if (redirectTarget === 'admin' || data.user?.role === 'admin' && redirectTarget) {
-            window.location.href = '/admin';
-          } else {
-            window.location.href = '/';
-          }
+          window.location.href = '/';
         } else {
           alertBox.style.display = 'block';
           alertBox.textContent = data.error || 'Não foi possível realizar o login.';

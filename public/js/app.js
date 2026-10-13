@@ -3866,6 +3866,12 @@ async function checkAuthSession() {
       if (publicAdminTopBtn) publicAdminTopBtn.style.display = 'none';
       if (userSessionInfo) userSessionInfo.style.display = 'none';
 
+      const brandLogoLink = document.getElementById('brandLogoLink');
+      if (brandLogoLink) {
+        brandLogoLink.href = '/login.html';
+        brandLogoLink.title = 'Entrar no Sistema';
+      }
+
       // Sincroniza gaveta mobile: esconde Preços do Dia, Calculadora e Acesso Admin para visitantes
       const mobileDrawerUser = document.getElementById('mobileDrawerUser');
       const mobileDrawerAdminBtn = document.getElementById('mobileDrawerAdminBtn');
@@ -3944,6 +3950,12 @@ async function checkAuthSession() {
       userSessionInfo.style.display = 'flex';
       if (adminHeaderBtn) adminHeaderBtn.style.display = 'inline-flex';
       userStoreBadge.style.display = 'none'; // REMOVIDO A PEDIDO DO USUARIO
+    }
+
+    const brandLogoLink = document.getElementById('brandLogoLink');
+    if (brandLogoLink) {
+      brandLogoLink.href = '/';
+      brandLogoLink.title = 'Mundo Apple - Início';
     }
 
     // Atualiza drawer mobile logado
