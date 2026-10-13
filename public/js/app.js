@@ -21,17 +21,16 @@ window.IS_CATALOG_SHIELDED = false;
 
 function applyDFU(cost, category, rawModel) {
   if (window.IS_CATALOG_SHIELDED) return Number(cost) || 0;
+  if (window.PricingCore && typeof window.PricingCore.applyDFU === 'function') {
+    return window.PricingCore.applyDFU(cost, category, rawModel);
+  }
   if (!window.DFU_ACTIVE) return Number(cost) || 0;
   const numCost = Number(cost) || 0;
   if (numCost <= 0) return 0;
-  if (!rawModel) rawModel = '';
-  if (!category) category = '';
-  
-  const isIphone = category === 'IPH' || rawModel.toUpperCase().includes('IPHONE');
-  const isMac = category === 'MCB' || rawModel.toUpperCase().includes('MAC');
-  
-  if (isIphone || isMac) {
-    return numCost + window.DFU_VALUE;
+  const cat = (category || '').toUpperCase().trim();
+  const model = (rawModel || '').toUpperCase();
+  if (cat === 'IPH' || model.includes('IPHONE') || cat === 'MCB' || model.includes('MAC')) {
+    return numCost + (window.DFU_VALUE || 100);
   }
   return numCost;
 }
@@ -70,6 +69,9 @@ function isCpoProduct(p) {
 }
 
 function isAsIsProduct(p) {
+  if (window.PricingCore && typeof window.PricingCore.isAsIsProduct === 'function') {
+    return window.PricingCore.isAsIsProduct(p);
+  }
   if (!p) return false;
   const cat = (p.category || '').toUpperCase().trim();
   const name = (p.name || '').toUpperCase();
@@ -89,6 +91,27 @@ function isAsIsProduct(p) {
   );
 }
 
+// Utilitário de Debounce para entradas do usuário (evita travamentos ao digitar)
+function debounce(fn, delay = 120) {
+  let timer = null;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
+// Batching de re-renderização visual para eventos WebSocket em rajada
+let pendingUiRefresh = null;
+function scheduleUiRefresh() {
+  if (pendingUiRefresh) return;
+  pendingUiRefresh = requestAnimationFrame(() => {
+    pendingUiRefresh = null;
+    if (typeof refreshCurrentView === 'function') {
+      refreshCurrentView();
+    }
+  });
+}
+
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
@@ -102,6 +125,7 @@ function escapeHtml(str) {
 // ==========================================
 // CACHE LOCAL ULTRA-RÁPIDO (INDEXEDDB)
 // Carrega valores e produtos instantaneamente (<15ms)
+// Com segregação estrita entre visitantes (blindado) e logados (fornecedores)
 // ==========================================
 const DB_NAME = 'BuscadorAppleCache';
 const STORE_NAME = 'catalog';
@@ -122,6 +146,11 @@ function openCatalogDb() {
   });
 }
 
+function getCatalogCacheKey() {
+  const hasToken = document.cookie && document.cookie.includes('fornecedor_session=');
+  return hasToken ? 'authed_products' : 'shielded_products';
+}
+
 async function getCachedCatalog() {
   try {
     const db = await openCatalogDb();
@@ -130,7 +159,8 @@ async function getCachedCatalog() {
       try {
         const tx = db.transaction(STORE_NAME, 'readonly');
         const store = tx.objectStore(STORE_NAME);
-        const req = store.get('latest_products');
+        const key = getCatalogCacheKey();
+        const req = store.get(key);
         req.onsuccess = () => resolve(req.result || null);
         req.onerror = () => resolve(null);
       } catch (e) {
@@ -148,7 +178,18 @@ async function saveCachedCatalog(data) {
     if (!db) return;
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
-    store.put(data, 'latest_products');
+    const key = data.isShielded ? 'shielded_products' : 'authed_products';
+    store.put(data, key);
+  } catch (e) {}
+}
+
+async function clearCachedCatalog() {
+  try {
+    const db = await openCatalogDb();
+    if (!db) return;
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    store.clear();
   } catch (e) {}
 }
 
@@ -163,7 +204,9 @@ getCachedCatalog().then((cached) => {
       allProducts = list;
       if (totalCountEl) totalCountEl.textContent = allProducts.length;
       updateDynamicFilters();
-      refreshCurrentView();
+      if (typeof refreshCurrentView === 'function') {
+        refreshCurrentView();
+      }
     }
   }
 });
@@ -989,10 +1032,7 @@ function renderAutocomplete(term) {
 
 // Search input events (instant model & keyword search)
 if (searchInput) {
-  searchInput.addEventListener('input', (e) => {
-    const val = e.target.value;
-    if (searchClearBtn) searchClearBtn.style.display = val ? 'flex' : 'none';
-
+  const debouncedSearchInput = debounce((val) => {
     if (!val.trim()) {
       selectedModel = '';
       searchQuery = '';
@@ -1008,6 +1048,12 @@ if (searchInput) {
     render();
 
     renderAutocomplete(val);
+  }, 120);
+
+  searchInput.addEventListener('input', (e) => {
+    const val = e.target.value;
+    if (searchClearBtn) searchClearBtn.style.display = val ? 'flex' : 'none';
+    debouncedSearchInput(val);
   });
 
   searchInput.addEventListener('focus', () => {
@@ -1108,42 +1154,54 @@ window.resetFilters = function() {
   render();
 };
 
-// 9. Real-Time Socket Event Listeners (Silent Updates)
+// 9. Real-Time Socket Event Listeners (Silent Updates com Batching e Anti-Duplicação)
 socket.on('price_changed', (evt) => {
+  if (!evt || !evt.id) return;
   const index = allProducts.findIndex(p => String(p.id) === String(evt.id));
   if (index >= 0) {
     const prod = allProducts[index];
     prod.price = evt.newPrice;
+    if (evt.product && evt.product.supplier !== undefined) {
+      prod.supplier = evt.product.supplier;
+    }
     allProducts[index] = prod;
-    refreshCurrentView();
+    scheduleUiRefresh();
   }
 });
 
 socket.on('product_created', (item) => {
-  allProducts.unshift(item);
-  totalCountEl.textContent = allProducts.length;
-  updateDynamicFilters();
-  refreshCurrentView();
-});
-
-socket.on('product_updated', (item) => {
+  if (!item || !item.id) return;
   const index = allProducts.findIndex(p => String(p.id) === String(item.id));
   if (index >= 0) {
     allProducts[index] = item;
-    refreshCurrentView();
+  } else {
+    allProducts.unshift(item);
+  }
+  if (totalCountEl) totalCountEl.textContent = allProducts.length;
+  updateDynamicFilters();
+  scheduleUiRefresh();
+});
+
+socket.on('product_updated', (item) => {
+  if (!item || !item.id) return;
+  const index = allProducts.findIndex(p => String(p.id) === String(item.id));
+  if (index >= 0) {
+    allProducts[index] = item;
+    scheduleUiRefresh();
   }
 });
 
 socket.on('product_deleted', (evt) => {
+  if (!evt || !evt.id) return;
   allProducts = allProducts.filter(p => String(p.id) !== String(evt.id));
-  totalCountEl.textContent = allProducts.length;
+  if (totalCountEl) totalCountEl.textContent = allProducts.length;
   updateDynamicFilters();
-  refreshCurrentView();
+  scheduleUiRefresh();
 });
 
 socket.on('catalog_reloaded', (meta) => {
-  if (meta.dollarRate && dollarRateText) dollarRateText.textContent = `R$ ${Number(meta.dollarRate).toFixed(4)}`;
-  if (meta.latestDate && dateText) dateText.textContent = meta.latestDate;
+  if (meta && meta.dollarRate && dollarRateText) dollarRateText.textContent = `R$ ${Number(meta.dollarRate).toFixed(4)}`;
+  if (meta && meta.latestDate && dateText) dateText.textContent = meta.latestDate;
   loadProducts();
 });
 
@@ -1438,6 +1496,9 @@ socket.on('card_rates_updated', (newRates) => {
 
 function getProductMargin(rawModel, category, isSemi = false) {
   if (window.IS_CATALOG_SHIELDED) return 0; // Margem e DFU já embutidos no preço pelo backend
+  if (window.PricingCore && typeof window.PricingCore.getProductMargin === 'function') {
+    return window.PricingCore.getProductMargin(rawModel, category, isSemi, margins);
+  }
   const nameUpper = (rawModel || '').trim().toUpperCase();
   const catUpper = (category || '').trim().toUpperCase();
 
@@ -1507,10 +1568,14 @@ function getProductMargin(rawModel, category, isSemi = false) {
 
 function getProductRetailPrice(p) {
   if (!p || !p.price) return 0;
-  const cost = Number(p.price);
+  if (window.IS_CATALOG_SHIELDED) return Number(p.price) || 0;
   const isSemi = isSeminovoProduct(p);
+  if (window.PricingCore && typeof window.PricingCore.calculateRetailPrice === 'function') {
+    return window.PricingCore.calculateRetailPrice(p.price, p.category, p.name, isSemi, margins);
+  }
+  const dfuCost = applyDFU(p.price, p.category, p.name);
   const margin = getProductMargin(p.name, p.category, isSemi);
-  return cost + margin;
+  return dfuCost + margin;
 }
 
 // =========================================================================
@@ -3568,19 +3633,19 @@ const podCategoryNav = document.getElementById('podCategoryNav');
 const podAutocompleteDropdown = document.getElementById('podAutocompleteDropdown');
 
 if (podSearchInput) {
-  podSearchInput.addEventListener('input', (e) => {
-    const val = e.target.value;
-    if (podSearchClearBtn) podSearchClearBtn.style.display = val ? 'flex' : 'none';
-    
-    // Busca instantânea no grid de preços
+  const debouncedPodSearch = debounce((val) => {
     renderPricesOfTheDay();
-
-    // Sugestões de modelos enquanto digita
     if (val.trim().length >= 1) {
       renderPodAutocomplete(val);
     } else if (podAutocompleteDropdown) {
       podAutocompleteDropdown.classList.remove('open');
     }
+  }, 120);
+
+  podSearchInput.addEventListener('input', (e) => {
+    const val = e.target.value;
+    if (podSearchClearBtn) podSearchClearBtn.style.display = val ? 'flex' : 'none';
+    debouncedPodSearch(val);
   });
 
   podSearchInput.addEventListener('focus', () => {
@@ -3659,6 +3724,10 @@ const sfSearchClearBtn = document.getElementById('sfSearchClearBtn');
 const sfCategoryNav = document.getElementById('sfCategoryNav');
 
 if (sfSearchInput) {
+  const debouncedSfSearch = debounce(() => {
+    renderStoreFront();
+  }, 120);
+
   sfSearchInput.addEventListener('input', (e) => {
     sfSearchQuery = e.target.value;
     if (sfSearchClearBtn) sfSearchClearBtn.style.display = sfSearchQuery ? 'flex' : 'none';
@@ -3669,7 +3738,7 @@ if (sfSearchInput) {
       });
       sfCurrentCategory = 'ALL';
     }
-    renderStoreFront();
+    debouncedSfSearch();
   });
 
   // Fecha o teclado virtual do celular quando o usuário aperta Enter ou Esc
@@ -3711,6 +3780,10 @@ const sfSearchInputMobile = document.getElementById('sfSearchInputMobile');
 const sfSearchClearBtnMobile = document.getElementById('sfSearchClearBtnMobile');
 
 if (sfSearchInputMobile) {
+  const debouncedSfMobileSearch = debounce(() => {
+    renderStoreFront();
+  }, 120);
+
   sfSearchInputMobile.addEventListener('input', (e) => {
     sfSearchQuery = e.target.value;
     if (sfSearchInput) sfSearchInput.value = sfSearchQuery;
@@ -3721,7 +3794,7 @@ if (sfSearchInputMobile) {
       });
       sfCurrentCategory = 'ALL';
     }
-    renderStoreFront();
+    debouncedSfMobileSearch();
   });
   sfSearchInputMobile.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === 'Escape') sfSearchInputMobile.blur();
@@ -4139,6 +4212,9 @@ window.toggleThemeFromDrawer = function() {
 
 async function handleHeaderLogout() {
   try {
+    if (typeof clearCachedCatalog === 'function') {
+      await clearCachedCatalog();
+    }
     await fetch('/api/auth/logout', { method: 'POST' });
   } finally {
     window.location.href = '/';
@@ -4153,7 +4229,10 @@ function getCookie(name) {
 }
 
 // Alerta Anti-Pirataria em tempo real se a conta for aberta em outro aparelho
-socket.on('session_terminated', (data) => {
+socket.on('session_terminated', async (data) => {
+  if (typeof clearCachedCatalog === 'function') {
+    await clearCachedCatalog();
+  }
   alert('⚠️ Acesso Concorrente Detectado:\n\n' + (data.reason || 'Sua conta foi conectada em outro dispositivo ou navegador. O Fornecedor permite apenas 1 tela ativa por assinatura.'));
   window.location.href = '/login.html';
 });

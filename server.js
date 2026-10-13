@@ -7,6 +7,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const auth = require('./auth');
+const PricingCore = require('./public/js/pricing-core.js');
 
 const PXT_BASE_URL = 'https://backend-api.buscadorpxt.com.br';
 const USER_EMAIL = 'felippemiranda1991@gmail.com';
@@ -94,34 +95,26 @@ let totalSuppliers = 0;
 let isSyncing = false;
 
 function isAsIsProduct(p) {
-  if (!p) return false;
-  const cat = (p.category || '').toUpperCase().trim();
-  const name = (p.name || '').toUpperCase();
-  const desc = (p.description || '').toUpperCase();
-  const reg = (p.region || '').toUpperCase();
-  return (
-    name.includes('AS IS') ||
-    name.includes('AS-IS') ||
-    name.includes('ASIS') ||
-    desc.includes('AS IS') ||
-    desc.includes('AS-IS') ||
-    desc.includes('ASIS') ||
-    cat.includes('AS IS') ||
-    cat.includes('AS-IS') ||
-    reg.includes('AS IS') ||
-    reg.includes('AS-IS')
-  );
+  return PricingCore.isAsIsProduct(p);
 }
 
 // Modelos de seminovos não permitidos (apenas a partir do iPhone 13, excluindo 13 Mini)
 function isDisallowedSeminovo(name) {
-  if (!name) return false;
-  const n = name.toUpperCase();
-  if (n.includes('13 MINI') || n.includes('13-MINI') || n.includes('13MINI')) return true;
-  if (/\b(IPHONE|IPH)\s+(11|12|X|XR|XS|SE|8|7|6)\b/i.test(n)) {
-    return true;
-  }
-  return false;
+  return PricingCore.isDisallowedSeminovo(name);
+}
+
+// Cache de respostas HTTP de produtos para alta performance (1ms)
+let cachedAuthedProductsJson = null;
+let lastAuthedCacheTime = 0;
+let cachedShieldedProductsJson = null;
+let lastShieldedCacheTime = 0;
+const PRODUCTS_CACHE_TTL_MS = 2000;
+
+function invalidateProductsCache() {
+  cachedAuthedProductsJson = null;
+  cachedShieldedProductsJson = null;
+  lastAuthedCacheTime = 0;
+  lastShieldedCacheTime = 0;
 }
 
 // Filter & Classification for Apple Products (New and Seminovos)
@@ -369,10 +362,10 @@ async function fetchProducts() {
 
     console.log(`[Catalog] Carga concluída: ${novosCount} Apple Novos + ${seminovosCount} Apple Seminovos carregados (${productsMap.size} total). (${ignoredCount} Android/Outros ignorados)`);
     isSyncing = false;
-    saveCatalogSnapshot();
+    scheduleCatalogSnapshot();
 
-    // Notify connected local clients
-    localIo.emit('catalog_reloaded', {
+    // Notificar clientes conectados (Autenticados em tempo real, Visitantes com throttle)
+    broadcastCatalogReloaded({
       total: productsMap.size,
       dollarRate,
       dollarVariation,
@@ -384,6 +377,83 @@ async function fetchProducts() {
     console.error('[Catalog] Erro ao buscar produtos:', err.response?.data || err.message);
     isSyncing = false;
     throw err;
+  }
+}
+
+// =========================================================================
+// EMISSÃO SEGURA E ROTEAMENTO DE WEBSOCKETS (ROOMS: authed_users vs public_visitors)
+// =========================================================================
+function broadcastProductCreated(fullItem) {
+  if (!fullItem) return;
+  localIo.to('authed_users').emit('product_created', fullItem);
+  const shielded = formatProductForClient(fullItem, false);
+  if (shielded) {
+    localIo.to('public_visitors').emit('product_created', shielded);
+  }
+}
+
+function broadcastProductUpdated(fullItem) {
+  if (!fullItem) return;
+  localIo.to('authed_users').emit('product_updated', fullItem);
+  const shielded = formatProductForClient(fullItem, false);
+  if (shielded) {
+    localIo.to('public_visitors').emit('product_updated', shielded);
+  }
+}
+
+function broadcastPriceChanged(id, oldPrice, newPrice, updatedAt, product) {
+  localIo.to('authed_users').emit('price_changed', {
+    id,
+    oldPrice,
+    newPrice,
+    updatedAt,
+    product
+  });
+  const shielded = formatProductForClient(product, false);
+  if (shielded) {
+    localIo.to('public_visitors').emit('price_changed', {
+      id,
+      oldPrice: shielded.price,
+      newPrice: shielded.price,
+      updatedAt,
+      product: shielded
+    });
+  }
+}
+
+function broadcastProductDeleted(id) {
+  localIo.emit('product_deleted', { id });
+}
+
+let lastPublicCatalogReloadTime = 0;
+let pendingPublicCatalogReloadTimer = null;
+
+function broadcastCatalogReloaded(stats) {
+  invalidateProductsCache();
+  // Usuários autenticados (lojistas/admin) recebem atualização em tempo real imediatamente
+  localIo.to('authed_users').emit('catalog_reloaded', stats);
+
+  // Visitantes da Loja Física têm broadcast limitado a 1 vez a cada 20s para impedir congelamento de tela
+  const now = Date.now();
+  const timeSinceLast = now - lastPublicCatalogReloadTime;
+  if (timeSinceLast >= 20000) {
+    lastPublicCatalogReloadTime = now;
+    if (pendingPublicCatalogReloadTimer) {
+      clearTimeout(pendingPublicCatalogReloadTimer);
+      pendingPublicCatalogReloadTimer = null;
+    }
+    localIo.to('public_visitors').emit('catalog_reloaded', stats);
+  } else if (!pendingPublicCatalogReloadTimer) {
+    pendingPublicCatalogReloadTimer = setTimeout(() => {
+      lastPublicCatalogReloadTime = Date.now();
+      pendingPublicCatalogReloadTimer = null;
+      localIo.to('public_visitors').emit('catalog_reloaded', {
+        total: productsMap.size,
+        dollarRate,
+        dollarVariation,
+        latestDate
+      });
+    }, 20000 - timeSinceLast);
   }
 }
 
@@ -470,13 +540,7 @@ function connectPxtWebSocket() {
       productsMap.set(id, existing);
 
       console.log(`[Tempo Real] Preço alterado: ${existing.name} (${existing.storage || ''}) - De R$ ${oldPrice} para R$ ${newPrice} [${existing.supplier?.name}]`);
-      localIo.emit('price_changed', {
-        id,
-        oldPrice,
-        newPrice,
-        updatedAt: existing.updatedAt,
-        product: existing
-      });
+      broadcastPriceChanged(id, oldPrice, newPrice, existing.updatedAt, existing);
     }
   });
 
@@ -490,14 +554,14 @@ function connectPxtWebSocket() {
     if (!fullItem) {
       if (productsMap.has(id)) {
         productsMap.delete(id);
-        localIo.emit('product_deleted', { id });
+        broadcastProductDeleted(id);
       }
       return;
     }
 
     productsMap.set(id, fullItem);
     console.log(`[Tempo Real] Produto atualizado (${fullItem.condition}): ${fullItem.name} - R$ ${fullItem.price}`);
-    localIo.emit('product_updated', fullItem);
+    broadcastProductUpdated(fullItem);
   };
 
   pxtSocket.on('product_updated', handleUpdate);
@@ -511,7 +575,7 @@ function connectPxtWebSocket() {
     if (fullItem) {
       productsMap.set(String(fullItem.id), fullItem);
       console.log(`[Tempo Real] Novo produto adicionado (${fullItem.condition}): ${fullItem.name} - R$ ${fullItem.price} [${fullItem.supplier?.name}]`);
-      localIo.emit('product_created', fullItem);
+      broadcastProductCreated(fullItem);
     }
   });
 
@@ -523,7 +587,7 @@ function connectPxtWebSocket() {
       const prod = productsMap.get(id);
       productsMap.delete(id);
       console.log(`[Tempo Real] Produto removido/esgotado: ${prod?.name} (${id})`);
-      localIo.emit('product_deleted', { id });
+      broadcastProductDeleted(id);
     }
   });
 
@@ -570,7 +634,7 @@ function connectPxtWebSocket() {
         if (item) {
           productsMap.set(String(item.id), item);
           if (!isMassive) {
-            localIo.emit('product_created', item);
+            broadcastProductCreated(item);
           }
         }
       }
@@ -579,7 +643,7 @@ function connectPxtWebSocket() {
         if (item) {
           productsMap.set(String(item.id), item);
           if (!isMassive) {
-            localIo.emit('product_updated', item);
+            broadcastProductUpdated(item);
           }
         }
       }
@@ -590,16 +654,16 @@ function connectPxtWebSocket() {
       if (productsMap.has(sId)) {
         productsMap.delete(sId);
         if (!isMassive) {
-          localIo.emit('product_deleted', { id: sId });
+          broadcastProductDeleted(sId);
         }
       }
     }
 
-    saveCatalogSnapshot();
+    scheduleCatalogSnapshot();
     console.log(`[Tempo Real] Delta processado: +${created.length}, ~${updated.length}, -${deleted.length} (Total Apple Ativos: ${productsMap.size}, Data: ${latestDate})`);
 
-    // Notifica todos os clientes conectados para atualizar a interface
-    localIo.emit('catalog_reloaded', {
+    // Notifica clientes conectados com broadcast seguro e throttled
+    broadcastCatalogReloaded({
       total: productsMap.size,
       dollarRate,
       dollarVariation,
@@ -748,23 +812,52 @@ function isCpoProduct(p) {
   return n.includes('CPO') || d.includes('CPO') || r.includes('CPO');
 }
 
-// Salvamento e gestão de snapshots históricos de catálogo por data
-function saveCatalogSnapshot() {
+// Salvamento e gestão de snapshots históricos de catálogo por data (Debounced & Não-bloqueante)
+let snapshotDebounceTimer = null;
+let isWritingSnapshot = false;
+
+function scheduleCatalogSnapshot() {
+  if (snapshotDebounceTimer) return;
+  snapshotDebounceTimer = setTimeout(async () => {
+    snapshotDebounceTimer = null;
+    await performCatalogSnapshotAsync();
+  }, 20000); // Debounce de 20 segundos
+}
+
+async function performCatalogSnapshotAsync() {
+  if (isWritingSnapshot) return;
+  isWritingSnapshot = true;
   try {
     const dataDir = path.join(__dirname, 'data');
-    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    await fs.promises.mkdir(dataDir, { recursive: true });
 
     const todayStr = new Date().toISOString().split('T')[0];
     const todayPath = path.join(dataDir, `snapshot_${todayStr}.json`);
     const latestPath = path.join(dataDir, `snapshot_latest.json`);
+    const tempPath = path.join(dataDir, `snapshot_temp_${Date.now()}.json`);
 
     const productsList = Array.from(productsMap.values()).filter(p => !isCpoProduct(p));
     if (productsList.length > 0) {
-      fs.writeFileSync(todayPath, JSON.stringify(productsList), 'utf-8');
-      fs.writeFileSync(latestPath, JSON.stringify(productsList), 'utf-8');
+      const jsonContent = JSON.stringify(productsList);
+      await fs.promises.writeFile(tempPath, jsonContent, 'utf-8');
+      await fs.promises.copyFile(tempPath, todayPath);
+      await fs.promises.rename(tempPath, latestPath);
+      console.log(`[Snapshot] 💾 Snapshot atualizado com sucesso (${productsList.length} itens).`);
     }
   } catch (err) {
-    console.warn('[Snapshot] Erro ao salvar snapshot:', err.message);
+    console.warn('[Snapshot] Erro ao salvar snapshot assíncrono:', err.message);
+  } finally {
+    isWritingSnapshot = false;
+  }
+}
+
+function saveCatalogSnapshot(options = {}) {
+  if (options && options.immediate) {
+    performCatalogSnapshotAsync().catch(err => {
+      console.warn('[Snapshot] Erro imediato:', err.message);
+    });
+  } else {
+    scheduleCatalogSnapshot();
   }
 }
 
@@ -812,31 +905,7 @@ function getHistoricalCatalog(dateParam) {
 const MARGINS_FILE_PATH = path.join(__dirname, 'data', 'margins.json');
 
 function getDefaultMargins() {
-  return {
-    categories: {
-      SEMINOVOS: 600,  // Apple Seminovos: +R$ 600
-      IPH18: 1300,     // iPhone Linha 18 (Lançamento Importante): +R$ 1.300
-      IPH: 750,        // iPhone (Outros modelos): +R$ 750
-      MCB_AIR: 1000,   // Mac Air: +R$ 1.000
-      MCB_PRO: 1300,   // Outros Modelos Mac / Pro: +R$ 1.300
-      MCB_MAX: 2500,   // MacBook Pro Max: +R$ 2.500
-      IPAD: 500,       // iPad: +R$ 500
-      IPAD_PRO_AIR: 750, // iPad Pro / Air: +R$ 750
-      RLG: 500,        // Apple Watch: +R$ 500
-      RLG_ULTRA_S12: 800, // Apple Watch Ultra / S12: +R$ 800
-      IMAC: 1500,      // iMac: +R$ 1.500
-      PODS: 400,       // AirPods: +R$ 400
-      ACSS: 100,       // Acessórios em geral: +R$ 100
-      FOLIO: 400,      // Smart Folio: +R$ 400
-      PENCIL: 200,     // Apple Pencil: +R$ 200
-      AIRTAG_UNIT: 100,// AirTag Avulso: +R$ 100
-      AIRTAG_PACK: 350,// Pacote de AirTag (4-Pack): +R$ 350
-      MAGIC_KEY: 400,  // Magic Keyboard / Smart Keyboard: +R$ 400
-      MAGIC_MOUSE: 430, // Magic Mouse: +R$ 430
-      APPLE_TV: 500    // Apple TV: +R$ 500
-    },
-    products: {}  // Exceções por produto específico
-  };
+  return PricingCore.getDefaultMargins();
 }
 
 function loadMargins() {
@@ -844,14 +913,14 @@ function loadMargins() {
     if (fs.existsSync(MARGINS_FILE_PATH)) {
       const data = JSON.parse(fs.readFileSync(MARGINS_FILE_PATH, 'utf-8'));
       return {
-        categories: { ...getDefaultMargins().categories, ...(data.categories || {}) },
+        categories: { ...PricingCore.getDefaultMargins().categories, ...(data.categories || {}) },
         products: data.products || {}
       };
     }
   } catch (err) {
     console.warn('[Margens] Erro ao carregar margens:', err.message);
   }
-  return getDefaultMargins();
+  return PricingCore.getDefaultMargins();
 }
 
 function saveMargins(marginsData) {
@@ -859,6 +928,7 @@ function saveMargins(marginsData) {
     const dataDir = path.join(__dirname, 'data');
     if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
     fs.writeFileSync(MARGINS_FILE_PATH, JSON.stringify(marginsData, null, 2), 'utf-8');
+    invalidateProductsCache();
     localIo.emit('margins_updated', marginsData);
     return true;
   } catch (err) {
@@ -1124,82 +1194,11 @@ const SERVER_DFU_ACTIVE = true;
 const SERVER_DFU_VALUE = 100;
 
 function applyServerDFU(cost, category, rawModel) {
-  if (!SERVER_DFU_ACTIVE) return Number(cost) || 0;
-  const numCost = Number(cost) || 0;
-  if (numCost <= 0) return 0;
-  const isIphone = (category || '') === 'IPH' || (rawModel || '').toUpperCase().includes('IPHONE');
-  const isMac = (category || '') === 'MCB' || (rawModel || '').toUpperCase().includes('MAC');
-  if (isIphone || isMac) {
-    return numCost + SERVER_DFU_VALUE;
-  }
-  return numCost;
+  return PricingCore.applyDFU(cost, category, rawModel);
 }
 
 function getServerProductMargin(rawModel, category, isSemi, marginsData) {
-  const margins = marginsData || loadMargins();
-  const nameUpper = (rawModel || '').trim().toUpperCase();
-  const catUpper = (category || '').trim().toUpperCase();
-
-  // 1. Exceção de modelo específico se cadastrada no painel admin
-  let margin = margins.products ? margins.products[nameUpper] : undefined;
-  if (margin !== undefined) return Number(margin) || 0;
-
-  // 2. Se for Linha iPhone 18 (Lançamento Importante), aplica a margem de R$ 1.300
-  if (nameUpper.includes('IPHONE 18') || nameUpper.includes('IPH 18')) {
-    return (margins.categories && margins.categories.IPH18 !== undefined) ? Number(margins.categories.IPH18) : 1300;
-  }
-
-  // 3. Se for Seminovo, aplica a margem de Seminovos (padrão R$ 600)
-  if (isSemi) {
-    return (margins.categories && margins.categories.SEMINOVOS !== undefined) ? Number(margins.categories.SEMINOVOS) : 600;
-  }
-
-  // 4. Margem padrão por Categoria
-  if (margins.categories) {
-    if (nameUpper.includes('FOLIO') || nameUpper.includes('SMART FOLIO')) {
-      return margins.categories.FOLIO ?? 400;
-    } else if (nameUpper.includes('PENCIL')) {
-      return margins.categories.PENCIL ?? 200;
-    } else if (nameUpper.includes('AIRTAG') && (nameUpper.includes('4 PACK') || nameUpper.includes('4-PACK') || nameUpper.includes('4PACK') || nameUpper.includes('PACOTE') || nameUpper.includes('4PK') || nameUpper.includes('4 UN') || nameUpper.includes('4UN'))) {
-      return margins.categories.AIRTAG_PACK ?? 350;
-    } else if (nameUpper.includes('AIRTAG')) {
-      return margins.categories.AIRTAG_UNIT ?? 100;
-    } else if (nameUpper.includes('MAGIC KEY') || nameUpper.includes('MAGIC KEYBOARD') || nameUpper.includes('SMART KEYBOARD') || nameUpper.includes('SMART KEY')) {
-      return margins.categories.MAGIC_KEY ?? 400;
-    } else if (nameUpper.includes('MAGIC MOUSE') || (nameUpper.includes('MOUSE') && (catUpper === 'ACSS' || nameUpper.includes('APPLE')))) {
-      return margins.categories.MAGIC_MOUSE ?? 430;
-    } else if (nameUpper.includes('APPLE TV') || nameUpper.includes('APPLETV') || nameUpper.includes('TV 4K') || nameUpper.includes('TV HD')) {
-      return margins.categories.APPLE_TV ?? 500;
-    } else if (catUpper === 'IPH' || nameUpper.includes('IPHONE')) {
-      return margins.categories.IPH ?? 750;
-    } else if ((nameUpper.includes('MACBOOK') || catUpper === 'MCB') && nameUpper.includes('MAX')) {
-      return (margins.categories && margins.categories.MCB_MAX !== undefined) ? margins.categories.MCB_MAX : 2500;
-    } else if (nameUpper.includes('MACBOOK AIR') || nameUpper.includes('AIR M') || (catUpper === 'MCB' && nameUpper.includes('AIR'))) {
-      return margins.categories.MCB_AIR ?? 1000;
-    } else if (catUpper === 'MCB' || nameUpper.includes('MACBOOK') || nameUpper.includes('MAC MINI') || nameUpper.includes('MAC STUDIO') || nameUpper.includes('MAC PRO')) {
-      return margins.categories.MCB_PRO ?? 1300;
-    } else if (catUpper === 'IPAD' || catUpper === 'IPD' || nameUpper.includes('IPAD')) {
-      if (nameUpper.includes('PRO') || nameUpper.includes('AIR')) {
-        return margins.categories.IPAD_PRO_AIR ?? 750;
-      } else {
-        return margins.categories.IPAD ?? 500;
-      }
-    } else if (catUpper === 'RLG' || nameUpper.includes('WATCH') || nameUpper.includes('SERIES') || nameUpper.includes('ULTRA')) {
-      if (nameUpper.includes('ULTRA') || nameUpper.includes('S12')) {
-        return margins.categories.RLG_ULTRA_S12 ?? 800;
-      } else {
-        return margins.categories.RLG ?? 500;
-      }
-    } else if (catUpper === 'IMAC' || nameUpper.includes('IMAC')) {
-      return margins.categories.IMAC ?? 1500;
-    } else if (catUpper === 'PODS' || nameUpper.includes('AIRPOD')) {
-      return margins.categories.PODS ?? 400;
-    } else if (catUpper === 'ACSS' || nameUpper.includes('CABO') || nameUpper.includes('FONTE') || nameUpper.includes('CARREGADOR')) {
-      return margins.categories.ACSS ?? 100;
-    }
-  }
-
-  return 500;
+  return PricingCore.getProductMargin(rawModel, category, isSemi, marginsData || loadMargins());
 }
 
 function formatProductForClient(p, isAuthed = false, marginsData = null) {
@@ -1228,11 +1227,8 @@ function formatProductForClient(p, isAuthed = false, marginsData = null) {
   }
 
   // Visitante não autenticado: TOTALMENTE BLINDADO!
-  // Preço de venda final da loja com DFU e Margem de Lucro incorporados no servidor
-  const rawCost = Number(p.price) || 0;
-  const dfuCost = applyServerDFU(rawCost, p.category, p.name);
-  const margin = getServerProductMargin(p.name, p.category, p.isSeminovo, marginsData);
-  const retailPrice = dfuCost + margin;
+  // Preço de venda final da loja com DFU e Margem de Lucro incorporados no servidor via PricingCore
+  const retailPrice = PricingCore.calculateRetailPrice(p.price, p.category, p.name, p.isSeminovo, marginsData || loadMargins());
 
   return {
     id: p.id,
@@ -1250,11 +1246,6 @@ function formatProductForClient(p, isAuthed = false, marginsData = null) {
 }
 
 // --- ROTAS DE PRODUTOS (ACESSO DIRETO) ---
-let cachedAuthedProductsJson = null;
-let lastAuthedCacheTime = 0;
-let cachedShieldedProductsJson = null;
-let lastShieldedCacheTime = 0;
-const PRODUCTS_CACHE_TTL_MS = 2000; // Cache de 2 segundos para respostas instantâneas (1ms)
 
 app.get('/api/products', async (req, res) => {
   const targetDate = req.query.date;
@@ -1399,11 +1390,11 @@ app.post('/api/admin/push-catalog', async (req, res) => {
   if (newDollar) dollarRate = newDollar;
   if (newVar !== undefined) dollarVariation = newVar;
 
-  // Salvar snapshot em disco
-  saveCatalogSnapshot();
+  // Salvar snapshot em disco de forma não-bloqueante
+  scheduleCatalogSnapshot();
 
-  // Notificar todos os clientes conectados via WebSocket instantaneamente
-  localIo.emit('catalog_reloaded', {
+  // Notificar clientes conectados via WebSocket com roteamento e throttle
+  broadcastCatalogReloaded({
     total: productsMap.size,
     latestDate,
     dollarRate,
@@ -1414,13 +1405,36 @@ app.post('/api/admin/push-catalog', async (req, res) => {
   res.json({ success: true, count: productsMap.size, date: latestDate });
 });
 
-// Local client socket connection com Anti-Pirataria
-localIo.on('connection', (clientSocket) => {
+// Local client socket connection com Anti-Pirataria e segregação de salas
+localIo.on('connection', async (clientSocket) => {
+  let isAuthed = false;
+  try {
+    const cookieHeader = clientSocket.handshake?.headers?.cookie;
+    if (cookieHeader) {
+      const match = cookieHeader.match(/fornecedor_session=([^;]+)/);
+      if (match && match[1]) {
+        const user = await auth.findUserBySessionToken(match[1]);
+        if (user && user.status !== 'blocked') {
+          isAuthed = true;
+          clientSocket.join('authed_users');
+          clientSocket.join(`user_${user.id}`);
+          clientSocket.userId = user.id;
+        }
+      }
+    }
+  } catch (e) {}
+
+  if (!isAuthed) {
+    clientSocket.join('public_visitors');
+  }
+
   // O cliente registra seu token de sessão para receber avisos imediatos de sessão única
   clientSocket.on('register_session', async (token) => {
     if (token) {
       const user = await auth.findUserBySessionToken(token);
-      if (user) {
+      if (user && user.status !== 'blocked') {
+        clientSocket.leave('public_visitors');
+        clientSocket.join('authed_users');
         clientSocket.join(`user_${user.id}`);
         clientSocket.userId = user.id;
       }
