@@ -44,8 +44,8 @@ app.use((req, res, next) => {
 });
 
 // Helper de Cookies de Sessão
-function setSessionCookie(res, token) {
-  const maxAge = 30 * 24 * 60 * 60; // 30 dias em segundos
+function setSessionCookie(res, token, isAdmin = false) {
+  const maxAge = isAdmin ? 365 * 24 * 60 * 60 : 30 * 24 * 60 * 60; // 1 ano para admin, 30 dias para lojistas
   res.setHeader('Set-Cookie', `fornecedor_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`);
 }
 function clearSessionCookie(res) {
@@ -697,7 +697,7 @@ async function requireAuthApi(req, res, next) {
   if (!user) {
     return res.status(401).json({ error: 'Sessão inválida ou desconectada em outro aparelho.', code: 'SESSION_EXPIRED' });
   }
-  if (user.status === 'blocked') {
+  if (user.role !== 'admin' && user.status === 'blocked') {
     return res.status(403).json({ error: 'Conta suspensa. Entre em contato com o administrador.', code: 'ACCOUNT_BLOCKED' });
   }
   req.user = user;
@@ -723,7 +723,7 @@ app.post('/api/auth/login', async (req, res) => {
   const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   const result = await auth.loginUser(username, password, clientIp, localIo);
   if (result.success) {
-    setSessionCookie(res, result.sessionToken);
+    setSessionCookie(res, result.sessionToken, result.user?.role === 'admin');
     return res.json({ success: true, user: result.user });
   }
   return res.status(401).json(result);
@@ -1414,11 +1414,15 @@ localIo.on('connection', async (clientSocket) => {
       const match = cookieHeader.match(/fornecedor_session=([^;]+)/);
       if (match && match[1]) {
         const user = await auth.findUserBySessionToken(match[1]);
-        if (user && user.status !== 'blocked') {
+        if (user && (user.role === 'admin' || user.status !== 'blocked')) {
           isAuthed = true;
           clientSocket.join('authed_users');
-          clientSocket.join(`user_${user.id}`);
+          // Apenas lojistas comuns entram na sala de sessão única anti-pirataria. Admin tem acesso ilimitado multitelas.
+          if (user.role !== 'admin') {
+            clientSocket.join(`user_${user.id}`);
+          }
           clientSocket.userId = user.id;
+          clientSocket.userRole = user.role;
         }
       }
     }
@@ -1432,11 +1436,15 @@ localIo.on('connection', async (clientSocket) => {
   clientSocket.on('register_session', async (token) => {
     if (token) {
       const user = await auth.findUserBySessionToken(token);
-      if (user && user.status !== 'blocked') {
+      if (user && (user.role === 'admin' || user.status !== 'blocked')) {
         clientSocket.leave('public_visitors');
         clientSocket.join('authed_users');
-        clientSocket.join(`user_${user.id}`);
+        // Apenas lojistas comuns entram na sala de sessão única anti-pirataria
+        if (user.role !== 'admin') {
+          clientSocket.join(`user_${user.id}`);
+        }
         clientSocket.userId = user.id;
+        clientSocket.userRole = user.role;
       }
     }
   });

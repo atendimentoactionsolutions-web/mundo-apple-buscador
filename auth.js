@@ -50,6 +50,7 @@ function getLocalUsers() {
         status: 'active',
         expires_at: null,
         current_session_token: null,
+        active_session_tokens: [],
         created_at: new Date().toISOString()
       }];
       fs.writeFileSync(LOCAL_USERS_FILE, JSON.stringify(defaultAdmin, null, 2));
@@ -93,11 +94,24 @@ async function initAuth() {
       status: 'active',
       expires_at: null,
       current_session_token: null,
+      active_session_tokens: [],
       created_at: new Date().toISOString()
     });
     saveLocalUsers(users);
     console.log('[Auth] ✅ Admin padrão criado com sucesso localmente (admin / fornecedor2026!)');
   } else {
+    // Garante propriedades vitais de acesso ilimitado para admin existente
+    let updated = false;
+    if (admin.role !== 'admin') { admin.role = 'admin'; updated = true; }
+    if (admin.status !== 'active') { admin.status = 'active'; updated = true; }
+    if (admin.expires_at !== null) { admin.expires_at = null; updated = true; }
+    if (!Array.isArray(admin.active_session_tokens)) {
+      admin.active_session_tokens = admin.current_session_token ? [admin.current_session_token] : [];
+      updated = true;
+    }
+    if (updated) {
+      saveLocalUsers(users);
+    }
     console.log(`[Auth] ✅ Armazenamento local pronto! ${users.length} usuário(s) carregado(s).`);
   }
 }
@@ -113,7 +127,19 @@ async function findUserByUsername(username) {
 async function findUserBySessionToken(token) {
   if (!token) return null;
   const users = getLocalUsers();
-  return users.find(u => u.current_session_token === token) || null;
+  const user = users.find(u => {
+    if (u.current_session_token === token) return true;
+    if (u.role === 'admin' && Array.isArray(u.active_session_tokens) && u.active_session_tokens.includes(token)) return true;
+    return false;
+  });
+  if (!user) return null;
+
+  // Garante que o administrador sempre tem status ativo e acesso vitalício ilimitado
+  if (user.role === 'admin') {
+    user.status = 'active';
+    user.expires_at = null;
+  }
+  return user;
 }
 
 // Login de usuário
@@ -129,12 +155,12 @@ async function loginUser(username, password, clientIp, ioInstance) {
     return { success: false, error: 'Usuário ou senha incorretos.' };
   }
 
-  // Validação de bloqueio manual
-  if (user.status === 'blocked') {
+  // Validação de bloqueio manual (Admin é imune a bloqueios)
+  if (user.role !== 'admin' && user.status === 'blocked') {
     return { success: false, error: 'Sua conta está suspensa. Entre em contato com o suporte.' };
   }
 
-  // Validação de data de validade / mensalidade
+  // Validação de data de validade / mensalidade (Admin nunca expira)
   if (user.role !== 'admin' && user.expires_at) {
     const expireDate = new Date(user.expires_at);
     const now = new Date();
@@ -149,26 +175,49 @@ async function loginUser(username, password, clientIp, ioInstance) {
     }
   }
 
-  // GERAÇÃO DE SESSÃO ÚNICA (1 TELA POR LOJA)
+  // GERAÇÃO DE SESSÃO
   const newSessionToken = crypto.randomUUID();
 
-  // Desconecta sessão anterior se houver
-  if (ioInstance && user.current_session_token) {
-    ioInstance.to(`user_${user.id}`).emit('session_terminated', {
-      reason: 'Sua conta foi acessada em outro dispositivo ou navegador. O sistema permite apenas 1 tela ativa por assinatura.'
-    });
+  // Para lojistas padrão: desconecta sessão anterior se houver (proteção de 1 tela ativa por assinatura)
+  // Para ADMIN: ACESSO ILIMITADO (múltiplas telas e dispositivos simultâneos, sem derrubar nenhuma sessão)
+  if (user.role !== 'admin') {
+    if (ioInstance && user.current_session_token) {
+      ioInstance.to(`user_${user.id}`).emit('session_terminated', {
+        reason: 'Sua conta foi acessada em outro dispositivo ou navegador. O sistema permite apenas 1 tela ativa por assinatura.'
+      });
+    }
   }
 
   // Atualiza localmente
   const users = getLocalUsers();
   const idx = users.findIndex(u => u.id === user.id);
   if (idx !== -1) {
+    if (user.role === 'admin') {
+      if (!Array.isArray(users[idx].active_session_tokens)) {
+        users[idx].active_session_tokens = [];
+      }
+      users[idx].active_session_tokens.push(newSessionToken);
+      // Mantém lista com histórico de até 100 sessões ativas simultâneas
+      if (users[idx].active_session_tokens.length > 100) {
+        users[idx].active_session_tokens = users[idx].active_session_tokens.slice(-100);
+      }
+      users[idx].status = 'active';
+      users[idx].expires_at = null;
+    }
     users[idx].current_session_token = newSessionToken;
     users[idx].last_login_at = new Date().toISOString();
     saveLocalUsers(users);
   }
 
   user.current_session_token = newSessionToken;
+  if (user.role === 'admin') {
+    user.status = 'active';
+    user.expires_at = null;
+    if (!Array.isArray(user.active_session_tokens)) {
+      user.active_session_tokens = [];
+    }
+    user.active_session_tokens.push(newSessionToken);
+  }
 
   return {
     success: true,
@@ -188,9 +237,24 @@ async function loginUser(username, password, clientIp, ioInstance) {
 async function logoutUser(token) {
   if (!token) return;
   const users = getLocalUsers();
-  const u = users.find(x => x.current_session_token === token);
+  const u = users.find(x => 
+    x.current_session_token === token ||
+    (x.role === 'admin' && Array.isArray(x.active_session_tokens) && x.active_session_tokens.includes(token))
+  );
   if (u) {
-    u.current_session_token = null;
+    if (u.role === 'admin') {
+      // Remove apenas o token deste dispositivo específico, mantendo os outros conectados
+      if (Array.isArray(u.active_session_tokens)) {
+        u.active_session_tokens = u.active_session_tokens.filter(t => t !== token);
+      }
+      if (u.current_session_token === token) {
+        u.current_session_token = (u.active_session_tokens && u.active_session_tokens.length > 0)
+          ? u.active_session_tokens[u.active_session_tokens.length - 1]
+          : null;
+      }
+    } else {
+      u.current_session_token = null;
+    }
     saveLocalUsers(users);
   }
 }
@@ -374,6 +438,9 @@ async function updateLojistaPassword(id, newPassword) {
 
   users[idx].password_hash = hashPassword(newPassword);
   users[idx].current_session_token = null; // Obriga a reconectar
+  if (users[idx].role === 'admin') {
+    users[idx].active_session_tokens = [];
+  }
   saveLocalUsers(users);
 
   return { success: true };
@@ -382,6 +449,10 @@ async function updateLojistaPassword(id, newPassword) {
 // Exclui um lojista
 async function deleteLojista(id) {
   let users = getLocalUsers();
+  const target = users.find(u => u.id === id);
+  if (target && target.role === 'admin') {
+    throw new Error('Não é permitido excluir o usuário Administrador.');
+  }
   users = users.filter(u => u.id !== id);
   saveLocalUsers(users);
   return { success: true };
