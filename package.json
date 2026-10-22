@@ -4,8 +4,7 @@
   "description": "Buscador PXT Exclusivo Apple Novos/Lacrados em Tempo Real",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "sync": "node sync_pxt.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "axios": "^1.7.7",
