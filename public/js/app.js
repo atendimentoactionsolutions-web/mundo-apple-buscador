@@ -14,13 +14,31 @@ const socket = io();
 
 // ==========================================
 // MODO DFU (Ajuste Global de Custo Base)
+// Regra: Somente o usuário 'admin' tem DFU ativo (iPhones +100, MacBooks +200, Apple Watch +50).
+// O usuário 'cledson' NUNCA entra no DFU (+0, custo real).
 // ==========================================
-window.DFU_ACTIVE = true;
+const storedUser = (localStorage.getItem('logged_username') || '').toLowerCase();
+window.DFU_ACTIVE = (storedUser === 'admin');
+window.DFU_IPHONE_VALUE = 100;
+window.DFU_MAC_VALUE = 200;
+window.DFU_WATCH_VALUE = 50;
 window.DFU_VALUE = 100;
 window.IS_CATALOG_SHIELDED = false;
 
 function applyDFU(cost, category, rawModel) {
   if (window.IS_CATALOG_SHIELDED) return Number(cost) || 0;
+
+  // Regra estrita: Cledson nunca entra no DFU (sempre custo real)
+  const activeUser = ((currentUser && currentUser.username) || localStorage.getItem('logged_username') || '').toLowerCase();
+  if (activeUser === 'cledson') {
+    return Number(cost) || 0;
+  }
+
+  // Somente o usuário 'admin' tem o DFU ativo
+  if (activeUser && activeUser !== 'admin') {
+    return Number(cost) || 0;
+  }
+
   if (window.PricingCore && typeof window.PricingCore.applyDFU === 'function') {
     return window.PricingCore.applyDFU(cost, category, rawModel);
   }
@@ -29,8 +47,17 @@ function applyDFU(cost, category, rawModel) {
   if (numCost <= 0) return 0;
   const cat = (category || '').toUpperCase().trim();
   const model = (rawModel || '').toUpperCase();
-  if (cat === 'IPH' || model.includes('IPHONE') || cat === 'MCB' || model.includes('MAC')) {
-    return numCost + (window.DFU_VALUE || 100);
+  const isIphone = cat === 'IPH' || model.includes('IPHONE');
+  const isMac = cat === 'MCB' || model.includes('MAC') || model.includes('MACBOOK');
+  const isWatch = cat === 'RLG' || model.includes('WATCH');
+  if (isIphone) {
+    return numCost + (window.DFU_IPHONE_VALUE || 100);
+  }
+  if (isMac) {
+    return numCost + (window.DFU_MAC_VALUE || 200);
+  }
+  if (isWatch) {
+    return numCost + window.DFU_WATCH_VALUE;
   }
   return numCost;
 }
@@ -89,6 +116,23 @@ function isAsIsProduct(p) {
     reg.includes('AS IS') ||
     reg.includes('AS-IS')
   );
+}
+
+function isDisallowedProduct(p) {
+  if (window.PricingCore && typeof window.PricingCore.isDisallowedProduct === 'function') {
+    return window.PricingCore.isDisallowedProduct(p);
+  }
+  if (!p) return true;
+  if (isCpoProduct(p)) return true;
+  if (isAsIsProduct(p)) return true;
+  const cat = (p.category || '').toUpperCase().trim();
+  const name = (p.name || '').toUpperCase();
+  const desc = (p.description || '').toUpperCase();
+  const isSemi = p.isSeminovo === true || p.condition === 'SEMINOVO' || cat === 'SEMI' ||
+                 name.includes('SEMI NOVO') || name.includes('SEMI-NOVO') || name.includes('SEMINOVO') ||
+                 name.includes('USADO') || name.includes('VITRINE') || desc.includes('SEMI');
+  if (isSemi && isDisallowedSeminovo(p)) return true;
+  return false;
 }
 
 // Utilitário de Debounce para entradas do usuário (evita travamentos ao digitar)
@@ -222,7 +266,7 @@ async function loadProducts(dateParam) {
     const json = await res.json();
     if (json.success && Array.isArray(json.data) && json.data.length > 0) {
       window.IS_CATALOG_SHIELDED = !!json.isShielded;
-      allProducts = json.data.filter(p => !isCpoProduct(p) && !isAsIsProduct(p));
+      allProducts = json.data.filter(p => !isDisallowedProduct(p));
       saveCachedCatalog({ isShielded: window.IS_CATALOG_SHIELDED, products: allProducts });
       if (totalCountEl) totalCountEl.textContent = allProducts.length;
 
@@ -233,7 +277,7 @@ async function loadProducts(dateParam) {
         if (badgeText) badgeText.textContent = `TABELA DE ONTEM (${json.latestDate})`;
         if (badgeDot) badgeDot.style.backgroundColor = '#f59e0b';
       } else {
-        if (badgeText) badgeText.textContent = 'TEMPO REAL ATIVO';
+        if (badgeText) badgeText.textContent = 'PREÇOS ATUALIZADOS AO VIVO';
         if (badgeDot) badgeDot.style.backgroundColor = 'var(--accent-green)';
       }
 
@@ -1110,7 +1154,7 @@ document.addEventListener('keydown', (e) => {
 // Close autocomplete when clicking outside
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.search-box')) {
-    autocompleteDropdown.classList.remove('open');
+    if (autocompleteDropdown) autocompleteDropdown.classList.remove('open');
   }
 });
 
@@ -1218,7 +1262,7 @@ socket.on('pxt_connection_status', (status) => {
     badge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
     badge.style.color = 'var(--accent-green)';
     dot.style.backgroundColor = 'var(--accent-green)';
-    text.textContent = 'TEMPO REAL ATIVO';
+    text.textContent = 'PREÇOS ATUALIZADOS AO VIVO';
   } else {
     badge.style.backgroundColor = 'rgba(245, 158, 11, 0.15)';
     badge.style.borderColor = 'rgba(245, 158, 11, 0.4)';
@@ -1303,8 +1347,8 @@ function updateThemeUI(isLight) {
   }
 }
 
-const savedTheme = localStorage.getItem('apple_pxt_theme') || 'dark';
-if (savedTheme === 'light') {
+const savedTheme = localStorage.getItem('apple_pxt_theme') || 'light';
+if (savedTheme !== 'dark') {
   document.body.classList.add('light-theme');
   updateThemeUI(true);
 } else {
@@ -1345,19 +1389,87 @@ function isAsIsProduct(p) {
 // Limpa o nome do produto removendo redundâncias como SEMI-NOVO, SEMINOVO, USADO, etc.
 function cleanModelName(name) {
   if (!name) return 'Apple';
-  let cleaned = name.replace(/\b(SEMI-NOVO|SEMI NOVO|SEMINOVO|USADO|VITRINE|GRADE A\+?|GRADE B|SWAP|SWP|RECONDICIONADO)\b/gi, '')
-                    .replace(/\s+/g, ' ')
-                    .trim();
+  let cleaned = name
+    .replace(/\bSEMI\s*-\s*NOVO\b/gi, '')
+    .replace(/\bSEMI-NOVO\b/gi, '')
+    .replace(/\bSEMI NOVO\b/gi, '')
+    .replace(/\bSEMINOVO\b/gi, '')
+    .replace(/\bSEMI\s*-\b/gi, '')
+    .replace(/\bSEMI\b/gi, '')
+    .replace(/\b(USADO|VITRINE|GRADE A\+?|GRADE B|SWAP|SWP|RECONDICIONADO)\b/gi, '')
+    .replace(/[-–—\s]+$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (!cleaned) return 'Apple';
   return cleaned;
 }
 
-// Modelos de seminovos não permitidos (apenas a partir do iPhone 13, excluindo 13 Mini)
-function isDisallowedSeminovo(name) {
-  if (!name) return false;
+// Categorização de Seções para Exportação WhatsApp e Listas
+function getProductSectionInfo(p) {
+  const isSemi = isSeminovoProduct(p);
+  const cat = (p.category || '').toUpperCase().trim();
+  const name = (p.name || '').toUpperCase();
+
+  if (isSemi) {
+    if (cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD')) {
+      return { key: 'IPADS_SEMI', title: 'IPADS SEMINOVOS', order: 25 };
+    }
+    if (cat === 'MCB' || cat === 'IMAC' || name.includes('MAC') || name.includes('IMAC')) {
+      return { key: 'MACS_SEMI', title: 'MACBOOKS SEMINOVOS', order: 45 };
+    }
+    if (cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA')) {
+      return { key: 'WATCHES_SEMI', title: 'APPLE WATCHES SEMINOVOS', order: 55 };
+    }
+    return { key: 'IPHONES_SEMINOVOS', title: 'IPHONES SEMINOVOS', order: 20 };
+  }
+
+  if (cat === 'IPH' || name.includes('IPHONE')) {
+    return { key: 'IPHONES_NOVOS', title: 'IPHONES NOVOS', order: 10 };
+  }
+  if (cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD')) {
+    return { key: 'IPADS', title: 'IPADS', order: 30 };
+  }
+  if (cat === 'MCB' || cat === 'IMAC' || name.includes('MAC') || name.includes('IMAC')) {
+    return { key: 'MACS', title: 'MACBOOKS & MACS', order: 40 };
+  }
+  if (cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA')) {
+    return { key: 'WATCHES', title: 'APPLE WATCHES', order: 50 };
+  }
+  if (cat === 'PODS' || name.includes('AIRPOD')) {
+    return { key: 'AIRPODS', title: 'AIRPODS', order: 60 };
+  }
+  return { key: 'ACESSORIOS', title: 'ACESSÓRIOS', order: 70 };
+}
+
+// Modelos de seminovos não permitidos (apenas a partir do iPhone 13, excluindo 13 Mini e 512GB/1TB no 15/16)
+function isDisallowedSeminovo(nameOrProduct, storage) {
+  if (window.PricingCore && typeof window.PricingCore.isDisallowedSeminovo === 'function') {
+    return window.PricingCore.isDisallowedSeminovo(nameOrProduct, storage);
+  }
+  if (!nameOrProduct) return false;
+  let name = '';
+  let stor = '';
+  let desc = '';
+  if (typeof nameOrProduct === 'object' && nameOrProduct !== null) {
+    name = nameOrProduct.name || '';
+    stor = nameOrProduct.storage || '';
+    desc = nameOrProduct.description || '';
+  } else {
+    name = String(nameOrProduct || '');
+    stor = storage ? String(storage) : '';
+  }
   const n = name.toUpperCase();
+  const s = stor.toUpperCase().trim();
+  const d = desc.toUpperCase();
+
   if (n.includes('13 MINI') || n.includes('13-MINI') || n.includes('13MINI')) return true;
   if (/\b(IPHONE|IPH)\s+(11|12|X|XR|XS|SE|8|7|6)\b/i.test(n)) {
+    return true;
+  }
+  const hasHighCap = s.includes('512') || s.includes('1TB') || s.includes('1 TB') || s.includes('2TB') || s.includes('2 TB') ||
+                     d.includes('512GB') || d.includes('1TB') || d.includes('1 TB') || d.includes('2TB') || d.includes('2 TB') ||
+                     /\b(512GB|1TB|2TB)\b/i.test(n);
+  if (hasHighCap) {
     return true;
   }
   return false;
@@ -1367,7 +1479,7 @@ function isDisallowedSeminovo(name) {
 function isSeminovoProduct(p) {
   if (!p) return false;
   if (isAsIsProduct(p)) return false;
-  if (isDisallowedSeminovo(p.name)) return false;
+  if (isDisallowedSeminovo(p)) return false;
   if (p.isSeminovo === true || p.condition === 'SEMINOVO') return true;
   const cat = (p.category || '').toUpperCase().trim();
   const name = (p.name || '').toLowerCase();
@@ -1626,7 +1738,74 @@ function refreshCurrentView() {
   }
 }
 
-// Renderizador da View Loja Física (Telão - Catálogo para Clientes)
+// Helpers de formatação para layout idêntico ao mockup
+function formatBRLClean(val) {
+  if (val === null || val === undefined || isNaN(val)) return 'R$ 0';
+  const num = Number(val);
+  if (num % 1 === 0) {
+    return 'R$ ' + Math.round(num).toLocaleString('pt-BR');
+  }
+  return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function formatStorageBadge(storage) {
+  if (!storage) return '';
+  return storage.replace(/\s+/g, ' ').replace(/^(\d+)\s*(GB|TB)$/i, '$1 $2').toUpperCase();
+}
+
+function formatDisplayModelName(name) {
+  if (!name) return '';
+  let s = name.trim();
+  s = s.replace(/\bIPHONE\b/gi, 'iPhone')
+       .replace(/\bIPAD\b/gi, 'iPad')
+       .replace(/\bMACBOOK\b/gi, 'MacBook')
+       .replace(/\bIMAC\b/gi, 'iMac')
+       .replace(/\bAIRPODS?\b/gi, 'AirPods')
+       .replace(/\bWATCH\b/gi, 'Watch')
+       .replace(/\bPRO MAX\b/gi, 'Pro Max')
+       .replace(/\bPRO\b/gi, 'Pro')
+       .replace(/\bPLUS\b/gi, 'Plus')
+       .replace(/\bAIR\b/gi, 'Air')
+       .replace(/\bMINI\b/gi, 'Mini')
+       .replace(/\bULTRA\b/gi, 'Ultra')
+       .replace(/\bSE\b/gi, 'SE');
+  return s;
+}
+
+function formatColorName(c) {
+  if (!c) return 'Padrão';
+  const str = c.trim();
+  return str.split(' ').map(w => {
+    if (w.length <= 2 && w.toUpperCase() === 'SE') return 'SE';
+    return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+  }).join(' ');
+}
+
+let lastColorCategory = '';
+function updateStoreFrontColorFilterOptions(products) {
+  const select = document.getElementById('sfColorFilter');
+  if (!select) return;
+  if (lastColorCategory === sfCurrentCategory && select.options.length > 1) return;
+  lastColorCategory = sfCurrentCategory;
+
+  const currentVal = select.value;
+  const colorSet = new Set();
+  (products || allProducts).forEach(p => {
+    if (p.color && !isDisallowedProduct(p)) {
+      const c = p.color.trim();
+      if (c) colorSet.add(formatColorName(c));
+    }
+  });
+  const sorted = Array.from(colorSet).sort();
+  select.innerHTML = '<option value="ALL">Todas</option>' + sorted.map(c => `<option value="${c}">${c}</option>`).join('');
+  if (colorSet.has(currentVal)) {
+    select.value = currentVal;
+  } else {
+    select.value = 'ALL';
+  }
+}
+
+// Renderizador da View Loja Física (Mockup Fiel ao Design)
 function renderStoreFront() {
   const container = document.getElementById('storefrontGrid');
   const countText = document.getElementById('sfShownCountText');
@@ -1635,18 +1814,23 @@ function renderStoreFront() {
   const sLower = sfSearchQuery.trim().toLowerCase();
   const searchTokens = normalizeSearchText(sLower).split(' ').filter(Boolean);
 
-  // Filtrar produtos válidos (exclui CPO)
-  const filtered = allProducts.filter(p => {
-    if (isCpoProduct(p)) return false;
-    if (!p.price || p.price <= 0) return false;
+  const sfCapacityFilter = document.getElementById('sfCapacityFilter');
+  const selectedCapacity = sfCapacityFilter ? sfCapacityFilter.value : 'ALL';
 
-    // Descarta seminovos não permitidos (< 13 ou 13 Mini)
-    const rawSemi = p.isSeminovo === true || p.condition === 'SEMINOVO' || p.category === 'SEMI' || (p.name || '').toUpperCase().includes('SEMI');
-    if (rawSemi && isDisallowedSeminovo(p.name)) return false;
+  const sfColorFilter = document.getElementById('sfColorFilter');
+  const selectedColor = sfColorFilter ? sfColorFilter.value : 'ALL';
+
+  // Atualiza as opções de cor para o dropdown de cores
+  updateStoreFrontColorFilterOptions();
+
+  // Filtrar produtos válidos (exclui CPO, AS IS e itens desativados)
+  const filtered = allProducts.filter(p => {
+    if (isDisallowedProduct(p)) return false;
+    if (!p.price || p.price <= 0) return false;
 
     const isSemi = isSeminovoProduct(p);
 
-    // Filtro de Categoria (se houver busca por texto, busca em todo o catalogo)
+    // Filtro de Categoria (se houver busca por texto, busca em todo o catálogo)
     if (searchTokens.length === 0 && sfCurrentCategory !== 'ALL') {
       if (sfCurrentCategory === 'SEMI') {
         if (!isSemi) return false;
@@ -1664,6 +1848,22 @@ function renderStoreFront() {
       }
     }
 
+    // Filtro de Capacidade
+    if (selectedCapacity !== 'ALL') {
+      const normStorage = (p.storage || '').toUpperCase().replace(/\s+/g, '');
+      if (normStorage !== selectedCapacity && (normStorage + 'GB') !== selectedCapacity) {
+        return false;
+      }
+    }
+
+    // Filtro de Cor
+    if (selectedColor !== 'ALL') {
+      const cName = formatColorName(p.color || '');
+      if (cName.toUpperCase() !== selectedColor.toUpperCase()) {
+        return false;
+      }
+    }
+
     // Filtro por texto digitado
     if (searchTokens.length > 0) {
       if (!matchSearchTokens(p, searchTokens)) return false;
@@ -1672,186 +1872,185 @@ function renderStoreFront() {
     return true;
   });
 
-  // Agrupamento por Modelo e Variante
-  const modelFamilies = new Map();
+  // Agrupamento por Modelo e Armazenamento (cada variante é um card na grade de 4 colunas)
+  const cardsMap = new Map();
 
   filtered.forEach(p => {
     const isSemi = isSeminovoProduct(p);
     const baseModelName = cleanModelName(p.name);
-    const modelKey = isSemi ? `${baseModelName.toUpperCase()} [SEMINOVO]` : baseModelName.toUpperCase();
     const displayName = isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
     const ram = getMacBookRam(p);
     const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
-    const variantKey = ram ? `${storageKey}__${ram}` : storageKey;
+    const cardUniqueKey = `${baseModelName.toUpperCase()}__${isSemi ? 'SEMI' : 'NEW'}__${storageKey}__${ram || ''}`;
 
-    if (!modelFamilies.has(modelKey)) {
-      modelFamilies.set(modelKey, {
-        modelName: displayName,
+    if (!cardsMap.has(cardUniqueKey)) {
+      cardsMap.set(cardUniqueKey, {
+        uniqueKey: cardUniqueKey,
+        displayName: displayName,
         rawModelName: baseModelName,
         category: p.category,
-        isSeminovo: isSemi,
-        storagesMap: new Map()
-      });
-    }
-
-    const fam = modelFamilies.get(modelKey);
-    if (!fam.storagesMap.has(variantKey)) {
-      fam.storagesMap.set(variantKey, {
-        model: displayName,
-        rawModel: baseModelName,
         storage: (p.storage || '').trim(),
         ram: ram,
         isSeminovo: isSemi,
-        colors: new Map()
+        colorsMap: new Map()
       });
     }
 
-    const stGrp = fam.storagesMap.get(variantKey);
+    const cardObj = cardsMap.get(cardUniqueKey);
     const colorName = (p.color || 'Padrão').trim();
     const colorKey = colorName.toUpperCase();
-    
-    if (!stGrp.colors.has(colorKey)) {
-      stGrp.colors.set(colorKey, {
+
+    if (!cardObj.colorsMap.has(colorKey)) {
+      cardObj.colorsMap.set(colorKey, {
         color: colorName,
         offers: [p],
         ram: ram
       });
     } else {
-      stGrp.colors.get(colorKey).offers.push(p);
+      cardObj.colorsMap.get(colorKey).offers.push(p);
     }
   });
 
-  // Ordenar famílias de modelos
-  const sortedFamilies = Array.from(modelFamilies.values()).sort((a, b) => {
-    const rankA = getModelOrderRank(a.rawModelName || a.modelName, a.category);
-    const rankB = getModelOrderRank(b.rawModelName || b.modelName, b.category);
+  // Processar preços de cada card e calcular menor/maior preço
+  const cardsList = Array.from(cardsMap.values()).map(card => {
+    const colorsArr = Array.from(card.colorsMap.values()).map(colObj => {
+      const isSemi = card.isSeminovo;
+      const offers = colObj.offers || [];
+      const rawRefCost = calculateSupplierReferencePrice(offers, isSemi);
+      const refCost = applyDFU(rawRefCost, card.category, card.rawModelName);
+      
+      const marginVal = getProductMargin(card.rawModelName, card.category, isSemi);
+      const retailPrice = refCost + marginVal;
+
+      return {
+        color: colObj.color,
+        retailPrice: retailPrice,
+        ram: colObj.ram
+      };
+    }).sort((a, b) => a.retailPrice - b.retailPrice);
+
+    const minPrice = colorsArr.length > 0 ? colorsArr[0].retailPrice : 0;
+    const maxPrice = colorsArr.length > 0 ? colorsArr[colorsArr.length - 1].retailPrice : 0;
+
+    return {
+      ...card,
+      colorsArr,
+      minPrice,
+      maxPrice
+    };
+  });
+
+  // Mantém os modelos mais recentes no início, com as variantes ordenadas por capacidade.
+  cardsList.sort((a, b) => {
+    const rankA = getModelOrderRank(a.rawModelName || a.displayName, a.category);
+    const rankB = getModelOrderRank(b.rawModelName || b.displayName, b.category);
     if (rankA !== rankB) return rankA - rankB;
     if (a.isSeminovo !== b.isSeminovo) return a.isSeminovo ? 1 : -1;
-    return a.modelName.localeCompare(b.modelName);
+    const sDiff = getStorageRank(a.storage) - getStorageRank(b.storage);
+    if (sDiff !== 0) return sDiff;
+    return (parseInt(a.ram) || 0) - (parseInt(b.ram) || 0);
   });
 
   if (countText) {
-    countText.textContent = `Mostrando ${sortedFamilies.length} modelos na Loja Física`;
+    countText.textContent = `Mostrando ${cardsList.length} modelos na Loja Física`;
   }
 
-  if (sortedFamilies.length === 0) {
+  if (cardsList.length === 0) {
     if (allProducts.length === 0) {
       container.innerHTML = `
         <div class="app-catalog-loader">
           <div class="app-spinner"></div>
-          <p style="color: var(--text-primary, #fff); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Carregando vitrine com preços atualizados...</p>
-          <span style="color: var(--text-muted, #888); font-size: 0.85rem;">Calculando margens e parcelamentos da loja</span>
+          <p style="color: var(--text-primary, #0f172a); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Carregando vitrine com preços atualizados...</p>
+          <span style="color: var(--text-muted, #64748b); font-size: 0.85rem;">Calculando margens e parcelamentos da loja</span>
         </div>
       `;
       return;
     }
     container.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
-        <h3 style="font-size: 1.25rem; color: var(--text-primary); margin-bottom: 8px;">Nenhum produto encontrado na loja com estes filtros.</h3>
-        <p style="font-size: 0.9rem;">Tente buscar por outro termo ou selecione a categoria "Todos".</p>
+        <h3 style="font-size: 1.25rem; color: var(--text-primary, #0f172a); margin-bottom: 8px;">Nenhum produto encontrado com estes filtros.</h3>
+        <p style="font-size: 0.9rem;">Tente ajustar a busca ou redefinir os filtros de capacidade e cor.</p>
       </div>
     `;
     return;
   }
 
   window.storefrontCardMap = new Map();
+  const cardsByModel = new Map();
+  cardsList.forEach(card => {
+    const familyKey = `${(card.rawModelName || card.displayName).toUpperCase()}__${card.category || ''}__${card.isSeminovo ? 'SEMI' : 'NEW'}`;
+    if (!cardsByModel.has(familyKey)) cardsByModel.set(familyKey, []);
+    cardsByModel.get(familyKey).push(card);
+  });
+
   let html = '';
-  sortedFamilies.forEach((fam, famIdx) => {
-    const storages = Array.from(fam.storagesMap.values()).sort((a, b) => {
-      const rA = getStorageRank(a.storage);
-      const rB = getStorageRank(b.storage);
-      if (rA !== rB) return rA - rB;
-      return (parseInt(a.ram) || 0) - (parseInt(b.ram) || 0);
+  let cardIndex = 0;
+
+  Array.from(cardsByModel.values()).forEach(modelCards => {
+    html += '<section class="model-family-row">';
+    modelCards.forEach(card => {
+    const idx = cardIndex++;
+    const cardKey = `sf_card_${idx}`;
+    window.storefrontCardMap.set(cardKey, {
+      model: card.displayName,
+      rawModel: card.rawModelName,
+      storage: card.storage,
+      ram: card.ram,
+      isSeminovo: card.isSeminovo,
+      colors: card.colorsArr.map(c => ({ color: c.color, price: c.retailPrice }))
     });
 
-    if (famIdx > 0) {
-      html += `<div class="storefront-family-divider"></div>`;
-    }
+    const colorRowsHtml = card.colorsArr.map(col => {
+      const hex = getAppleColorHex(col.color);
 
-    storages.forEach((grp, grpIdx) => {
-      const colorsArr = Array.from(grp.colors.values()).map(colObj => {
-        const isSemi = grp.isSeminovo;
-        const offers = colObj.offers || [];
-        const rawRefCost = calculateSupplierReferencePrice(offers, isSemi);
-        const refCost = applyDFU(rawRefCost, fam.category, grp.rawModel);
-        
-        const marginVal = getProductMargin(grp.rawModel, fam.category, isSemi);
-        const retailPrice = refCost + marginVal;
-
-        return {
-          color: colObj.color,
-          retailPrice: retailPrice,
-          ram: colObj.ram
-        };
-      }).sort((a, b) => a.retailPrice - b.retailPrice);
-
-      const cardKey = `sf_${famIdx}_${grpIdx}`;
-      window.storefrontCardMap.set(cardKey, {
-        model: grp.model,
-        rawModel: grp.rawModel,
-        storage: grp.storage,
-        ram: grp.ram,
-        isSeminovo: grp.isSeminovo,
-        colors: colorsArr.map(c => ({ color: c.color, price: c.retailPrice }))
-      });
-
-      const colorRowsHtml = colorsArr.map(col => {
-        const hex = getAppleColorHex(col.color);
-
-        return `
-          <div class="matrix-color-row" style="cursor: pointer;" onclick="openCardSimulator('${encodeURIComponent(grp.model)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}', ${col.retailPrice}, '${encodeURIComponent(grp.ram || '')}')" title="Clique para calcular parcelas no cartão">
-            <div class="matrix-color-left">
-              <span class="matrix-color-dot" style="background-color: ${hex};" title="Cor: ${col.color}"></span>
-              <span class="matrix-color-name" title="${col.color}">${col.color}</span>
-            </div>
-            <div class="matrix-color-right">
-              <div class="matrix-cost-group">
-                <span class="matrix-cost-label">À VISTA</span>
-                <span class="matrix-retail-val">${formatBRL(col.retailPrice)}</span>
-              </div>
-              <button class="matrix-card-all-btn" style="color: var(--accent-green); border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.08); padding: 3px 8px; font-size: 0.68rem;" title="Simular parcelas">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="2" y="5" width="20" height="14" rx="2.5"/>
-                  <line x1="2" y1="10" x2="22" y2="10"/>
-                </svg>
-              </button>
-            </div>
+      return `
+        <div class="mock-color-row" onclick="openCardSimulator('${encodeURIComponent(card.displayName)}', '${encodeURIComponent(card.storage)}', '${encodeURIComponent(col.color)}', ${col.retailPrice}, '${encodeURIComponent(card.ram || '')}')" title="Clique para simular parcelamento">
+          <div class="mock-color-left">
+            <span class="mock-color-dot" style="background-color: ${hex};" title="Cor: ${col.color}"></span>
+            <span class="mock-color-name" title="${col.color}">${formatColorName(col.color)}</span>
           </div>
-        `;
-      }).join('');
-
-      const firstCol = colorsArr[0];
-      const simLowestPrice = firstCol ? firstCol.retailPrice : 0;
-      const simLowestColor = firstCol ? firstCol.color : '';
-
-      html += `
-        <article class="matrix-card">
-          <div class="matrix-card-header">
-            <div class="matrix-card-title-wrap">
-              <h3 class="matrix-card-title" title="${grp.model}">${grp.model}</h3>
-              <div style="display: flex; gap: 6px; align-items: center; margin-top: 3px; flex-wrap: wrap;">
-                ${grp.isSeminovo ? `<span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 800;">SEMINOVO</span>` : ''}
-                ${grp.ram ? `<span class="matrix-card-ram-badge" style="background: rgba(0, 113, 227, 0.18); color: #2997ff; border: 1px solid rgba(41, 151, 255, 0.35); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/></svg>${grp.ram} RAM</span>` : ''}
-                ${grp.storage ? `<span class="matrix-card-storage">${grp.storage}</span>` : ''}
-              </div>
+          <div class="mock-color-right">
+            <div class="mock-price-block">
+              <span class="mock-price-label">À VISTA</span>
+              <span class="mock-price-val">${formatBRLClean(col.retailPrice)}</span>
             </div>
-            <div style="display: flex; gap: 5px; align-items: center;">
-
-              <button class="matrix-card-all-btn" onclick="openClientShowcaseModal('${cardKey}')" title="Expandir vitrine deste modelo para o cliente">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-                  <circle cx="12" cy="12" r="3"/>
-                </svg>
-                <span>Ver</span>
-              </button>
-            </div>
+            <button class="mock-card-sim-btn" title="Simular parcelamento no cartão" onclick="event.stopPropagation(); openCardSimulator('${encodeURIComponent(card.displayName)}', '${encodeURIComponent(card.storage)}', '${encodeURIComponent(col.color)}', ${col.retailPrice}, '${encodeURIComponent(card.ram || '')}')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="5" width="20" height="14" rx="2.5"/>
+                <line x1="2" y1="10" x2="22" y2="10"/>
+              </svg>
+            </button>
           </div>
-          <div class="matrix-card-body">
-            ${colorRowsHtml}
-          </div>
-        </article>
+        </div>
       `;
+    }).join('');
+
+    html += `
+      <article class="mock-card">
+        <div class="mock-card-header">
+          <div class="mock-card-title-row">
+            <h3 class="mock-card-title" title="${card.displayName}">${formatDisplayModelName(card.displayName)}</h3>
+            <button class="mock-card-ver-btn" onclick="openClientShowcaseModal('${cardKey}')" title="Ver detalhes do modelo">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <span>Ver</span>
+            </button>
+          </div>
+          <div class="mock-card-badges-row">
+            ${card.storage ? `<span class="mock-storage-badge">${formatStorageBadge(card.storage)}</span>` : ''}
+            ${card.isSeminovo ? `<span class="mock-seminovo-badge">Seminovo</span>` : ''}
+            ${card.ram ? `<span class="mock-ram-badge">${card.ram} RAM</span>` : ''}
+          </div>
+        </div>
+        <div class="mock-card-body">
+          ${colorRowsHtml}
+        </div>
+      </article>
+    `;
     });
+    html += '</section>';
   });
 
   container.innerHTML = html;
@@ -1929,20 +2128,9 @@ window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSemino
     `;
   });
 
-  // Pega o menor valor para pré-calcular simulação no cartão
-  const lowestPrice = colors.length > 0 ? colors[0].price : 0;
-  let installmentsHtml = '';
-  if (lowestPrice > 0 && typeof calculateInstallment === 'function') {
-    const customInstallments = [1, 3, 6, 10, 12, 18];
-
-    installmentsHtml = ``; // REMOVIDO A PEDIDO DO USUARIO
-  }
-
-
   bodyEl.innerHTML = `
     <div style="display: flex; flex-direction: column;">
       ${colorsHtml}
-      ${installmentsHtml}
     </div>
   `;
 
@@ -2037,6 +2225,12 @@ window.copyModelPrices = async function(firstArg, secondArg, encStorage, encRam,
 
     if (!custoFlag) {
       lines.push('');
+      const isSemi = Boolean(data?.isSeminovo) || model.toUpperCase().includes('SEMINOVO') || model.toUpperCase().includes('SEMI NOVO');
+      if (!isSemi) {
+        lines.push('Produto novo lacrado com 1 ano de garantia Apple.');
+        lines.push('Emitimos nota fiscal.');
+        lines.push('');
+      }
       lines.push('Valores válidos para pagamento à vista.');
       lines.push('Consulte opções de parcelamento no cartão.');
     }
@@ -2504,11 +2698,7 @@ function renderPricesOfTheDay() {
   // Filter pool
   const filtered = allProducts.filter(p => {
     if (!p.price || p.price <= 0) return false;
-    if (isCpoProduct(p)) return false;
-
-    // Descarta seminovos não permitidos (< 13 ou 13 Mini)
-    const rawSemi = p.isSeminovo === true || p.condition === 'SEMINOVO' || p.category === 'SEMI' || (p.name || '').toUpperCase().includes('SEMI');
-    if (rawSemi && isDisallowedSeminovo(p.name)) return false;
+    if (isDisallowedProduct(p)) return false;
 
     const isSemi = isSeminovoProduct(p);
 
@@ -2660,10 +2850,7 @@ function renderPricesOfTheDay() {
       return (parseInt(a.ram) || 0) - (parseInt(b.ram) || 0);
     });
 
-    // Espaçamento limpo entre diferentes famílias de modelos
-    if (famIdx > 0) {
-      html += `<div class="storefront-family-divider"></div>`;
-    }
+    html += '<section class="model-family-row">';
 
     // Cards individuais de cada capacidade/RAM para este modelo
     storages.forEach((grp, grpIdx) => {
@@ -2737,29 +2924,29 @@ function renderPricesOfTheDay() {
       html += `
         <article class="matrix-card">
           <div class="matrix-card-header">
-            <div class="matrix-card-title-wrap">
+            <div class="matrix-card-title-row">
               <h3 class="matrix-card-title" title="${grp.model}">${grp.model}</h3>
-              <div style="display: flex; gap: 6px; align-items: center; margin-top: 3px; flex-wrap: wrap;">
-                ${grp.isSeminovo ? `<span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 800;">SEMINOVO</span>` : ''}
-                ${grp.ram ? `<span class="matrix-card-ram-badge" style="background: rgba(0, 113, 227, 0.18); color: #2997ff; border: 1px solid rgba(41, 151, 255, 0.35); padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/></svg>${grp.ram} RAM</span>` : ''}
-                ${grp.storage ? `<span class="matrix-card-storage">${grp.storage}</span>` : ''}
+              <div class="matrix-card-actions">
+                <button class="matrix-card-all-btn" onclick="copyModelPrices('${cardKey}', this)" title="Copiar custos deste modelo para WhatsApp">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 0.9 2 2"/>
+                  </svg>
+                  <span>Copiar</span>
+                </button>
+                <button class="matrix-card-all-btn" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo})" title="Ver todos os fornecedores deste modelo">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                    <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+                  </svg>
+                  <span>Todas</span>
+                </button>
               </div>
             </div>
-            <div style="display: flex; gap: 5px; align-items: center;">
-              <button class="matrix-card-all-btn" onclick="copyModelPrices('${cardKey}', this)" title="Copiar custos deste modelo para WhatsApp">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
-                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
-                </svg>
-                <span>Copiar</span>
-              </button>
-              <button class="matrix-card-all-btn" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo})" title="Ver todos os fornecedores deste modelo">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-                  <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
-                </svg>
-                <span>Todas</span>
-              </button>
+            <div class="matrix-card-badges-row">
+              ${grp.isSeminovo ? `<span class="matrix-card-semi-badge">Seminovo</span>` : ''}
+              ${grp.ram ? `<span class="matrix-card-ram-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/></svg>${grp.ram} RAM</span>` : ''}
+              ${grp.storage ? `<span class="matrix-card-storage">${grp.storage}</span>` : ''}
             </div>
           </div>
           <div class="matrix-card-body">
@@ -2768,6 +2955,7 @@ function renderPricesOfTheDay() {
         </article>
       `;
     });
+    html += '</section>';
   });
 
   container.innerHTML = html;
@@ -2984,12 +3172,79 @@ window.handleSimCashInput = function(inp) {
 window.handleSimEntryInput = function(inp) {
   const num = parseCurrencyInput(inp.value);
   const cashVal = currentSimData.cashPrice || 0;
+  const tradeInVal = (currentSimData.tradeInActive ? currentSimData.tradeInAmount : 0) || 0;
+  const maxEntry = Math.max(0, cashVal - tradeInVal);
   let finalVal = num;
-  if (finalVal > cashVal && cashVal > 0) {
-    finalVal = cashVal;
+  if (finalVal > maxEntry && cashVal > 0) {
+    finalVal = maxEntry;
   }
   inp.value = formatCurrencyInput(finalVal);
   currentSimData.entryAmount = finalVal;
+  recalculateSimulator();
+};
+
+window.handleSimTradeInToggle = function(chk) {
+  const active = chk.checked;
+  currentSimData.tradeInActive = active;
+  const bodyEl = document.getElementById('simTradeInBody');
+  const badgeEl = document.getElementById('simTradeInBadge');
+  if (bodyEl) {
+    bodyEl.style.display = active ? 'block' : 'none';
+  }
+  if (badgeEl) {
+    badgeEl.style.display = (active && currentSimData.tradeInAmount > 0) ? 'inline-block' : 'none';
+  }
+  recalculateSimulator();
+};
+
+window.handleSimTradeInModelChange = function(sel) {
+  const val = sel.value;
+  currentSimData.tradeInModel = val;
+  const customInp = document.getElementById('simTradeInCustomModel');
+  if (customInp) {
+    if (val === 'OUTRO') {
+      customInp.style.display = 'block';
+      customInp.focus();
+    } else {
+      customInp.style.display = 'none';
+      currentSimData.tradeInCustomModel = '';
+    }
+  }
+  recalculateSimulator();
+};
+
+window.handleSimTradeInCustomModel = function(inp) {
+  currentSimData.tradeInCustomModel = inp.value.trim();
+  recalculateSimulator();
+};
+
+window.handleSimTradeInStorageChange = function(sel) {
+  currentSimData.tradeInStorage = sel.value;
+  recalculateSimulator();
+};
+
+window.handleSimTradeInValueInput = function(inp) {
+  const num = parseCurrencyInput(inp.value);
+  const cashVal = currentSimData.cashPrice || 0;
+  const entryVal = currentSimData.entryAmount || 0;
+  const maxTradeIn = Math.max(0, cashVal - entryVal);
+  let finalVal = num;
+  if (finalVal > maxTradeIn && cashVal > 0) {
+    finalVal = maxTradeIn;
+  }
+  inp.value = formatCurrencyInput(finalVal);
+  currentSimData.tradeInAmount = finalVal;
+
+  const badgeEl = document.getElementById('simTradeInBadge');
+  if (badgeEl) {
+    if (finalVal > 0 && currentSimData.tradeInActive) {
+      badgeEl.textContent = `- ${formatBRL(finalVal)}`;
+      badgeEl.style.display = 'inline-block';
+    } else {
+      badgeEl.style.display = 'none';
+    }
+  }
+
   recalculateSimulator();
 };
 
@@ -3005,7 +3260,12 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
     color,
     cashPrice: Number(cashPrice) || 0,
     ram,
-    entryAmount: 0
+    entryAmount: 0,
+    tradeInActive: false,
+    tradeInModel: 'iPhone 13',
+    tradeInCustomModel: '',
+    tradeInStorage: '128GB',
+    tradeInAmount: 0
   };
 
   const modal = document.getElementById('cardSimulatorModal');
@@ -3074,6 +3334,97 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
         </div>
       </div>
 
+      <!-- Trade-in Section (Aparelho na Troca) -->
+      <div class="sim-tradein-card">
+        <div class="sim-tradein-header">
+          <label class="sim-tradein-toggle-label">
+            <input type="checkbox" id="simTradeInActive" onchange="handleSimTradeInToggle(this)">
+            <span class="sim-tradein-heading">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-green);">
+                <path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/>
+              </svg>
+              Deseja dar algum aparelho na troca?
+            </span>
+          </label>
+          <span id="simTradeInBadge" class="sim-tradein-badge" style="display: none;">- R$ 0,00</span>
+        </div>
+
+        <div id="simTradeInBody" class="sim-tradein-body" style="display: none;">
+          <div class="sim-tradein-grid">
+            <div class="sim-exec-field">
+              <label class="sim-exec-label" for="simTradeInModel">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+                Modelo do Celular
+              </label>
+              <select id="simTradeInModel" class="sim-exec-select" onchange="handleSimTradeInModelChange(this)">
+                <option value="iPhone 18 Pro Max">iPhone 18 Pro Max</option>
+                <option value="iPhone 18 Pro">iPhone 18 Pro</option>
+                <option value="iPhone 18 Plus">iPhone 18 Plus</option>
+                <option value="iPhone 18">iPhone 18</option>
+                <option value="iPhone 17 Pro Max">iPhone 17 Pro Max</option>
+                <option value="iPhone 17 Pro">iPhone 17 Pro</option>
+                <option value="iPhone 17 Air">iPhone 17 Air</option>
+                <option value="iPhone 17 Plus">iPhone 17 Plus</option>
+                <option value="iPhone 17">iPhone 17</option>
+                <option value="iPhone 17e">iPhone 17e</option>
+                <option value="iPhone 16 Pro Max">iPhone 16 Pro Max</option>
+                <option value="iPhone 16 Pro">iPhone 16 Pro</option>
+                <option value="iPhone 16 Plus">iPhone 16 Plus</option>
+                <option value="iPhone 16">iPhone 16</option>
+                <option value="iPhone 16e">iPhone 16e</option>
+                <option value="iPhone 15 Pro Max">iPhone 15 Pro Max</option>
+                <option value="iPhone 15 Pro">iPhone 15 Pro</option>
+                <option value="iPhone 15 Plus">iPhone 15 Plus</option>
+                <option value="iPhone 15">iPhone 15</option>
+                <option value="iPhone 14 Pro Max">iPhone 14 Pro Max</option>
+                <option value="iPhone 14 Pro">iPhone 14 Pro</option>
+                <option value="iPhone 14 Plus">iPhone 14 Plus</option>
+                <option value="iPhone 14">iPhone 14</option>
+                <option value="iPhone 13 Pro Max">iPhone 13 Pro Max</option>
+                <option value="iPhone 13 Pro">iPhone 13 Pro</option>
+                <option value="iPhone 13" selected>iPhone 13</option>
+                <option value="iPhone 13 Mini">iPhone 13 Mini</option>
+                <option value="iPhone 12 Pro Max">iPhone 12 Pro Max</option>
+                <option value="iPhone 12 Pro">iPhone 12 Pro</option>
+                <option value="iPhone 12">iPhone 12</option>
+                <option value="iPhone 12 Mini">iPhone 12 Mini</option>
+                <option value="iPhone 11 Pro Max">iPhone 11 Pro Max</option>
+                <option value="iPhone 11 Pro">iPhone 11 Pro</option>
+                <option value="iPhone 11">iPhone 11</option>
+                <option value="OUTRO">Outro Modelo (Digitar)...</option>
+              </select>
+              <input type="text" id="simTradeInCustomModel" class="sim-exec-input" placeholder="Digite o modelo..." style="display: none; margin-top: 6px; padding: 7px 10px; font-size: 0.85rem; border: 1.5px solid var(--border-color); border-radius: 6px; background: var(--bg-card); color: var(--text-primary);" oninput="handleSimTradeInCustomModel(this)">
+            </div>
+
+            <div class="sim-exec-field">
+              <label class="sim-exec-label" for="simTradeInStorage">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                Capacidade (GB)
+              </label>
+              <select id="simTradeInStorage" class="sim-exec-select" onchange="handleSimTradeInStorageChange(this)">
+                <option value="64GB">64GB</option>
+                <option value="128GB" selected>128GB</option>
+                <option value="256GB">256GB</option>
+                <option value="512GB">512GB</option>
+                <option value="1TB">1TB</option>
+                <option value="2TB">2TB</option>
+              </select>
+            </div>
+
+            <div class="sim-exec-field">
+              <label class="sim-exec-label" for="simTradeInValue">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Avaliação
+              </label>
+              <div class="sim-exec-input-wrap">
+                <span style="font-weight: 800; color: var(--text-muted); margin-right: 6px; font-size: 0.95rem;">R$</span>
+                <input type="text" id="simTradeInValue" class="sim-exec-input" placeholder="0,00" value="" oninput="handleSimTradeInValueInput(this)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Executive Installment Table -->
       <div class="sim-table-wrap">
         <table class="sim-exec-table">
@@ -3114,16 +3465,27 @@ window.recalculateSimulator = function() {
 
   const cashVal = currentSimData.cashPrice || 0;
   const entryVal = currentSimData.entryAmount || 0;
-  const balance = Math.max(0, cashVal - entryVal);
+  const tradeInVal = (currentSimData.tradeInActive ? currentSimData.tradeInAmount : 0) || 0;
+  const totalDeductions = entryVal + tradeInVal;
+  const balance = Math.max(0, cashVal - totalDeductions);
 
   if (heroCardVal) {
-    heroCardVal.textContent = formatBRL(balance);
+    if (totalDeductions > 0) {
+      heroCardVal.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; width: 100%; line-height: 1.2;">
+          <span style="font-size: 1.15rem; font-weight: 800; color: var(--accent-green);">${formatBRL(balance)}</span>
+          <span style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700; margin-top: 2px;">(Total Abatido: ${formatBRL(totalDeductions)})</span>
+        </div>
+      `;
+    } else {
+      heroCardVal.innerHTML = `<span style="font-size: 1.15rem; font-weight: 800; color: var(--accent-green);">${formatBRL(balance)}</span>`;
+    }
   }
 
   let rowsHtml = '';
   for (let i = 1; i <= 18; i++) {
-    const sim = calculateInstallment(cashVal, entryVal, i);
-    const label = i === 1 ? '1x (À vista)' : `${i}x`;
+    const sim = calculateInstallment(cashVal, totalDeductions, i);
+    const label = i === 1 ? '1x no cartão' : `${i}x`;
 
     rowsHtml += `
       <tr>
@@ -3142,31 +3504,46 @@ window.copyCardSimulationToWhatsApp = async function(btn) {
   const d = currentSimData;
   const cashVal = d.cashPrice || 0;
   const entryVal = d.entryAmount || 0;
-  const balance = Math.max(0, cashVal - entryVal);
-  const fmtNum = (val) => formatBRL(val).replace('R$', '').trim();
+  const tradeInVal = (d.tradeInActive ? d.tradeInAmount : 0) || 0;
+  const totalDeductions = entryVal + tradeInVal;
+  const balance = Math.max(0, cashVal - totalDeductions);
 
   let text = `SIMULAÇÃO DE PARCELAMENTO\n\n`;
   text += `Produto: ${d.model} ${d.storage ? `(${d.storage})` : ''}\n`;
   if (d.ram) text += `RAM: ${d.ram}\n`;
-  if (d.color) text += `Cor: ${d.color}\n`;
+  if (d.color && d.color.toUpperCase() !== 'PADRÃO') text += `Cor: ${d.color}\n`;
   text += `\n`;
-  text += `Valor À Vista (PIX): ${formatBRL(cashVal)}\n`;
-  
-  if (entryVal > 0) {
-    text += `Entrada em PIX: ${formatBRL(entryVal)}\n`;
-    text += `Saldo no Cartão: ${formatBRL(balance)}\n`;
+  text += `Valor À Vista (PIX): ${formatBRL(cashVal)}\n\n`;
+
+  if (d.tradeInActive && tradeInVal > 0) {
+    const tradeModel = d.tradeInModel === 'OUTRO' ? (d.tradeInCustomModel || 'Outro Aparelho') : d.tradeInModel;
+    text += `Aparelho na Troca: ${tradeModel} ${d.tradeInStorage || ''}\n\n`;
+    text += `Valor Avaliado na Troca: - ${formatBRL(tradeInVal)}\n\n`;
   }
   
-  text += `\nOPÇÕES DE PARCELAMENTO NO CARTÃO:\n\n`;
+  if (entryVal > 0) {
+    text += `Entrada em PIX: - ${formatBRL(entryVal)}\n\n`;
+  }
+
+  if (totalDeductions > 0) {
+    text += `Saldo a Parcelar no Cartão: ${formatBRL(balance)}\n\n`;
+  }
+  
+  text += `OPÇÕES DE PARCELAMENTO NO CARTÃO:\n\n`;
 
   const installmentOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
   
   const installmentRows = installmentOptions.map(n => {
-    const sim = calculateInstallment(cashVal, entryVal, n);
+    const sim = calculateInstallment(cashVal, totalDeductions, n);
     return `${n}x de ${formatBRL(sim.monthlyAmount)}`;
   });
 
   text += installmentRows.join('\n');
+
+  const isSemi = (d.model || '').toUpperCase().includes('SEMINOVO') || (d.model || '').toUpperCase().includes('SEMI NOVO');
+  if (!isSemi) {
+    text += `\n\nProduto novo lacrado com 1 ano de garantia Apple.\nEmitimos nota fiscal.`;
+  }
 
   await robustCopyToClipboard(text);
 
@@ -3211,32 +3588,58 @@ window.exportPricesDayTable = function() {
 let pdfSelectedVariantsMap = new Map(); // key: variantKey -> boolean
 let pdfCachedFamilies = [];
 let currentExportScope = 'SF'; // 'SF' = Loja Física, 'POD' = Preços do Dia (Fornecedores)
+let exportModalIsAllScope = false;
 
-window.openStorefrontExportModal = function() {
-  openExportSelectionModal('SF');
+window.openStorefrontExportModal = function(forceAll = true) {
+  if (!currentUser) {
+    if (confirm('A exportação completa da tabela para o WhatsApp está disponível para usuários cadastrados. Deseja entrar na sua conta agora?')) {
+      window.location.href = '/login.html';
+    }
+    return;
+  }
+  openExportSelectionModal('SF', forceAll);
 };
 window.exportStorefrontPDF = window.openStorefrontExportModal;
-window.openPdfSelectionModal = function() {
-  openExportSelectionModal('SF');
+window.openPdfSelectionModal = function(forceAll = true) {
+  openExportSelectionModal('SF', forceAll);
 };
 
-window.openExportSelectionModal = function(scope = 'SF') {
+window.toggleExportModalCatalogScope = function() {
+  exportModalIsAllScope = !exportModalIsAllScope;
+  openExportSelectionModal(currentExportScope, exportModalIsAllScope);
+};
+
+window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
   currentExportScope = scope;
+  exportModalIsAllScope = Boolean(forceAll);
   const modal = document.getElementById('pdfSelectionModal');
   const body = document.getElementById('pdfSelectionListBody');
   const titleEl = document.getElementById('exportModalTitle');
   const subEl = document.getElementById('exportModalSubtitle');
+  const scopeLabel = document.getElementById('exportModalScopeLabel');
   if (!modal || !body) return;
 
+  if (scopeLabel) {
+    scopeLabel.textContent = exportModalIsAllScope ? 'Voltar para Categoria Atual' : 'Ver Catálogo Inteiro';
+  }
+
   if (titleEl) {
-    titleEl.textContent = scope === 'POD' 
-      ? 'Exportar Preços do Dia (Fornecedores)' 
-      : 'Exportar Lista para o WhatsApp';
+    if (scope === 'POD') {
+      titleEl.textContent = 'Exportar Preços do Dia (Fornecedores)';
+    } else {
+      titleEl.textContent = exportModalIsAllScope
+        ? 'Exportar Catálogo Completo para o WhatsApp'
+        : 'Exportar Lista para o WhatsApp';
+    }
   }
   if (subEl) {
-    subEl.textContent = scope === 'POD'
-      ? 'Marque os modelos de fornecedor que deseja incluir no texto'
-      : 'Marque os modelos que deseja incluir no texto para enviar aos clientes';
+    if (scope === 'POD') {
+      subEl.textContent = 'Marque os modelos de fornecedor que deseja incluir no texto';
+    } else {
+      subEl.textContent = exportModalIsAllScope
+        ? 'Exibindo todos os produtos e categorias disponíveis na loja'
+        : 'Marque os modelos que deseja incluir no texto para enviar aos clientes';
+    }
   }
 
   let filtered = [];
@@ -3302,11 +3705,11 @@ window.openExportSelectionModal = function(scope = 'SF') {
     const searchTokens = normalizeSearchText(sLower).split(' ').filter(Boolean);
 
     filtered = allProducts.filter(p => {
-      if (isCpoProduct(p)) return false;
+      if (isDisallowedProduct(p)) return false;
       if (!p.price || p.price <= 0) return false;
       const isSemi = isSeminovoProduct(p);
 
-      if (searchTokens.length === 0 && sfCurrentCategory !== 'ALL') {
+      if (!exportModalIsAllScope && searchTokens.length === 0 && sfCurrentCategory !== 'ALL') {
         if (sfCurrentCategory === 'SEMI') {
           if (!isSemi) return false;
         } else {
@@ -3343,6 +3746,7 @@ window.openExportSelectionModal = function(scope = 'SF') {
 
   filtered.forEach(p => {
     const isSemi = isSeminovoProduct(p);
+    const secInfo = getProductSectionInfo(p);
     const baseModelName = cleanModelName(p.name).replace(/\s+/g, ' ').trim();
     const modelKey = isSemi ? `${baseModelName.toUpperCase()} [SEMINOVO]` : baseModelName.toUpperCase();
     const displayName = isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
@@ -3356,6 +3760,9 @@ window.openExportSelectionModal = function(scope = 'SF') {
         rawModelName: baseModelName,
         category: p.category,
         isSeminovo: isSemi,
+        sectionKey: secInfo.key,
+        sectionTitle: secInfo.title,
+        sectionOrder: secInfo.order,
         variantsMap: new Map()
       });
     }
@@ -3392,6 +3799,9 @@ window.openExportSelectionModal = function(scope = 'SF') {
   });
 
   pdfCachedFamilies = Array.from(modelFamilies.values()).sort((a, b) => {
+    const secA = a.sectionOrder || 999;
+    const secB = b.sectionOrder || 999;
+    if (secA !== secB) return secA - secB;
     const rankA = getModelOrderRank(a.rawModelName || a.modelName, a.category);
     const rankB = getModelOrderRank(b.rawModelName || b.modelName, b.category);
     if (rankA !== rankB) return rankA - rankB;
@@ -3400,7 +3810,16 @@ window.openExportSelectionModal = function(scope = 'SF') {
   });
 
   let html = '';
+  let lastSecKey = null;
   pdfCachedFamilies.forEach(fam => {
+    if (fam.sectionKey && fam.sectionKey !== lastSecKey) {
+      lastSecKey = fam.sectionKey;
+      html += `
+        <div style="margin: 20px 0 10px 0; padding: 7px 12px; background: rgba(255, 255, 255, 0.04); border-left: 3px solid var(--accent-green); border-radius: 4px; font-weight: 800; font-size: 0.84rem; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">
+          ${fam.sectionTitle || 'PRODUTOS'}
+        </div>
+      `;
+    }
     html += `
       <div style="margin-bottom: 14px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 800; font-size: 0.88rem; color: var(--text-primary);">
@@ -3488,7 +3907,7 @@ function updatePdfSelectedCountBadge() {
   if (badge) badge.textContent = `${count} selecionados`;
 }
 
-// Copia lista completa formatada para WhatsApp com os modelos selecionados
+// Copia lista formatada para WhatsApp com os modelos selecionados
 window.copySelectedStorefrontWhatsApp = async function(btn) {
   // Sincroniza com os checkboxes reais que estão fisicamente marcados na tela
   const checkedCbs = document.querySelectorAll('#pdfSelectionListBody input[type="checkbox"]:checked');
@@ -3511,7 +3930,11 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
   }
 
   const isPod = (currentExportScope === 'POD');
-  const blocks = [];
+  let hasNovos = false;
+  let hasSemis = false;
+
+  // Organizar os itens selecionados por Seção
+  const sectionsMap = new Map();
 
   pdfCachedFamilies.forEach(fam => {
     const variants = Array.from(fam.variantsMap.values()).sort((a, b) => {
@@ -3524,6 +3947,12 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
     variants.forEach(grp => {
       const isSelected = checkedIds.has(grp.varId) || (pdfSelectedVariantsMap.get(grp.varId) === true);
       if (!isSelected) return;
+
+      if (grp.isSeminovo || grp.model.toUpperCase().includes('SEMINOVO')) {
+        hasSemis = true;
+      } else {
+        hasNovos = true;
+      }
 
       const colorsArr = Array.from(grp.colors.values()).map(colObj => {
         const isSemi = grp.isSeminovo;
@@ -3547,7 +3976,7 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
 
       if (colorsArr.length === 0) return;
 
-      const titleLine = formatModelTitleForCopy(grp.model, grp.storage, grp.ram);
+      const titleLine = formatModelTitleForCopy(grp.rawModel || grp.model, grp.storage, grp.ram);
       const modelLines = [titleLine, ''];
 
       colorsArr.forEach(c => {
@@ -3555,20 +3984,56 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
         modelLines.push(`${colorFormatted} • ${formatBRL(c.retailPrice)}`);
       });
 
-      blocks.push(modelLines.join('\n'));
+      const blockText = modelLines.join('\n');
+
+      const secKey = fam.sectionKey || 'OUTROS';
+      const secTitle = fam.sectionTitle || 'PRODUTOS';
+      const secOrder = fam.sectionOrder || 999;
+
+      if (!sectionsMap.has(secKey)) {
+        sectionsMap.set(secKey, {
+          title: secTitle,
+          order: secOrder,
+          blocks: []
+        });
+      }
+      sectionsMap.get(secKey).blocks.push(blockText);
     });
   });
 
-  if (blocks.length === 0) {
+  if (sectionsMap.size === 0) {
     alert('Nenhum preço disponível para os modelos selecionados.');
     return;
   }
 
-  const footer = isPod 
-    ? '' 
-    : ['', 'Valores válidos para pagamento à vista.', 'Consulte opções de parcelamento no cartão.'].join('\n');
+  const sortedSections = Array.from(sectionsMap.values()).sort((a, b) => a.order - b.order);
+  const outputSections = [];
 
-  const fullText = (blocks.join('\n\n') + (footer ? '\n' + footer : '')).trim();
+  sortedSections.forEach(sec => {
+    if (sec.blocks.length > 0) {
+      const secHeader = `${sec.title}\n-----------------`;
+      outputSections.push(`${secHeader}\n\n${sec.blocks.join('\n\n')}`);
+    }
+  });
+
+  let footer = '';
+  if (!isPod) {
+    const footerLines = [''];
+    if (hasNovos && !hasSemis) {
+      footerLines.push('Produto novo lacrado com 1 ano de garantia Apple.');
+      footerLines.push('Emitimos nota fiscal.');
+      footerLines.push('');
+    } else if (hasNovos && hasSemis) {
+      footerLines.push('Produtos novos lacrados com 1 ano de garantia Apple.');
+      footerLines.push('Emitimos nota fiscal.');
+      footerLines.push('');
+    }
+    footerLines.push('Valores válidos para pagamento à vista.');
+    footerLines.push('Consulte opções de parcelamento no cartão.');
+    footer = footerLines.join('\n');
+  }
+
+  const fullText = (outputSections.join('\n\n\n') + (footer ? '\n\n' + footer : '')).trim();
 
   const copySuccess = await robustCopyToClipboard(fullText);
 
@@ -3585,13 +4050,204 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
         closePdfSelectionModal();
       }, 1200);
     } else {
-      // Fallback em caso de bloqueio rígido do navegador
       btn.innerHTML = `<span>Copiar Manualmente</span>`;
       prompt('Pressione Ctrl+C (ou Cmd+C) para copiar a lista para o WhatsApp:', fullText);
       btn.innerHTML = origHtml;
     }
   } else {
     closePdfSelectionModal();
+  }
+};
+
+// Exporta a lista COMPLETA de todos os produtos do catálogo para o WhatsApp (somente quando logado)
+window.exportAllStorefrontWhatsApp = async function(btn) {
+  if (!currentUser) {
+    alert('Você precisa estar conectado a uma conta para exportar a lista de produtos.');
+    return;
+  }
+
+  // Filtrar todos os produtos válidos do catálogo inteiro (sem restrição de categoria ou busca)
+  const validProducts = (allProducts || []).filter(p => {
+    if (isDisallowedProduct(p)) return false;
+    if (!p.price || p.price <= 0) return false;
+    return true;
+  });
+
+  if (validProducts.length === 0) {
+    alert('Nenhum produto disponível no catálogo para exportar.');
+    return;
+  }
+
+  // Agrupamento por Seção e Família de Modelo
+  const sectionsMap = new Map();
+
+  validProducts.forEach(p => {
+    const secInfo = getProductSectionInfo(p);
+    if (!sectionsMap.has(secInfo.key)) {
+      sectionsMap.set(secInfo.key, {
+        key: secInfo.key,
+        title: secInfo.title,
+        order: secInfo.order,
+        familiesMap: new Map()
+      });
+    }
+
+    const sectionObj = sectionsMap.get(secInfo.key);
+    const isSemi = isSeminovoProduct(p);
+    const baseModelName = cleanModelName(p.name).replace(/\s+/g, ' ').trim();
+    const modelKey = baseModelName.toUpperCase();
+    const ram = getMacBookRam(p);
+    const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
+    const variantKey = `${modelKey}__${storageKey}__${ram || ''}`;
+
+    if (!sectionObj.familiesMap.has(modelKey)) {
+      sectionObj.familiesMap.set(modelKey, {
+        modelName: baseModelName,
+        rawModelName: baseModelName,
+        category: p.category,
+        isSeminovo: isSemi,
+        variantsMap: new Map()
+      });
+    }
+
+    const fam = sectionObj.familiesMap.get(modelKey);
+    if (!fam.variantsMap.has(variantKey)) {
+      fam.variantsMap.set(variantKey, {
+        variantKey: variantKey,
+        model: baseModelName,
+        rawModel: baseModelName,
+        storage: (p.storage || '').trim(),
+        ram: ram,
+        isSeminovo: isSemi,
+        colors: new Map()
+      });
+    }
+
+    const stGrp = fam.variantsMap.get(variantKey);
+    const colorName = (p.color || 'Padrão').trim();
+    const colorKey = colorName.toUpperCase();
+
+    if (!stGrp.colors.has(colorKey)) {
+      stGrp.colors.set(colorKey, {
+        color: colorName,
+        offers: [p],
+        ram: ram
+      });
+    } else {
+      stGrp.colors.get(colorKey).offers.push(p);
+    }
+  });
+
+  const sortedSections = Array.from(sectionsMap.values()).sort((a, b) => a.order - b.order);
+
+  const outputSections = [];
+  let hasNovos = false;
+  let hasSemis = false;
+
+  sortedSections.forEach(sec => {
+    const fams = Array.from(sec.familiesMap.values()).sort((a, b) => {
+      const rankA = getModelOrderRank(a.rawModelName || a.modelName, a.category);
+      const rankB = getModelOrderRank(b.rawModelName || b.modelName, b.category);
+      if (rankA !== rankB) return rankA - rankB;
+      return a.modelName.localeCompare(b.modelName);
+    });
+
+    const sectionBlocks = [];
+
+    fams.forEach(fam => {
+      const variants = Array.from(fam.variantsMap.values()).sort((a, b) => {
+        const rA = getStorageRank(a.storage);
+        const rB = getStorageRank(b.storage);
+        if (rA !== rB) return rA - rB;
+        return (parseInt(a.ram) || 0) - (parseInt(b.ram) || 0);
+      });
+
+      variants.forEach(grp => {
+        if (grp.isSeminovo) {
+          hasSemis = true;
+        } else {
+          hasNovos = true;
+        }
+
+        const colorsArr = Array.from(grp.colors.values()).map(colObj => {
+          const isSemi = grp.isSeminovo;
+          const offers = colObj.offers || [];
+          const rawRefCost = calculateSupplierReferencePrice(offers, isSemi);
+          if (!rawRefCost || rawRefCost <= 0) return null;
+          const refCost = applyDFU(rawRefCost, fam.category, grp.rawModel);
+          const marginVal = getProductMargin(grp.rawModel, fam.category, isSemi);
+          const finalPrice = refCost + marginVal;
+
+          return {
+            color: colObj.color,
+            retailPrice: finalPrice,
+            ram: colObj.ram
+          };
+        }).filter(Boolean).sort((a, b) => a.retailPrice - b.retailPrice);
+
+        if (colorsArr.length === 0) return;
+
+        const titleLine = formatModelTitleForCopy(grp.rawModel, grp.storage, grp.ram);
+        const modelLines = [titleLine, ''];
+
+        colorsArr.forEach(c => {
+          const colorFormatted = formatOnlyFirstLetterUpper(c.color);
+          modelLines.push(`${colorFormatted} • ${formatBRL(c.retailPrice)}`);
+        });
+
+        sectionBlocks.push(modelLines.join('\n'));
+      });
+    });
+
+    if (sectionBlocks.length > 0) {
+      const secHeader = `${sec.title}\n-----------------`;
+      outputSections.push(`${secHeader}\n\n${sectionBlocks.join('\n\n')}`);
+    }
+  });
+
+  if (outputSections.length === 0) {
+    alert('Nenhum preço disponível no catálogo para exportar.');
+    return;
+  }
+
+  const footerLines = [''];
+  if (hasNovos && !hasSemis) {
+    footerLines.push('Produto novo lacrado com 1 ano de garantia Apple.');
+    footerLines.push('Emitimos nota fiscal.');
+    footerLines.push('');
+  } else if (hasNovos && hasSemis) {
+    footerLines.push('Produtos novos lacrados com 1 ano de garantia Apple.');
+    footerLines.push('Emitimos nota fiscal.');
+    footerLines.push('');
+  }
+  footerLines.push('Valores válidos para pagamento à vista.');
+  footerLines.push('Consulte opções de parcelamento no cartão.');
+  const footer = footerLines.join('\n');
+
+  const fullText = (outputSections.join('\n\n\n') + (footer ? '\n\n' + footer : '')).trim();
+
+  const copySuccess = await robustCopyToClipboard(fullText);
+
+  if (btn) {
+    const origHtml = btn.innerHTML;
+    if (copySuccess) {
+      btn.disabled = true;
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span style="color: #fff;">Lista Completa Copiada!</span>`;
+      btn.style.background = '#059669';
+      btn.style.borderColor = '#059669';
+      btn.style.color = '#fff';
+      setTimeout(() => {
+        btn.innerHTML = origHtml;
+        btn.style.background = 'rgba(16, 185, 129, 0.15)';
+        btn.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+        btn.style.color = '#10b981';
+        btn.disabled = false;
+      }, 2500);
+    } else {
+      btn.innerHTML = `<span>Copiar Manualmente</span>`;
+      prompt('Pressione Ctrl+C (ou Cmd+C) para copiar a lista completa:', fullText);
+      btn.innerHTML = origHtml;
+    }
   }
 };
 
@@ -3733,7 +4389,7 @@ if (sfSearchInput) {
     if (sfSearchClearBtn) sfSearchClearBtn.style.display = sfSearchQuery ? 'flex' : 'none';
     // Ao buscar por texto na Loja Física, sincroniza o botão de categoria para TODOS
     if (sfCategoryNav && sfSearchQuery.trim()) {
-      sfCategoryNav.querySelectorAll('.pod-cat-pill').forEach(b => {
+      sfCategoryNav.querySelectorAll('.cat-pill, .pod-cat-pill').forEach(b => {
         b.classList.toggle('active', b.dataset.sfCategory === 'ALL');
       });
       sfCurrentCategory = 'ALL';
@@ -3760,9 +4416,9 @@ if (sfSearchClearBtn) {
 
 if (sfCategoryNav) {
   sfCategoryNav.addEventListener('click', (e) => {
-    const btn = e.target.closest('.pod-cat-pill');
+    const btn = e.target.closest('.cat-pill, .pod-cat-pill');
     if (!btn) return;
-    sfCategoryNav.querySelectorAll('.pod-cat-pill').forEach(b => b.classList.remove('active'));
+    sfCategoryNav.querySelectorAll('.cat-pill, .pod-cat-pill').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     sfCurrentCategory = btn.dataset.sfCategory || 'ALL';
     // Se clicar em uma categoria específica e houver busca ativa, limpa a busca para navegar pela categoria
@@ -3771,9 +4427,38 @@ if (sfCategoryNav) {
       sfSearchQuery = '';
       if (sfSearchClearBtn) sfSearchClearBtn.style.display = 'none';
     }
+    // Ao alternar categorias, reseta o filtro de cor para todas
+    const colFilter = document.getElementById('sfColorFilter');
+    if (colFilter) colFilter.value = 'ALL';
+    lastColorCategory = '';
     renderStoreFront();
   });
 }
+
+// Filtros Dropdown da Vitrine (Capacidade e Cor)
+const sfCapacityFilter = document.getElementById('sfCapacityFilter');
+const sfColorFilter = document.getElementById('sfColorFilter');
+
+if (sfCapacityFilter) {
+  sfCapacityFilter.addEventListener('change', () => {
+    renderStoreFront();
+  });
+}
+
+if (sfColorFilter) {
+  sfColorFilter.addEventListener('change', () => {
+    renderStoreFront();
+  });
+}
+
+// Ações do Top Header
+window.handleCustoFornecedorClick = function() {
+  if (!currentUser) {
+    window.location.href = '/login.html';
+    return;
+  }
+  switchView('prices_of_the_day');
+};
 
 // Event listeners para o input de busca MOBILE (dentro do card de categorias)
 const sfSearchInputMobile = document.getElementById('sfSearchInputMobile');
@@ -3853,16 +4538,24 @@ async function checkAuthSession() {
     const adminHeaderBtn = document.getElementById('adminHeaderBtn');
     const btnOpenCalculator = document.getElementById('btnOpenCalculator');
     const btnExportSfWhatsapp = document.getElementById('btnExportSfWhatsapp');
+    const btnExportAllSfWhatsapp = document.getElementById('btnExportAllSfWhatsapp');
 
     const btnExportTopHeader = document.getElementById('btnExportTopHeader');
     const mobileDrawerExportBtn = document.getElementById('mobileDrawerExportBtn');
+    const mobileDrawerExportAllBtn = document.getElementById('mobileDrawerExportAllBtn');
 
     if (res.status === 401) {
       currentUser = null;
+      localStorage.removeItem('logged_username');
+      window.DFU_ACTIVE = false;
+      if (window.PricingCore && typeof window.PricingCore.setDfuActive === 'function') {
+        window.PricingCore.setDfuActive(false);
+      }
       if (tabPricesDay) tabPricesDay.style.display = 'none';
       if (btnOpenCalculator) btnOpenCalculator.style.display = 'none';
       if (btnExportTopHeader) btnExportTopHeader.style.display = 'none';
       if (btnExportSfWhatsapp) btnExportSfWhatsapp.style.display = 'none';
+      if (btnExportAllSfWhatsapp) btnExportAllSfWhatsapp.style.display = 'none';
       if (publicAdminTopBtn) publicAdminTopBtn.style.display = 'none';
       if (userSessionInfo) userSessionInfo.style.display = 'none';
 
@@ -3883,10 +4576,11 @@ async function checkAuthSession() {
       if (mobileDrawerPricesDayBtn) mobileDrawerPricesDayBtn.style.display = 'none';
       if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'none';
       if (mobileDrawerExportBtn) mobileDrawerExportBtn.style.display = 'none';
+      if (mobileDrawerExportAllBtn) mobileDrawerExportAllBtn.style.display = 'none';
       if (mobileDrawerLogoutBtn) mobileDrawerLogoutBtn.style.display = 'none';
 
       // Garante que o visitante fica exclusivamente na Loja Física
-      const viewSwitchNav = document.querySelector('.view-switch-nav');
+      const viewSwitchNav = document.getElementById('viewSwitchNav');
       if (viewSwitchNav) viewSwitchNav.classList.add('single-tab');
       switchView('storefront');
       refreshCurrentView();
@@ -3895,8 +4589,29 @@ async function checkAuthSession() {
 
     const user = await res.json();
     currentUser = user;
+    const username = (user.username || '').toLowerCase();
+    localStorage.setItem('logged_username', username);
 
-    const viewSwitchNav = document.querySelector('.view-switch-nav');
+    // Regra estrita: Cledson nunca entra no DFU. Somente Admin tem DFU (+100).
+    if (username === 'cledson') {
+      window.DFU_ACTIVE = false;
+      if (window.PricingCore && typeof window.PricingCore.setDfuActive === 'function') {
+        window.PricingCore.setDfuActive(false);
+      }
+    } else if (username === 'admin') {
+      window.DFU_ACTIVE = true;
+      if (window.PricingCore && typeof window.PricingCore.setDfuActive === 'function') {
+        window.PricingCore.setDfuActive(true);
+      }
+    } else {
+      window.DFU_ACTIVE = false;
+      if (window.PricingCore && typeof window.PricingCore.setDfuActive === 'function') {
+        window.PricingCore.setDfuActive(false);
+      }
+    }
+    scheduleUiRefresh();
+
+    const viewSwitchNav = document.getElementById('viewSwitchNav');
     if (viewSwitchNav) viewSwitchNav.classList.remove('single-tab');
 
     // Usuário autenticado (Lojista ou Admin):
@@ -3914,6 +4629,9 @@ async function checkAuthSession() {
     }
     if (btnExportSfWhatsapp) {
       btnExportSfWhatsapp.style.display = 'inline-flex';
+    }
+    if (btnExportAllSfWhatsapp) {
+      btnExportAllSfWhatsapp.style.display = 'inline-flex';
     }
 
     // Registra sessão no WebSocket para controle anti-pirataria
@@ -3937,18 +4655,9 @@ async function checkAuthSession() {
     const mobileDrawerCalcBtn = document.getElementById('mobileDrawerCalcBtn');
     const mobileDrawerLogoutBtn = document.getElementById('mobileDrawerLogoutBtn');
 
-    if (user.role === 'admin') {
-      badgeText = '👑 ' + badgeText;
-      if (adminHeaderBtnLabel) adminHeaderBtnLabel.textContent = 'Painel Admin';
-      if (mobileDrawerAdminLabel) mobileDrawerAdminLabel.textContent = '👑 Painel Administrador';
-    } else {
-      if (adminHeaderBtnLabel) adminHeaderBtnLabel.textContent = 'Configurar Margens';
-      if (mobileDrawerAdminLabel) mobileDrawerAdminLabel.textContent = '⚙️ Configurar Margens e Loja';
-    }
-
     if (userSessionInfo && userStoreBadge) {
       userSessionInfo.style.display = 'flex';
-      if (adminHeaderBtn) adminHeaderBtn.style.display = 'inline-flex';
+      if (adminHeaderBtn) adminHeaderBtn.style.display = 'none';
       userStoreBadge.style.display = 'none'; // REMOVIDO A PEDIDO DO USUARIO
     }
 
@@ -3959,7 +4668,7 @@ async function checkAuthSession() {
     }
 
     // Atualiza drawer mobile logado
-    if (mobileDrawerAdminBtn) mobileDrawerAdminBtn.style.display = 'flex';
+    if (mobileDrawerAdminBtn) mobileDrawerAdminBtn.style.display = 'none';
     if (mobileDrawerUser && mobileDrawerUserBadge) {
       mobileDrawerUser.style.display = 'block';
       mobileDrawerUserBadge.style.display = 'none'; // REMOVIDO A PEDIDO DO USUARIO
@@ -3967,6 +4676,7 @@ async function checkAuthSession() {
     if (mobileDrawerPricesDayBtn) mobileDrawerPricesDayBtn.style.display = 'flex';
     if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'flex';
     if (mobileDrawerExportBtn) mobileDrawerExportBtn.style.display = 'flex';
+    if (mobileDrawerExportAllBtn) mobileDrawerExportAllBtn.style.display = 'flex';
     if (mobileDrawerLogoutBtn) mobileDrawerLogoutBtn.style.display = 'flex';
 
     // Exibe botão de sincronizar na Loja Física apenas quando logado
@@ -4069,13 +4779,6 @@ function ensureMobileDrawerMounted() {
         <span class="mobile-drawer-user-badge" id="mobileDrawerUserBadge">Loja</span>
       </div>
       <div class="mobile-drawer-nav">
-        <a href="/admin" class="mobile-drawer-item" id="mobileDrawerAdminBtn" style="display: none;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-            <circle cx="12" cy="12" r="3"/>
-          </svg>
-          <span id="mobileDrawerAdminLabel">Acessar Painel Admin</span>
-        </a>
         <button class="mobile-drawer-item" id="mobileDrawerStoreFrontBtn" onclick="closeMobileMenu(); switchView('storefront');">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -4099,7 +4802,14 @@ function ensureMobileDrawerMounted() {
             <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
             <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
           </svg>
-          <span>Exportar Valores (WhatsApp)</span>
+          <span>Exportar Selecionados (WhatsApp)</span>
+        </button>
+        <button class="mobile-drawer-item" id="mobileDrawerExportAllBtn" onclick="closeMobileMenu(); exportAllStorefrontWhatsApp(this);" style="display: none; color: var(--accent-green);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+          </svg>
+          <span>Exportar Tudo (WhatsApp)</span>
         </button>
         <button class="mobile-drawer-item" id="mobileDrawerSyncBtn" onclick="triggerStorefrontSyncPrices(this)" style="display: none; color: #3b82f6;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -4224,6 +4934,7 @@ window.toggleThemeFromDrawer = function() {
 
 async function handleHeaderLogout() {
   try {
+    localStorage.removeItem('logged_username');
     if (typeof clearCachedCatalog === 'function') {
       await clearCachedCatalog();
     }
@@ -4242,6 +4953,7 @@ function getCookie(name) {
 
 // Alerta Anti-Pirataria em tempo real se a conta for aberta em outro aparelho
 socket.on('session_terminated', async (data) => {
+  localStorage.removeItem('logged_username');
   if (typeof clearCachedCatalog === 'function') {
     await clearCachedCatalog();
   }
@@ -4303,5 +5015,3 @@ window.shareClientCatalogLink = async function() {
 };
 
 initClientModeCheck();
-
-

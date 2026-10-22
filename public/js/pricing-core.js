@@ -12,20 +12,34 @@
 })(typeof self !== 'undefined' ? self : this, function () {
 
   const DFU_CONFIG = {
-    active: true, // DFU ATIVO (+100 em iPhones e Macs)
+    active: true, // DFU ATIVO (iPhones: +100, MacBooks: +200, Apple Watch: +50)
+    iphoneValue: 100,
+    macValue: 200,
+    watchValue: 50,
     value: 100
   };
 
-  function applyDFU(cost, category, rawModel) {
-    if (!DFU_CONFIG.active) return Number(cost) || 0;
+  function setDfuActive(active) {
+    DFU_CONFIG.active = !!active;
+  }
+
+  function applyDFU(cost, category, rawModel, options = {}) {
+    if (!DFU_CONFIG.active || options.disableDfu === true) return Number(cost) || 0;
     const numCost = Number(cost) || 0;
     if (numCost <= 0) return 0;
     const cat = (category || '').toUpperCase().trim();
     const model = (rawModel || '').toUpperCase();
     const isIphone = cat === 'IPH' || model.includes('IPHONE');
-    const isMac = cat === 'MCB' || model.includes('MAC');
-    if (isIphone || isMac) {
-      return numCost + DFU_CONFIG.value;
+    const isMac = cat === 'MCB' || model.includes('MAC') || model.includes('MACBOOK');
+    const isWatch = cat === 'RLG' || model.includes('WATCH');
+    if (isIphone) {
+      return numCost + (DFU_CONFIG.iphoneValue || 100);
+    }
+    if (isMac) {
+      return numCost + (DFU_CONFIG.macValue || 200);
+    }
+    if (isWatch) {
+      return numCost + DFU_CONFIG.watchValue;
     }
     return numCost;
   }
@@ -59,20 +73,52 @@
     return cleaned;
   }
 
-  function isDisallowedSeminovo(name) {
-    if (!name) return false;
+  function isCpoProduct(p) {
+    if (!p) return false;
+    const n = (p.name || '').toUpperCase();
+    const d = (p.description || '').toUpperCase();
+    const r = (p.region || '').toUpperCase();
+    return n.includes('CPO') || d.includes('CPO') || r.includes('CPO');
+  }
+
+  function isDisallowedSeminovo(nameOrProduct, storage) {
+    if (!nameOrProduct) return false;
+    let name = '';
+    let stor = '';
+    let desc = '';
+    if (typeof nameOrProduct === 'object' && nameOrProduct !== null) {
+      name = nameOrProduct.name || '';
+      stor = nameOrProduct.storage || '';
+      desc = nameOrProduct.description || '';
+    } else {
+      name = String(nameOrProduct || '');
+      stor = storage ? String(storage) : '';
+    }
     const n = name.toUpperCase();
+    const s = stor.toUpperCase().trim();
+    const d = desc.toUpperCase();
+
+    // 1. Exclui iPhone 13 Mini e modelos anteriores ao iPhone 13
     if (n.includes('13 MINI') || n.includes('13-MINI') || n.includes('13MINI')) return true;
     if (/\b(IPHONE|IPH)\s+(11|12|X|XR|XS|SE|8|7|6)\b/i.test(n)) {
       return true;
     }
+
+    // 2. Exclui Seminovos de alta capacidade (512GB, 1TB e superiores)
+    const hasHighCap = s.includes('512') || s.includes('1TB') || s.includes('1 TB') || s.includes('2TB') || s.includes('2 TB') ||
+                       d.includes('512GB') || d.includes('1TB') || d.includes('1 TB') || d.includes('2TB') || d.includes('2 TB') ||
+                       /\b(512GB|1TB|2TB)\b/i.test(n);
+    if (hasHighCap) {
+      return true;
+    }
+
     return false;
   }
 
   function isSeminovoProduct(p) {
     if (!p) return false;
     if (isAsIsProduct(p)) return false;
-    if (isDisallowedSeminovo(p.name)) return false;
+    if (isDisallowedSeminovo(p)) return false;
     if (p.isSeminovo === true || p.condition === 'SEMINOVO') return true;
     const cat = (p.category || '').toUpperCase().trim();
     const name = (p.name || '').toLowerCase();
@@ -94,6 +140,20 @@
       desc.includes('vitrine') ||
       desc.includes('usado')
     );
+  }
+
+  function isDisallowedProduct(p) {
+    if (!p) return true;
+    if (isCpoProduct(p)) return true;
+    if (isAsIsProduct(p)) return true;
+    const cat = (p.category || '').toUpperCase().trim();
+    const name = (p.name || '').toUpperCase();
+    const desc = (p.description || '').toUpperCase();
+    const isSemi = p.isSeminovo === true || p.condition === 'SEMINOVO' || cat === 'SEMI' ||
+                   name.includes('SEMI NOVO') || name.includes('SEMI-NOVO') || name.includes('SEMINOVO') ||
+                   name.includes('USADO') || name.includes('VITRINE') || desc.includes('SEMI');
+    if (isSemi && isDisallowedSeminovo(p)) return true;
+    return false;
   }
 
   function calculateSupplierReferencePrice(offers, isSeminovo = false) {
@@ -228,11 +288,14 @@
 
   return {
     DFU_CONFIG,
+    setDfuActive,
     applyDFU,
     isAsIsProduct,
     cleanModelName,
     isDisallowedSeminovo,
     isSeminovoProduct,
+    isCpoProduct,
+    isDisallowedProduct,
     calculateSupplierReferencePrice,
     getDefaultMargins,
     getProductMargin,

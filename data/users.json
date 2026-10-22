@@ -9,7 +9,76 @@
     "role": "admin",
     "status": "active",
     "expires_at": null,
-    "current_session_token": null,
-    "created_at": "2026-09-10T11:48:52.784Z"
+    "current_session_token": "1ebc17d4-9098-4b86-988c-6cdd22bec83d",
+    "created_at": "2026-09-10T11:48:52.784Z",
+    "last_login_at": "2026-10-22T16:52:08.462Z",
+    "active_session_tokens": [
+      "6f5918e6-83c0-477f-bcdd-da0e4724da68",
+      "58d5d857-974d-4c0a-bdaf-3b638dfa8428",
+      "b5fe767b-3cb8-47d7-85db-638f2b9931c2",
+      "77a69a52-8a01-4192-a8f7-d3d8b173ab71",
+      "67a6d761-f13f-4f4e-a0ee-2aa9f0e09404",
+      "f92c0376-6ad1-4034-a3a8-d1f9c2a3f8d9",
+      "c5a9dd3d-c0eb-41f9-b6db-99560317806c",
+      "48eb5c8f-1624-4d31-bf68-8ee99315cd63",
+      "1ebc17d4-9098-4b86-988c-6cdd22bec83d"
+    ]
+  },
+  {
+    "id": "lojista_1791992109749",
+    "store_name": "Cledson",
+    "owner_name": "Cledson",
+    "whatsapp": "",
+    "username": "cledson",
+    "password_hash": "scrypt:c603d5e2c8d988128dd1ee88cde9bdb4:d9709aa69014038cd0bf5b1dda8bd8356140dbe8120f75a5c4555d0c09c85656a5c8a539db6f09e133a15dbfc7e780f807f67fd6c03059fba9e41ec34ded2586",
+    "role": "admin",
+    "status": "active",
+    "expires_at": null,
+    "current_session_token": "b5de84ee-df14-40bc-a99a-bd644872b089",
+    "active_session_tokens": [
+      "5ba89a89-9c83-4f43-9a68-85e09fc9efcf",
+      "b5de84ee-df14-40bc-a99a-bd644872b089"
+    ],
+    "created_at": "2026-10-14T15:35:09.812Z",
+    "custom_margins": {
+      "categories": {
+        "SEMINOVOS": 0,
+        "IPH18": 0,
+        "IPH": 0,
+        "MCB_AIR": 0,
+        "MCB_PRO": 0,
+        "IPAD": 0,
+        "RLG": 0,
+        "IMAC": 0,
+        "PODS": 0,
+        "ACSS": 0
+      },
+      "products": {}
+    },
+    "custom_card_rates": {
+      "baseRate": 0,
+      "calculationMode": "factor",
+      "installmentRates": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 0,
+        "6": 0,
+        "7": 0,
+        "8": 0,
+        "9": 0,
+        "10": 0,
+        "11": 0,
+        "12": 0,
+        "13": 0,
+        "14": 0,
+        "15": 0,
+        "16": 0,
+        "17": 0,
+        "18": 0
+      }
+    },
+    "last_login_at": "2026-10-20T22:07:40.173Z"
   }
 ]

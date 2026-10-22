@@ -388,6 +388,8 @@
         const data = await resp.json();
 
         if (resp.ok && data.success) {
+          const userLogged = ((data.user && data.user.username) || username).toLowerCase();
+          localStorage.setItem('logged_username', userLogged);
           btnText.textContent = 'Acesso Autorizado!';
           window.location.href = '/';
         } else {

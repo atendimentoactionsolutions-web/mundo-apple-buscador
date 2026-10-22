@@ -65,11 +65,9 @@ app.get('/catalogo', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.get(['/admin', '/admin.html', '/painel', '/painel.html'], async (req, res) => {
-  const token = auth.getSessionTokenFromRequest(req);
-  const user = await auth.findUserBySessionToken(token);
-  if (!user) return res.redirect('/login.html?redirect=admin');
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+// Acesso ao Painel Admin via web desativado (gestão exclusiva centralizada via backend/assistente)
+app.get(['/admin', '/admin.html', '/painel', '/painel.html'], (req, res) => {
+  res.redirect('/');
 });
 
 app.get('/login', (req, res) => res.redirect('/login.html'));
@@ -78,6 +76,14 @@ app.get('/login.html', async (req, res, next) => {
   const token = auth.getSessionTokenFromRequest(req);
   const user = await auth.findUserBySessionToken(token);
   if (user) return res.redirect('/');
+  next();
+});
+
+// Bloqueia qualquer acesso direto a arquivos de painel administrativo
+app.use((req, res, next) => {
+  if (req.path === '/admin.html' || req.path === '/painel.html') {
+    return res.redirect('/');
+  }
   next();
 });
 
@@ -98,9 +104,13 @@ function isAsIsProduct(p) {
   return PricingCore.isAsIsProduct(p);
 }
 
-// Modelos de seminovos não permitidos (apenas a partir do iPhone 13, excluindo 13 Mini)
-function isDisallowedSeminovo(name) {
-  return PricingCore.isDisallowedSeminovo(name);
+// Modelos de seminovos não permitidos
+function isDisallowedSeminovo(nameOrProduct, storage) {
+  return PricingCore.isDisallowedSeminovo(nameOrProduct, storage);
+}
+
+function isDisallowedProduct(p) {
+  return PricingCore.isDisallowedProduct(p);
 }
 
 // Cache de respostas HTTP de produtos para alta performance (1ms)
@@ -160,8 +170,8 @@ function isAppleSeminovo(p) {
 
   if (!isSeminovoText) return false;
 
-  // Filtro de Seminovos: apenas do iPhone 13 para cima (exclui 13 Mini e anteriores ao 13)
-  if (isDisallowedSeminovo(p.name)) return false;
+  // Filtro de Seminovos: apenas do iPhone 13 para cima (exclui 13 Mini, anteriores ao 13, e 512GB/1TB no 15/16)
+  if (isDisallowedSeminovo(p)) return false;
 
   // Must be an Apple device
   const isApple = (
@@ -241,7 +251,7 @@ function isAppleNovo(p) {
 
 function processAppleProduct(p) {
   if (!p) return null;
-  if (isAsIsProduct(p)) return null; // Exclui modelos AS IS conforme solicitação
+  if (isDisallowedProduct(p)) return null; // Exclui modelos AS IS, CPO e seminovos bloqueados
   if (isAppleSeminovo(p)) {
     return { ...p, isSeminovo: true, condition: 'SEMINOVO' };
   }
@@ -747,6 +757,7 @@ app.get('/api/auth/me', async (req, res) => {
     ownerName: user.owner_name,
     username: user.username,
     role: user.role,
+    dfuActive: (user.username || '').toLowerCase() === 'admin',
     expiresAt: user.expires_at,
     customMargins: user.custom_margins || null,
     customCardRates: user.custom_card_rates || null
@@ -836,7 +847,7 @@ async function performCatalogSnapshotAsync() {
     const latestPath = path.join(dataDir, `snapshot_latest.json`);
     const tempPath = path.join(dataDir, `snapshot_temp_${Date.now()}.json`);
 
-    const productsList = Array.from(productsMap.values()).filter(p => !isCpoProduct(p));
+    const productsList = Array.from(productsMap.values()).filter(p => !isDisallowedProduct(p));
     if (productsList.length > 0) {
       const jsonContent = JSON.stringify(productsList);
       await fs.promises.writeFile(tempPath, jsonContent, 'utf-8');
@@ -898,7 +909,7 @@ function getHistoricalCatalog(dateParam) {
   }
 
   // Fallback: se não houver arquivo antigo ainda, retorna os produtos atuais filtrados
-  return Array.from(productsMap.values()).filter(p => !isCpoProduct(p));
+  return Array.from(productsMap.values()).filter(p => !isDisallowedProduct(p));
 }
 
 // --- ROTAS E GESTÃO DE MARGENS DE LUCRO / LOJA FÍSICA ---
@@ -1001,7 +1012,7 @@ app.get('/api/margins', async (req, res) => {
   const token = auth.getSessionTokenFromRequest(req);
   if (token) {
     const user = await auth.findUserBySessionToken(token);
-    if (user && user.role !== 'admin' && user.custom_margins) {
+    if (user && user.custom_margins && (user.role !== 'admin' || (user.username || '').toLowerCase() === 'cledson')) {
       return res.json({ success: true, margins: user.custom_margins, isLojistaCustom: true });
     }
     if (user) {
@@ -1108,7 +1119,7 @@ app.get('/api/card-rates', async (req, res) => {
   const token = auth.getSessionTokenFromRequest(req);
   if (token) {
     const user = await auth.findUserBySessionToken(token);
-    if (user && user.role !== 'admin' && user.custom_card_rates) {
+    if (user && user.custom_card_rates && (user.role !== 'admin' || (user.username || '').toLowerCase() === 'cledson')) {
       return res.json({ success: true, rates: user.custom_card_rates, isLojistaCustom: true });
     }
   }
@@ -1191,6 +1202,8 @@ app.post('/api/admin/card-rates', async (req, res) => {
 // BLINDAGEM DE SEGURANÇA E DADOS (ANTI-INSPEÇÃO PARA VISITANTES)
 // =========================================================================
 const SERVER_DFU_ACTIVE = true;
+const SERVER_DFU_IPHONE_VALUE = 100;
+const SERVER_DFU_MAC_VALUE = 200;
 const SERVER_DFU_VALUE = 100;
 
 function applyServerDFU(cost, category, rawModel) {
@@ -1203,6 +1216,7 @@ function getServerProductMargin(rawModel, category, isSemi, marginsData) {
 
 function formatProductForClient(p, isAuthed = false, marginsData = null) {
   if (!p) return null;
+  if (isDisallowedProduct(p)) return null;
   
   if (isAuthed) {
     return {
@@ -1247,7 +1261,7 @@ function formatProductForClient(p, isAuthed = false, marginsData = null) {
 
 // --- ROTAS DE PRODUTOS (ACESSO DIRETO) ---
 
-app.get('/api/products', async (req, res) => {
+app.get(['/api/products', '/api/v1/vitrine', '/api/vitrine'], async (req, res) => {
   const targetDate = req.query.date;
   const token = auth.getSessionTokenFromRequest(req);
   const user = token ? await auth.findUserBySessionToken(token) : null;
@@ -1284,7 +1298,7 @@ app.get('/api/products', async (req, res) => {
     }
   }
 
-  let products = Array.from(productsMap.values()).filter(p => !isCpoProduct(p));
+  let products = Array.from(productsMap.values()).filter(p => !isDisallowedProduct(p));
   
   // Fallback de Segurança Nível Máximo: Se o servidor na nuvem acabou de subir e o mapa está zerado, carrega o snapshot em disco!
   if (products.length === 0) {
@@ -1373,9 +1387,7 @@ app.post('/api/admin/push-catalog', async (req, res) => {
   // Atualizar mapa de produtos em memória com SWAP ATÔMICO
   const newMap = new Map();
   products.forEach(p => {
-    if (!p || !p.id) return;
-    const isSemi = p.isSeminovo === true || p.condition === 'SEMINOVO' || p.category === 'SEMI' || (p.name && (p.name.toUpperCase().includes('SEMINOVO') || p.name.toUpperCase().includes('SEMI NOVO')));
-    if (isSemi && isDisallowedSeminovo(p.name)) return;
+    if (isDisallowedProduct(p)) return;
     newMap.set(String(p.id), p);
   });
 
@@ -1490,8 +1502,7 @@ async function start() {
       if (initialSnapshot && initialSnapshot.length > 0) {
         initialSnapshot.forEach(p => {
           if (p && p.id) {
-            const isSemi = p.isSeminovo === true || p.condition === 'SEMINOVO' || p.category === 'SEMI' || (p.name && (p.name.toUpperCase().includes('SEMINOVO') || p.name.toUpperCase().includes('SEMI NOVO')));
-            if (isSemi && isDisallowedSeminovo(p.name)) return;
+            if (isDisallowedProduct(p)) return;
             productsMap.set(String(p.id), p);
           }
         });
