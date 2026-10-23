@@ -6686,3 +6686,286 @@ body:not(.light-theme) .catalog-status-text {
     font-size: 0.76rem !important;
   }
 }
+
+
+/* =========================================================================
+   UNIFICAÇÃO TOTAL DE LAYOUT (Custo Fornecedor vs Preços de Venda)
+   Elimina qualquer discrepância visual, garantindo exatamente a mesma
+   família tipográfica, largura de tela, bordas, cores e alinhamentos.
+   ========================================================================= */
+
+/* 1. Largura idêntica dos containers */
+#viewPricesDay,
+#viewStoreFront {
+  max-width: 1400px !important;
+  margin: 0 auto !important;
+  padding: 16px 24px 60px 24px !important;
+  box-sizing: border-box !important;
+}
+
+.pod-categories-wrapper {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 0 18px 0 !important;
+  padding: 0 !important;
+}
+
+.pod-categories-list {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+  padding-bottom: 4px !important;
+}
+
+.pod-categories-list::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* 2. Pílulas de Categoria 100% idênticas às do Preços de Venda */
+.pod-cat-pill {
+  padding: 7px 18px !important;
+  border-radius: 9999px !important;
+  font-size: 0.86rem !important;
+  font-weight: 600 !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: all 0.2s ease !important;
+  font-family: inherit !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.pod-cat-pill:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+  transform: none !important;
+}
+
+.pod-cat-pill.active,
+body.light-theme .pod-cat-pill.active {
+  background: #059669 !important;
+  color: #ffffff !important;
+  border-color: #059669 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 3px rgba(5, 150, 105, 0.3) !important;
+}
+
+/* Badge numérico elegante e sutil nas pílulas */
+.pod-cat-count {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  padding: 1px 6px !important;
+  border-radius: 999px !important;
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: #64748b !important;
+}
+
+.pod-cat-pill.active .pod-cat-count,
+body.light-theme .pod-cat-pill.active .pod-cat-count {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+}
+
+/* 3. Cards Unificados (Matrix Cards = Mock Cards) */
+.matrix-card,
+.mock-card {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  overflow: hidden !important;
+}
+
+.matrix-card-header,
+.mock-card-header {
+  padding: 12px 14px 10px 14px !important;
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  min-height: auto !important;
+}
+
+.matrix-card-title,
+.mock-card-title {
+  font-size: 0.88rem !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  letter-spacing: 0.2px !important;
+  text-transform: uppercase !important;
+  line-height: 1.25 !important;
+}
+
+/* Badges de capacidade, memória e seminovos */
+.matrix-card-storage,
+.matrix-card-semi-badge,
+.matrix-card-ram-badge,
+.mock-storage-badge,
+.mock-seminovo-badge,
+.mock-ram-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border: 1px solid rgba(5, 150, 105, 0.22) !important;
+}
+
+.matrix-card-semi-badge,
+.mock-seminovo-badge {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: rgba(29, 78, 216, 0.2) !important;
+}
+
+/* Botões de Ação do Header do Card */
+.matrix-card-all-btn,
+.mock-card-ver-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  color: #64748b !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.matrix-card-all-btn:hover,
+.mock-card-ver-btn:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Linhas de Cores e Preços */
+.matrix-color-row,
+.mock-color-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 8px 14px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  min-height: 48px !important;
+  box-sizing: border-box !important;
+}
+
+.matrix-color-row:last-child,
+.mock-color-row:last-child {
+  border-bottom: none !important;
+}
+
+.matrix-color-name,
+.mock-color-name {
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  color: #334155 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.2px !important;
+}
+
+.matrix-cost-label,
+.mock-price-label {
+  font-size: 0.6rem !important;
+  font-weight: 800 !important;
+  color: #64748b !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+  margin-bottom: 1px !important;
+}
+
+.matrix-cost-val,
+.mock-price-val {
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  color: #059669 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* Botão de ação (WhatsApp no Custo / Maquininha no Venda) */
+.matrix-wa-btn,
+.mock-card-sim-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  flex: 0 0 28px !important;
+  border-radius: 50% !important;
+  background: #059669 !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 1px 3px rgba(5, 150, 105, 0.3) !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.matrix-wa-btn:hover,
+.mock-card-sim-btn:hover {
+  background: #047857 !important;
+  transform: scale(1.05) !important;
+}
+
+/* 4. Grade idêntica para ambas as views */
+.pod-matrix-container,
+.storefront-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+  row-gap: 24px !important;
+  width: 100% !important;
+}
+
+.model-family-row {
+  grid-column: 1 / -1 !important;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+  width: 100% !important;
+}
+
+@media (max-width: 1200px) {
+  .pod-matrix-container,
+  .storefront-grid,
+  .model-family-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .pod-matrix-container,
+  .storefront-grid,
+  .model-family-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .pod-matrix-container,
+  .storefront-grid,
+  .model-family-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  
+  #viewPricesDay,
+  #viewStoreFront {
+    padding: 12px 14px 48px 14px !important;
+  }
+}
