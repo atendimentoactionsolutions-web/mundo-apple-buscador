@@ -1,4 +1,4 @@
-// MUNDO APPLE BUSCADOR - Frontend Engine (Tempo Real & Filtros Adaptativos)
+﻿// MUNDO APPLE BUSCADOR - Frontend Engine (Tempo Real & Filtros Adaptativos)
 let allProducts = [];
 let currentCategory = 'ALL';
 let selectedModel = ''; // Isolated model filter (e.g. "IPHONE 17 PRO MAX")
@@ -14,8 +14,8 @@ const socket = io();
 
 // ==========================================
 // MODO DFU (Ajuste Global de Custo Base)
-// Regra: Somente o usuário 'admin' tem DFU ativo (iPhones +100, MacBooks +200, Apple Watch +50).
-// O usuário 'cledson' NUNCA entra no DFU (+0, custo real).
+// Regra: Somente o usuÃ¡rio 'admin' tem DFU ativo (iPhones +100, MacBooks +200, Apple Watch +50).
+// O usuÃ¡rio 'cledson' NUNCA entra no DFU (+0, custo real).
 // ==========================================
 const storedUser = (localStorage.getItem('logged_username') || '').toLowerCase();
 window.DFU_ACTIVE = (storedUser === 'admin');
@@ -34,7 +34,7 @@ function applyDFU(cost, category, rawModel) {
     return Number(cost) || 0;
   }
 
-  // Somente o usuário 'admin' tem o DFU ativo
+  // Somente o usuÃ¡rio 'admin' tem o DFU ativo
   if (activeUser && activeUser !== 'admin') {
     return Number(cost) || 0;
   }
@@ -135,7 +135,7 @@ function isDisallowedProduct(p) {
   return false;
 }
 
-// Utilitário de Debounce para entradas do usuário (evita travamentos ao digitar)
+// UtilitÃ¡rio de Debounce para entradas do usuÃ¡rio (evita travamentos ao digitar)
 function debounce(fn, delay = 120) {
   let timer = null;
   return function (...args) {
@@ -144,7 +144,7 @@ function debounce(fn, delay = 120) {
   };
 }
 
-// Batching de re-renderização visual para eventos WebSocket em rajada
+// Batching de re-renderizaÃ§Ã£o visual para eventos WebSocket em rajada
 let pendingUiRefresh = null;
 function scheduleUiRefresh() {
   if (pendingUiRefresh) return;
@@ -167,9 +167,9 @@ function escapeHtml(str) {
 }
 
 // ==========================================
-// CACHE LOCAL ULTRA-RÁPIDO (INDEXEDDB)
+// CACHE LOCAL ULTRA-RÃPIDO (INDEXEDDB)
 // Carrega valores e produtos instantaneamente (<15ms)
-// Com segregação estrita entre visitantes (blindado) e logados (fornecedores)
+// Com segregaÃ§Ã£o estrita entre visitantes (blindado) e logados (fornecedores)
 // ==========================================
 const DB_NAME = 'BuscadorAppleCache';
 const STORE_NAME = 'catalog';
@@ -237,7 +237,7 @@ async function clearCachedCatalog() {
   } catch (e) {}
 }
 
-// Inicializa cache em memória instantaneamente antes da rede
+// Inicializa cache em memÃ³ria instantaneamente antes da rede
 getCachedCatalog().then((cached) => {
   if (cached && allProducts.length === 0) {
     const list = Array.isArray(cached) ? cached : (cached.products || []);
@@ -277,7 +277,7 @@ async function loadProducts(dateParam) {
         if (badgeText) badgeText.textContent = `TABELA DE ONTEM (${json.latestDate})`;
         if (badgeDot) badgeDot.style.backgroundColor = '#f59e0b';
       } else {
-        if (badgeText) badgeText.textContent = 'PREÇOS ATUALIZADOS AO VIVO';
+        if (badgeText) badgeText.textContent = 'PREÃ‡OS ATUALIZADOS AO VIVO';
         if (badgeDot) badgeDot.style.backgroundColor = 'var(--accent-green)';
       }
 
@@ -364,7 +364,7 @@ function updateDynamicFilters() {
   const ramWrapper = document.getElementById('ramFilterWrapper');
   if (ramFilter) {
     const sortedRams = Array.from(ramsMap.keys()).sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
-    ramFilter.innerHTML = '<option value="">Memória RAM (Todas)</option>';
+    ramFilter.innerHTML = '<option value="">MemÃ³ria RAM (Todas)</option>';
     sortedRams.forEach(r => {
       const opt = document.createElement('option');
       opt.value = r;
@@ -563,12 +563,12 @@ function getMacBookRam(p) {
   const isMac = cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('IMAC');
   if (!isMac) return '';
 
-  // 1. No PXT, a memória RAM de MacBooks vem no campo region (ex: "8GB", "16GB", "24GB", "32GB", "36GB", "48GB", "64GB")
+  // 1. No PXT, a memÃ³ria RAM de MacBooks vem no campo region (ex: "8GB", "16GB", "24GB", "32GB", "36GB", "48GB", "64GB")
   if (p.region && /\b\d{1,3}\s*GB\b/i.test(p.region)) {
     return p.region.trim().toUpperCase();
   }
 
-  // 2. Busca na descrição ou nome se houver menção explícita
+  // 2. Busca na descriÃ§Ã£o ou nome se houver menÃ§Ã£o explÃ­cita
   const combined = `${p.description || ''} ${p.name || ''}`;
   const m = combined.match(/\b(8|16|18|24|32|36|48|64|96|128)\s*GB\b/i);
   if (m) {
@@ -577,7 +577,7 @@ function getMacBookRam(p) {
   return '';
 }
 
-// Tradutor de cores e termos comuns Apple para busca em português e inglês
+// Tradutor de cores e termos comuns Apple para busca em portuguÃªs e inglÃªs
 function getColorSynonyms(color) {
   if (!color) return '';
   const c = color.toLowerCase();
@@ -600,7 +600,7 @@ function getColorSynonyms(color) {
   return syn.join(' ');
 }
 
-// Normalizador de busca inteligente (ignora acentos, pontuação, maiúsculas/minúsculas e junta termos colados)
+// Normalizador de busca inteligente (ignora acentos, pontuaÃ§Ã£o, maiÃºsculas/minÃºsculas e junta termos colados)
 function normalizeSearchText(str) {
   if (!str) return '';
   let res = str
@@ -608,11 +608,11 @@ function normalizeSearchText(str) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^\w\s]/g, ' ')
-    // Separa letra→número e número→letra: IPHONE16 → iphone 16
+    // Separa letraâ†’nÃºmero e nÃºmeroâ†’letra: IPHONE16 â†’ iphone 16
     .replace(/([a-z])(\d)/g, '$1 $2')
     .replace(/(\d)([a-z])/g, '$1 $2');
 
-  // Expansão de termos compostos colados comuns no universo Apple
+  // ExpansÃ£o de termos compostos colados comuns no universo Apple
   res = res
     .replace(/\bpromax\b/g, 'pro max')
     .replace(/\bapplewatch\b/g, 'apple watch')
@@ -630,7 +630,7 @@ function normalizeSearchText(str) {
   return res.replace(/\s+/g, ' ').trim();
 }
 
-// Verifica se todos os termos digitados na busca estão presentes no produto (com suporte a compacto e sinônimos)
+// Verifica se todos os termos digitados na busca estÃ£o presentes no produto (com suporte a compacto e sinÃ´nimos)
 function matchSearchTokens(product, tokens) {
   if (!tokens || tokens.length === 0) return true;
   const ram = getMacBookRam(product);
@@ -655,11 +655,11 @@ function buildSupplierWhatsAppMessage(model, storage, color, price, ram = '') {
     parts.push(ram.trim().toUpperCase());
   }
   if (storage) parts.push(storage.trim().toUpperCase());
-  if (color && color.toUpperCase() !== 'PADRÃO') parts.push(color.trim().toUpperCase());
+  if (color && color.toUpperCase() !== 'PADRÃƒO') parts.push(color.trim().toUpperCase());
   
   const productInfo = parts.join(' ');
   const formattedPrice = formatBRL(price || 0);
-  return `Olá, ${productInfo} ${formattedPrice}, ainda está disponível?`;
+  return `OlÃ¡, ${productInfo} ${formattedPrice}, ainda estÃ¡ disponÃ­vel?`;
 }
 
 // Apple Official Colors Hex Palette Helper
@@ -671,17 +671,17 @@ function getAppleColorHex(colorName) {
   // Glacier / Glacial (Glacier Ice Blue / Light icy cyan blue)
   if (c.includes('GLACIER') || c.includes('GLACIAL')) return '#a4c6da';
 
-  // Burgundy / Bordo / Bordô / Cabernet / Maroon / Vinho (Deep Wine / Burgundy Red)
+  // Burgundy / Bordo / BordÃ´ / Cabernet / Maroon / Vinho (Deep Wine / Burgundy Red)
   if (c.includes('BURGUNDY') || c.includes('BORDO') || c.includes('CABERNET') || c.includes('MAROON') || c.includes('VINHO')) return '#6b1d2f';
 
   // Desert / Deserto Titanium
   if (c.includes('DESERT') || c.includes('DESERTO')) return '#c8a882';
 
-  // Natural Titanium / Titânio Natural
+  // Natural Titanium / TitÃ¢nio Natural
   if (c.includes('NATURAL')) return '#9f9a93';
 
-  // Citrus / Lime / Limão (Apple Neo / Pastel Lime Yellow)
-  if (c.includes('CITRUS') || c.includes('LIME') || c.includes('LIMÃO') || c.includes('LIMAO')) return '#d9d686';
+  // Citrus / Lime / LimÃ£o (Apple Neo / Pastel Lime Yellow)
+  if (c.includes('CITRUS') || c.includes('LIME') || c.includes('LIMÃƒO') || c.includes('LIMAO')) return '#d9d686';
 
   // Cosmic Orange / Laranja / Orange / Coral
   if (c.includes('COSMIC') || c.includes('ORANGE') || c.includes('LARANJ') || c.includes('CORAL')) return '#e06d53';
@@ -698,7 +698,7 @@ function getAppleColorHex(colorName) {
     return '#f7c5cc';
   }
 
-  // Lavender / Purple / Roxo / Lilás / Violeta
+  // Lavender / Purple / Roxo / LilÃ¡s / Violeta
   if (c.includes('LAVENDER') || c.includes('PURPLE') || c.includes('ROXO') || c.includes('VIOLET') || c.includes('LILAS')) {
     if (c.includes('DEEP') || c.includes('ESCURO')) return '#433447';
     return '#d1c7df';
@@ -760,12 +760,12 @@ function getAppleColorHex(colorName) {
   return '#8e8e93';
 }
 
-// TÓPICO: Melhores Preços de Acordo com Cada Cor (Bolinhas Apple + WhatsApp Direto)
+// TÃ“PICO: Melhores PreÃ§os de Acordo com Cada Cor (Bolinhas Apple + WhatsApp Direto)
 function renderColorPricesTopic() {
   const container = document.getElementById('colorPricesTopic');
   if (!container) return;
 
-  // Mostra o tópico quando houver um modelo selecionado OU uma busca ativa por modelo
+  // Mostra o tÃ³pico quando houver um modelo selecionado OU uma busca ativa por modelo
   const activeModel = selectedModel || (searchQuery.trim().length >= 2 ? searchQuery.trim() : '');
   if (!activeModel) {
     container.style.display = 'none';
@@ -792,7 +792,7 @@ function renderColorPricesTopic() {
     return true;
   });
 
-  // Agrupa os melhores preços por cor
+  // Agrupa os melhores preÃ§os por cor
   const colorMap = new Map();
   pool.forEach(p => {
     if (!p.color || !p.price || p.price <= 0) return;
@@ -821,7 +821,7 @@ function renderColorPricesTopic() {
   }
 
   const modelDisplayName = selectedModel || searchQuery.trim().toUpperCase();
-  const storageDisplayName = selectedStorage ? ` • ${selectedStorage}` : '';
+  const storageDisplayName = selectedStorage ? ` â€¢ ${selectedStorage}` : '';
 
   const cardsHtml = colorsList.map(item => {
     const isSelected = selectedColor === item.color;
@@ -837,7 +837,7 @@ function renderColorPricesTopic() {
             <span class="color-circle" style="background-color: ${hex};" title="Cor: ${item.color}"></span>
             <span class="color-box-name">${item.color}</span>
           </div>
-          <span class="color-box-count">${item.count} opções</span>
+          <span class="color-box-count">${item.count} opÃ§Ãµes</span>
         </div>
 
         <div class="color-box-price" onclick="selectColorFromTopic('${item.color.replace(/'/g, "\\'")}')" style="cursor: pointer;">
@@ -860,7 +860,7 @@ function renderColorPricesTopic() {
             Zap
           </a>
           <button class="color-box-btn color-box-btn-filter ${isSelected ? 'active' : ''}" onclick="selectColorFromTopic('${item.color.replace(/'/g, "\\'")}')" title="Filtrar por esta cor">
-            ${isSelected ? '✕ Desmarcar' : 'Filtrar'}
+            ${isSelected ? 'âœ• Desmarcar' : 'Filtrar'}
           </button>
         </div>
       </div>
@@ -872,7 +872,7 @@ function renderColorPricesTopic() {
       <div class="color-prices-header">
         <div>
           <div class="color-prices-title">
-            <span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -3px; margin-right: 6px;"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z"/></svg>Menores Preços por Cor:</span>
+            <span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -3px; margin-right: 6px;"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z"/></svg>Menores PreÃ§os por Cor:</span>
             <span class="model-highlight">${modelDisplayName}${storageDisplayName}</span>
           </div>
           <div class="color-prices-subtitle">
@@ -881,7 +881,7 @@ function renderColorPricesTopic() {
         </div>
         ${selectedColor ? `
           <button class="remove-model-btn" onclick="selectColorFromTopic('${selectedColor.replace(/'/g, "\\'")}')" title="Remover filtro de cor">
-            ✕ Ver todas as cores
+            âœ• Ver todas as cores
           </button>
         ` : ''}
       </div>
@@ -920,11 +920,11 @@ function render() {
     if (activeModelBanner) activeModelBanner.style.display = 'none';
   }
 
-  // Render Tópico de Melhores Preços por Cor (com proteção try/catch)
+  // Render TÃ³pico de Melhores PreÃ§os por Cor (com proteÃ§Ã£o try/catch)
   try {
     renderColorPricesTopic();
   } catch (err) {
-    console.error('Erro ao renderizar tópico de cores:', err);
+    console.error('Erro ao renderizar tÃ³pico de cores:', err);
   }
 
   if (filtered.length === 0) {
@@ -932,7 +932,7 @@ function render() {
       <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
         <h3 style="font-size: 1.2rem; color: var(--text-primary); margin-bottom: 8px;">Nenhum produto encontrado com os filtros selecionados.</h3>
         <p style="margin-bottom: 16px;">Tente selecionar outra cor, capacidade ou limpar os filtros.</p>
-        <button class="action-btn" onclick="resetFilters()" style="margin: 0 auto;">✕ Limpar Filtros</button>
+        <button class="action-btn" onclick="resetFilters()" style="margin: 0 auto;">âœ• Limpar Filtros</button>
       </div>
     `;
     return;
@@ -942,7 +942,7 @@ function render() {
     // Supplier details
     const sName = p.supplier?.name || 'Fornecedor';
     const sAvatar = p.supplier?.profileImageUrl || 'https://pub-857bffb3be264baf89938943b80bff74.r2.dev/supplier-profiles/default.png';
-    const sAddress = p.supplier?.address || 'São Paulo - SP';
+    const sAddress = p.supplier?.address || 'SÃ£o Paulo - SP';
     const isVerified = p.supplier?.isVerified;
     const whatsapp = (p.supplier?.whatsappNumber || '').replace(/\D/g, '');
 
@@ -1066,7 +1066,7 @@ function renderAutocomplete(term) {
         </svg>
         <span>${mName}</span>
       </div>
-      <span class="autocomplete-item-badge">${count} opções</span>
+      <span class="autocomplete-item-badge">${count} opÃ§Ãµes</span>
     </div>
   `).join('');
 
@@ -1130,7 +1130,7 @@ if (searchClearBtn) {
   });
 }
 
-// Shortcut ⌘K / Ctrl+K to focus search & Esc to close
+// Shortcut âŒ˜K / Ctrl+K to focus search & Esc to close
 document.addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault();
@@ -1198,7 +1198,7 @@ window.resetFilters = function() {
   render();
 };
 
-// 9. Real-Time Socket Event Listeners (Silent Updates com Batching e Anti-Duplicação)
+// 9. Real-Time Socket Event Listeners (Silent Updates com Batching e Anti-DuplicaÃ§Ã£o)
 socket.on('price_changed', (evt) => {
   if (!evt || !evt.id) return;
   const index = allProducts.findIndex(p => String(p.id) === String(evt.id));
@@ -1262,7 +1262,7 @@ socket.on('pxt_connection_status', (status) => {
     badge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
     badge.style.color = 'var(--accent-green)';
     dot.style.backgroundColor = 'var(--accent-green)';
-    text.textContent = 'PREÇOS ATUALIZADOS AO VIVO';
+    text.textContent = 'PREÃ‡OS ATUALIZADOS AO VIVO';
   } else {
     badge.style.backgroundColor = 'rgba(245, 158, 11, 0.15)';
     badge.style.borderColor = 'rgba(245, 158, 11, 0.4)';
@@ -1364,7 +1364,7 @@ if (themeBtn) {
 }
 
 // =========================================================================
-// 12. MARGENS & TAXAS DA MAQUININHA (LOJA FÍSICA)
+// 12. MARGENS & TAXAS DA MAQUININHA (LOJA FÃSICA)
 // =========================================================================
 function isAsIsProduct(p) {
   if (!p) return false;
@@ -1386,7 +1386,7 @@ function isAsIsProduct(p) {
   );
 }
 
-// Limpa o nome do produto removendo redundâncias como SEMI-NOVO, SEMINOVO, USADO, etc.
+// Limpa o nome do produto removendo redundÃ¢ncias como SEMI-NOVO, SEMINOVO, USADO, etc.
 function cleanModelName(name) {
   if (!name) return 'Apple';
   let cleaned = name
@@ -1397,14 +1397,14 @@ function cleanModelName(name) {
     .replace(/\bSEMI\s*-\b/gi, '')
     .replace(/\bSEMI\b/gi, '')
     .replace(/\b(USADO|VITRINE|GRADE A\+?|GRADE B|SWAP|SWP|RECONDICIONADO)\b/gi, '')
-    .replace(/[-–—\s]+$/, '')
+    .replace(/[-â€“â€”\s]+$/, '')
     .replace(/\s+/g, ' ')
     .trim();
   if (!cleaned) return 'Apple';
   return cleaned;
 }
 
-// Categorização de Seções para Exportação WhatsApp e Listas
+// CategorizaÃ§Ã£o de SeÃ§Ãµes para ExportaÃ§Ã£o WhatsApp e Listas
 function getProductSectionInfo(p) {
   const isSemi = isSeminovoProduct(p);
   const cat = (p.category || '').toUpperCase().trim();
@@ -1438,10 +1438,10 @@ function getProductSectionInfo(p) {
   if (cat === 'PODS' || name.includes('AIRPOD')) {
     return { key: 'AIRPODS', title: 'AIRPODS', order: 60 };
   }
-  return { key: 'ACESSORIOS', title: 'ACESSÓRIOS', order: 70 };
+  return { key: 'ACESSORIOS', title: 'ACESSÃ“RIOS', order: 70 };
 }
 
-// Modelos de seminovos não permitidos (apenas a partir do iPhone 13, excluindo 13 Mini e 512GB/1TB no 15/16)
+// Modelos de seminovos nÃ£o permitidos (apenas a partir do iPhone 13, excluindo 13 Mini e 512GB/1TB no 15/16)
 function isDisallowedSeminovo(nameOrProduct, storage) {
   if (window.PricingCore && typeof window.PricingCore.isDisallowedSeminovo === 'function') {
     return window.PricingCore.isDisallowedSeminovo(nameOrProduct, storage);
@@ -1607,28 +1607,28 @@ socket.on('card_rates_updated', (newRates) => {
 });
 
 function getProductMargin(rawModel, category, isSemi = false) {
-  if (window.IS_CATALOG_SHIELDED) return 0; // Margem e DFU já embutidos no preço pelo backend
+  if (window.IS_CATALOG_SHIELDED) return 0; // Margem e DFU jÃ¡ embutidos no preÃ§o pelo backend
   if (window.PricingCore && typeof window.PricingCore.getProductMargin === 'function') {
     return window.PricingCore.getProductMargin(rawModel, category, isSemi, margins);
   }
   const nameUpper = (rawModel || '').trim().toUpperCase();
   const catUpper = (category || '').trim().toUpperCase();
 
-  // 1. Exceção de modelo específico se cadastrada no painel admin
+  // 1. ExceÃ§Ã£o de modelo especÃ­fico se cadastrada no painel admin
   let margin = margins.products ? margins.products[nameUpper] : undefined;
   if (margin !== undefined) return Number(margin) || 0;
 
-  // 2. Se for Linha iPhone 18 (Lançamento Importante), aplica a margem de R$ 1.300
+  // 2. Se for Linha iPhone 18 (LanÃ§amento Importante), aplica a margem de R$ 1.300
   if (nameUpper.includes('IPHONE 18') || nameUpper.includes('IPH 18')) {
     return (margins.categories && margins.categories.IPH18 !== undefined) ? Number(margins.categories.IPH18) : 1300;
   }
 
-  // 3. Se for Seminovo, aplica a margem de Seminovos (padrão R$ 600)
+  // 3. Se for Seminovo, aplica a margem de Seminovos (padrÃ£o R$ 600)
   if (isSemi) {
     return (margins.categories && margins.categories.SEMINOVOS !== undefined) ? Number(margins.categories.SEMINOVOS) : 600;
   }
 
-  // 4. Margem padrão por Categoria
+  // 4. Margem padrÃ£o por Categoria
   if (margins.categories) {
     if (nameUpper.includes('FOLIO') || nameUpper.includes('SMART FOLIO')) {
       return margins.categories.FOLIO ?? 400;
@@ -1691,9 +1691,9 @@ function getProductRetailPrice(p) {
 }
 
 // =========================================================================
-// VIEW MANAGER: PREÇOS DO DIA VS LOJA FÍSICA
+// VIEW MANAGER: PREÃ‡OS DO DIA VS LOJA FÃSICA
 // =========================================================================
-let currentView = 'prices_of_the_day'; // Preços do Dia por padrão
+let currentView = 'prices_of_the_day'; // PreÃ§os do Dia por padrÃ£o
 
 let podCurrentCategory = 'IPH';
 let podSearchQuery = '';
@@ -1704,7 +1704,7 @@ let sfCurrentCategory = 'IPH';
 let sfSearchQuery = '';
 
 window.switchView = function(viewName) {
-  // Se não estiver logado, proibir acesso à visão de preços de fornecedor
+  // Se nÃ£o estiver logado, proibir acesso Ã  visÃ£o de preÃ§os de fornecedor
   if (viewName !== 'storefront' && !currentUser) {
     viewName = 'storefront';
   }
@@ -1738,7 +1738,7 @@ function refreshCurrentView() {
   }
 }
 
-// Helpers de formatação para layout idêntico ao mockup
+// Helpers de formataÃ§Ã£o para layout idÃªntico ao mockup
 function formatBRLClean(val) {
   if (val === null || val === undefined || isNaN(val)) return 'R$ 0';
   const num = Number(val);
@@ -1773,7 +1773,7 @@ function formatDisplayModelName(name) {
 }
 
 function formatColorName(c) {
-  if (!c) return 'Padrão';
+  if (!c) return 'PadrÃ£o';
   const str = c.trim();
   return str.split(' ').map(w => {
     if (w.length <= 2 && w.toUpperCase() === 'SE') return 'SE';
@@ -1805,7 +1805,7 @@ function updateStoreFrontColorFilterOptions(products) {
   }
 }
 
-// Renderizador da View Loja Física (Mockup Fiel ao Design)
+// Renderizador da View Loja FÃ­sica (Mockup Fiel ao Design)
 function renderStoreFront() {
   const container = document.getElementById('storefrontGrid');
   const countText = document.getElementById('sfShownCountText');
@@ -1820,17 +1820,17 @@ function renderStoreFront() {
   const sfColorFilter = document.getElementById('sfColorFilter');
   const selectedColor = sfColorFilter ? sfColorFilter.value : 'ALL';
 
-  // Atualiza as opções de cor para o dropdown de cores
+  // Atualiza as opÃ§Ãµes de cor para o dropdown de cores
   updateStoreFrontColorFilterOptions();
 
-  // Filtrar produtos válidos (exclui CPO, AS IS e itens desativados)
+  // Filtrar produtos vÃ¡lidos (exclui CPO, AS IS e itens desativados)
   const filtered = allProducts.filter(p => {
     if (isDisallowedProduct(p)) return false;
     if (!p.price || p.price <= 0) return false;
 
     const isSemi = isSeminovoProduct(p);
 
-    // Filtro de Categoria (se houver busca por texto, busca em todo o catálogo)
+    // Filtro de Categoria (se houver busca por texto, busca em todo o catÃ¡logo)
     if (searchTokens.length === 0 && sfCurrentCategory !== 'ALL') {
       if (sfCurrentCategory === 'SEMI') {
         if (!isSemi) return false;
@@ -1872,7 +1872,7 @@ function renderStoreFront() {
     return true;
   });
 
-  // Agrupamento por Modelo e Armazenamento (cada variante é um card na grade de 4 colunas)
+  // Agrupamento por Modelo e Armazenamento (cada variante Ã© um card na grade de 4 colunas)
   const cardsMap = new Map();
 
   filtered.forEach(p => {
@@ -1880,7 +1880,7 @@ function renderStoreFront() {
     const baseModelName = cleanModelName(p.name);
     const displayName = isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
     const ram = getMacBookRam(p);
-    const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
+    const storageKey = (p.storage || 'PADRÃƒO').trim().toUpperCase();
     const cardUniqueKey = `${baseModelName.toUpperCase()}__${isSemi ? 'SEMI' : 'NEW'}__${storageKey}__${ram || ''}`;
 
     if (!cardsMap.has(cardUniqueKey)) {
@@ -1897,7 +1897,7 @@ function renderStoreFront() {
     }
 
     const cardObj = cardsMap.get(cardUniqueKey);
-    const colorName = (p.color || 'Padrão').trim();
+    const colorName = (p.color || 'PadrÃ£o').trim();
     const colorKey = colorName.toUpperCase();
 
     if (!cardObj.colorsMap.has(colorKey)) {
@@ -1911,7 +1911,7 @@ function renderStoreFront() {
     }
   });
 
-  // Processar preços de cada card e calcular menor/maior preço
+  // Processar preÃ§os de cada card e calcular menor/maior preÃ§o
   const cardsList = Array.from(cardsMap.values()).map(card => {
     const colorsArr = Array.from(card.colorsMap.values()).map(colObj => {
       const isSemi = card.isSeminovo;
@@ -1940,7 +1940,7 @@ function renderStoreFront() {
     };
   });
 
-  // Mantém os modelos mais recentes no início, com as variantes ordenadas por capacidade.
+  // MantÃ©m os modelos mais recentes no inÃ­cio, com as variantes ordenadas por capacidade.
   cardsList.sort((a, b) => {
     const rankA = getModelOrderRank(a.rawModelName || a.displayName, a.category);
     const rankB = getModelOrderRank(b.rawModelName || b.displayName, b.category);
@@ -1952,7 +1952,7 @@ function renderStoreFront() {
   });
 
   if (countText) {
-    countText.textContent = `Mostrando ${cardsList.length} modelos na Loja Física`;
+    countText.textContent = `Mostrando ${cardsList.length} modelos na Loja FÃ­sica`;
   }
 
   if (cardsList.length === 0) {
@@ -1960,7 +1960,7 @@ function renderStoreFront() {
       container.innerHTML = `
         <div class="app-catalog-loader">
           <div class="app-spinner"></div>
-          <p style="color: var(--text-primary, #0f172a); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Carregando vitrine com preços atualizados...</p>
+          <p style="color: var(--text-primary, #0f172a); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Carregando vitrine com preÃ§os atualizados...</p>
           <span style="color: var(--text-muted, #64748b); font-size: 0.85rem;">Calculando margens e parcelamentos da loja</span>
         </div>
       `;
@@ -2011,10 +2011,10 @@ function renderStoreFront() {
           </div>
           <div class="mock-color-right">
             <div class="mock-price-block">
-              <span class="mock-price-label">À VISTA</span>
+              <span class="mock-price-label">Ã€ VISTA</span>
               <span class="mock-price-val">${formatBRLClean(col.retailPrice)}</span>
             </div>
-            <button class="mock-card-sim-btn" title="Simular parcelamento no cartão" onclick="event.stopPropagation(); openCardSimulator('${encodeURIComponent(card.displayName)}', '${encodeURIComponent(card.storage)}', '${encodeURIComponent(col.color)}', ${col.retailPrice}, '${encodeURIComponent(card.ram || '')}')">
+            <button class="mock-card-sim-btn" title="Simular parcelamento no cartÃ£o" onclick="event.stopPropagation(); openCardSimulator('${encodeURIComponent(card.displayName)}', '${encodeURIComponent(card.storage)}', '${encodeURIComponent(col.color)}', ${col.retailPrice}, '${encodeURIComponent(card.ram || '')}')">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="5" width="20" height="14" rx="2.5"/>
                 <line x1="2" y1="10" x2="22" y2="10"/>
@@ -2056,14 +2056,14 @@ function renderStoreFront() {
   container.innerHTML = html;
 }
 
-// Helper para formatar texto deixando somente a primeira letra maiúscula (e o resto minúsculo)
+// Helper para formatar texto deixando somente a primeira letra maiÃºscula (e o resto minÃºsculo)
 function formatOnlyFirstLetterUpper(str) {
   if (!str) return '';
   const s = str.trim();
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
-// Helper para formatar o nome do modelo para texto copiado (Modelo + GB em MAIÚSCULO)
+// Helper para formatar o nome do modelo para texto copiado (Modelo + GB em MAIÃšSCULO)
 function formatModelTitleForCopy(model, storage, ram) {
   const parts = [model || ''];
   if (ram && !model.toUpperCase().includes(ram.toUpperCase())) parts.push(ram);
@@ -2106,10 +2106,10 @@ window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSemino
   const titleFormatted = formatModelTitleForCopy(model, storage, ram);
   if (titleEl) titleEl.textContent = titleFormatted;
   if (subEl) {
-    subEl.textContent = `${isSemi ? 'Seminovo Selecionado' : 'Produto Novo Lacrado'} • Preços válidos à vista e simulação no cartão`;
+    subEl.textContent = `${isSemi ? 'Seminovo Selecionado' : 'Produto Novo Lacrado'} â€¢ PreÃ§os vÃ¡lidos Ã  vista e simulaÃ§Ã£o no cartÃ£o`;
   }
 
-  // Gera lista espaçosa de cores
+  // Gera lista espaÃ§osa de cores
   let colorsHtml = '';
   colors.forEach(c => {
     const hex = getAppleColorHex(c.color);
@@ -2121,7 +2121,7 @@ window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSemino
           <span style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">${colorFormatted}</span>
         </div>
         <div style="text-align: right;">
-          <span style="font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block;">À VISTA</span>
+          <span style="font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block;">Ã€ VISTA</span>
           <span style="font-size: 1.15rem; font-weight: 800; color: var(--accent-green);">${formatBRL(c.price)}</span>
         </div>
       </div>
@@ -2154,11 +2154,11 @@ async function robustCopyToClipboard(text) {
       await navigator.clipboard.writeText(text);
       return true;
     } catch (e) {
-      console.warn('[Clipboard] Falha no navigator.clipboard, usando fallback compatível:', e);
+      console.warn('[Clipboard] Falha no navigator.clipboard, usando fallback compatÃ­vel:', e);
     }
   }
 
-  // 2. Fallback universal (elementos a -999999px são bloqueados por segurança em novos browsers)
+  // 2. Fallback universal (elementos a -999999px sÃ£o bloqueados por seguranÃ§a em novos browsers)
   let successful = false;
   const textArea = document.createElement("textarea");
   textArea.value = text;
@@ -2189,7 +2189,7 @@ async function robustCopyToClipboard(text) {
   return successful;
 }
 
-// Helper para copiar tabela de preços formatada para WhatsApp de um modelo específico
+// Helper para copiar tabela de preÃ§os formatada para WhatsApp de um modelo especÃ­fico
 window.copyModelPrices = async function(firstArg, secondArg, encStorage, encRam, encColorsJson, isCusto = false) {
   let btn, model = '', storage = '', ram = '', colors = [], custoFlag = false;
 
@@ -2220,7 +2220,7 @@ window.copyModelPrices = async function(firstArg, secondArg, encStorage, encRam,
     let lines = [titleLine, ''];
     colors.forEach(c => {
       const colorFormatted = formatOnlyFirstLetterUpper(c.color);
-      lines.push(`${colorFormatted} • ${formatBRL(c.price)}`);
+      lines.push(`${colorFormatted} â€¢ ${formatBRL(c.price)}`);
     });
 
     if (!custoFlag) {
@@ -2231,8 +2231,8 @@ window.copyModelPrices = async function(firstArg, secondArg, encStorage, encRam,
         lines.push('Emitimos nota fiscal.');
         lines.push('');
       }
-      lines.push('Valores válidos para pagamento à vista.');
-      lines.push('Consulte opções de parcelamento no cartão.');
+      lines.push('Valores vÃ¡lidos para pagamento Ã  vista.');
+      lines.push('Consulte opÃ§Ãµes de parcelamento no cartÃ£o.');
     }
 
     const textToCopy = lines.join('\n');
@@ -2246,12 +2246,12 @@ window.copyModelPrices = async function(firstArg, secondArg, encStorage, encRam,
       }, 2000);
     }
   } catch (err) {
-    console.error('Erro ao copiar lista de preços:', err);
+    console.error('Erro ao copiar lista de preÃ§os:', err);
   }
 };
 
 // =========================================================================
-// MODAL: EDITAR MARGEM DIRETA DE UM MODELO ESPECÍFICO
+// MODAL: EDITAR MARGEM DIRETA DE UM MODELO ESPECÃFICO
 // =========================================================================
 let currentEditingModel = '';
 
@@ -2316,11 +2316,11 @@ window.saveSingleProductMargin = async function() {
         renderStoreFront();
       }
     } else {
-      alert(data.error || 'Não foi possível salvar a margem.');
+      alert(data.error || 'NÃ£o foi possÃ­vel salvar a margem.');
     }
   } catch (err) {
     console.error('Erro ao salvar margem:', err);
-    alert('Erro de conexão ao salvar margem.');
+    alert('Erro de conexÃ£o ao salvar margem.');
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -2329,7 +2329,7 @@ window.saveSingleProductMargin = async function() {
   }
 };
 
-// Category Count Badges Updater for Preços do Dia
+// Category Count Badges Updater for PreÃ§os do Dia
 function updatePricesDayCategoryCounts() {
   let cALL = 0, cSEMI = 0, cIPH = 0, cMCB = 0, cIPAD = 0, cRLG = 0, cPODS = 0, cACSS = 0, cIMAC = 0;
 
@@ -2373,7 +2373,7 @@ function updatePricesDayCategoryCounts() {
   if (elImac) elImac.textContent = cIMAC;
 }
 
-// 14. Model Sorting & Hierarchy Ranking (Zero Mistura - Organização Perfeita)
+// 14. Model Sorting & Hierarchy Ranking (Zero Mistura - OrganizaÃ§Ã£o Perfeita)
 function getModelOrderRank(modelName, category) {
   const m = (modelName || '').toUpperCase();
 
@@ -2412,7 +2412,7 @@ function getModelOrderRank(modelName, category) {
   if (m.includes('IPHONE 11')) return 700;
   if (m.includes('IPHONE')) return 800;
 
-  // 2. MacBooks & Macs (Classificação rigorosa por Geração de Lançamento: M5 > M4 > M3 > M2 > M1)
+  // 2. MacBooks & Macs (ClassificaÃ§Ã£o rigorosa por GeraÃ§Ã£o de LanÃ§amento: M5 > M4 > M3 > M2 > M1)
   if (m.includes('M5')) {
     if (m.includes('MACBOOK PRO 16') || m.includes('PRO 16')) return 1000;
     if (m.includes('MACBOOK PRO 14') || m.includes('PRO 14')) return 1010;
@@ -2538,7 +2538,7 @@ function getModelOrderRank(modelName, category) {
   if (m.includes('AIRPODS 3')) return 4040;
   if (m.includes('AIRPODS')) return 4050;
 
-  // 6. Acessórios
+  // 6. AcessÃ³rios
   if (m.includes('PENCIL PRO')) return 5000;
   if (m.includes('PENCIL')) return 5010;
   if (m.includes('MAGIC KEYBOARD')) return 5020;
@@ -2588,7 +2588,7 @@ function getCategoryIcon(modelName, category) {
   return `<svg class="pod-model-section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>`;
 }
 
-// Autocomplete Dropdown para a barra de pesquisa de Preços do Dia
+// Autocomplete Dropdown para a barra de pesquisa de PreÃ§os do Dia
 function renderPodAutocomplete(term) {
   const dropdown = document.getElementById('podAutocompleteDropdown');
   if (!dropdown) return;
@@ -2651,7 +2651,7 @@ window.selectPodModel = function(modelName) {
   if (dropdown) dropdown.classList.remove('open');
   if (clearBtn) clearBtn.style.display = 'flex';
 
-  // Chaveia para ALL para que o modelo selecionado sempre seja visível (independente de ser Mac, Watch, iPad ou iPhone)
+  // Chaveia para ALL para que o modelo selecionado sempre seja visÃ­vel (independente de ser Mac, Watch, iPad ou iPhone)
   podCurrentCategory = 'ALL';
   const catPills = document.querySelectorAll('#podCategoryNav .pod-cat-pill');
   catPills.forEach(p => p.classList.toggle('active', p.dataset.category === 'ALL'));
@@ -2659,7 +2659,7 @@ window.selectPodModel = function(modelName) {
   renderPricesOfTheDay();
 };
 
-// Helper de ícone por tipo de dispositivo Apple
+// Helper de Ã­cone por tipo de dispositivo Apple
 function getDeviceIconSvg(name) {
   const u = (name || '').toUpperCase();
   if (u.includes('WATCH')) {
@@ -2679,7 +2679,7 @@ function getDeviceIconSvg(name) {
 
 
 
-// 15. Render Preços do Dia (ESTRITAMENTE ORGANIZADO POR MODELOS COM BANNERS DE SEÇÃO)
+// 15. Render PreÃ§os do Dia (ESTRITAMENTE ORGANIZADO POR MODELOS COM BANNERS DE SEÃ‡ÃƒO)
 function renderPricesOfTheDay() {
   const container = document.getElementById('podMatrixGrid');
   if (!container) return;
@@ -2755,7 +2755,7 @@ function renderPricesOfTheDay() {
     const modelKey = isSemi ? `${baseModelName.toUpperCase()} [SEMINOVO]` : baseModelName.toUpperCase();
     const displayName = isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
     const ram = getMacBookRam(p);
-    const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
+    const storageKey = (p.storage || 'PADRÃƒO').trim().toUpperCase();
     const variantKey = ram ? `${storageKey}__${ram}` : storageKey;
 
     if (!modelFamilies.has(modelKey)) {
@@ -2784,7 +2784,7 @@ function renderPricesOfTheDay() {
     const stGrp = fam.storagesMap.get(variantKey);
     stGrp.allOffers.push(p);
 
-    const colorName = (p.color || 'Padrão').trim();
+    const colorName = (p.color || 'PadrÃ£o').trim();
     const colorKey = colorName.toUpperCase();
     
     if (!stGrp.colors.has(colorKey)) {
@@ -2798,7 +2798,7 @@ function renderPricesOfTheDay() {
     }
   });
 
-  // Ordena as famílias de modelos pela hierarquia oficial Apple
+  // Ordena as famÃ­lias de modelos pela hierarquia oficial Apple
   const sortedFamilies = Array.from(modelFamilies.values()).sort((a, b) => {
     const rankA = getModelOrderRank(a.rawModelName || a.modelName, a.category);
     const rankB = getModelOrderRank(b.rawModelName || b.modelName, b.category);
@@ -2822,8 +2822,8 @@ function renderPricesOfTheDay() {
       container.innerHTML = `
         <div class="app-catalog-loader">
           <div class="app-spinner"></div>
-          <p style="color: var(--text-primary, #fff); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Sincronizando cotações Apple em tempo real...</p>
-          <span style="color: var(--text-muted, #888); font-size: 0.85rem;">Carregando modelos, cores e melhores preços dos fornecedores</span>
+          <p style="color: var(--text-primary, #fff); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Sincronizando cotaÃ§Ãµes Apple em tempo real...</p>
+          <span style="color: var(--text-muted, #888); font-size: 0.85rem;">Carregando modelos, cores e melhores preÃ§os dos fornecedores</span>
         </div>
       `;
       return;
@@ -2832,17 +2832,17 @@ function renderPricesOfTheDay() {
       <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
         <h3 style="font-size: 1.25rem; color: var(--text-primary); margin-bottom: 8px;">Nenhum produto encontrado nesta categoria ou busca.</h3>
         <p style="margin-bottom: 16px;">Tente alterar os filtros ou pesquisar por outro modelo.</p>
-        <button class="pod-btn-export" onclick="resetPodFilters()" style="margin: 0 auto;">✕ Limpar Filtros</button>
+        <button class="pod-btn-export" onclick="resetPodFilters()" style="margin: 0 auto;">âœ• Limpar Filtros</button>
       </div>
     `;
     return;
   }
 
-  // Renderiza estruturado por Seção de Modelo + Cards das Capacidades e RAM
+  // Renderiza estruturado por SeÃ§Ã£o de Modelo + Cards das Capacidades e RAM
   window.matrixCardMap = new Map();
   let html = '';
   sortedFamilies.forEach((fam, famIdx) => {
-    // Ordena as capacidades do modelo em ordem lógica (128GB, 256GB, 512GB, 1TB, etc)
+    // Ordena as capacidades do modelo em ordem lÃ³gica (128GB, 256GB, 512GB, 1TB, etc)
     const storages = Array.from(fam.storagesMap.values()).sort((a, b) => {
       const rA = getStorageRank(a.storage);
       const rB = getStorageRank(b.storage);
@@ -2908,7 +2908,7 @@ function renderPricesOfTheDay() {
             </div>
             <div class="matrix-color-right">
               <div class="matrix-cost-group" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo})">
-                <span class="matrix-cost-label">${col.isSeminovo ? 'PREÇO MÉDIO' : 'CUSTO'}</span>
+                <span class="matrix-cost-label">${col.isSeminovo ? 'PREÃ‡O MÃ‰DIO' : 'CUSTO'}</span>
                 <span class="matrix-cost-val">${formatBRL(col.displayPrice)}</span>
               </div>
               <a class="matrix-wa-btn" href="${waLink}" target="_blank" rel="noopener noreferrer" title="Chamar ${col.bestSupplier} no WhatsApp (${formatBRL(col.displayPrice)})">
@@ -2973,8 +2973,8 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
   const body = document.getElementById('allOffersModalBody');
   if (!modal || !body) return;
 
-  const ramTitlePart = selectedRam ? ` • ${selectedRam} RAM` : '';
-  const storageTitlePart = storage ? ` • ${storage}` : '';
+  const ramTitlePart = selectedRam ? ` â€¢ ${selectedRam} RAM` : '';
+  const storageTitlePart = storage ? ` â€¢ ${storage}` : '';
   const semiPart = isSeminovo ? ' (Seminovo)' : '';
   title.textContent = `${model}${semiPart}${ramTitlePart}${storageTitlePart}`;
 
@@ -3011,7 +3011,7 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
   const offersHtml = offers.map((p) => {
     const sName = p.supplier?.name || 'Fornecedor';
     const sAvatar = p.supplier?.profileImageUrl || 'https://pub-857bffb3be264baf89938943b80bff74.r2.dev/supplier-profiles/default.png';
-    const sAddress = p.supplier?.address || 'São Paulo - SP';
+    const sAddress = p.supplier?.address || 'SÃ£o Paulo - SP';
     const isVerified = p.supplier?.isVerified;
     const whatsapp = (p.supplier?.whatsappNumber || '').replace(/\D/g, '');
     const isLowest = !isSeminovo && p.price === lowestPrice;
@@ -3037,7 +3037,7 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
                 </svg>
               ` : ''}
               ${isLowest ? `<span style="font-size: 0.65rem; background: var(--accent-green); color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 800;">MENOR VALOR</span>` : ''}
-              ${isRef ? `<span style="font-size: 0.65rem; background: #f59e0b; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 800;">FORNECEDOR MÉDIO</span>` : ''}
+              ${isRef ? `<span style="font-size: 0.65rem; background: #f59e0b; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 800;">FORNECEDOR MÃ‰DIO</span>` : ''}
             </div>
             <div class="all-offer-supp-addr">${sAddress}</div>
           </div>
@@ -3045,7 +3045,7 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
 
         <div class="all-offer-color-tag">
           <span class="matrix-color-dot" style="background-color: ${colHex};"></span>
-          <span>${p.color || 'Padrão'}</span>
+          <span>${p.color || 'PadrÃ£o'}</span>
           ${ram ? `<span style="margin-left: 6px; font-size: 0.7rem; font-weight: 700; color: #2997ff; background: rgba(0, 113, 227, 0.16); padding: 1px 6px; border-radius: 4px;">${ram} RAM</span>` : ''}
         </div>
 
@@ -3066,9 +3066,9 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
   body.innerHTML = `
     <div class="all-offers-header-info">
       <div>
-        <strong>${model} ${storage}</strong> ${isSeminovo ? '<span style="color: #f59e0b; font-weight: 700;">(Seminovo • Preço Médio: ' + formatBRL(headerRefPrice) + ')</span>' : '— Todos os fornecedores cadastrados'}
+        <strong>${model} ${storage}</strong> ${isSeminovo ? '<span style="color: #f59e0b; font-weight: 700;">(Seminovo â€¢ PreÃ§o MÃ©dio: ' + formatBRL(headerRefPrice) + ')</span>' : 'â€” Todos os fornecedores cadastrados'}
       </div>
-      <span class="all-offers-count-badge">${offers.length} opções disponíveis</span>
+      <span class="all-offers-count-badge">${offers.length} opÃ§Ãµes disponÃ­veis</span>
     </div>
     <div class="all-offers-list">
       ${offersHtml}
@@ -3091,7 +3091,7 @@ if (allOffersModal) {
 }
 
 // =========================================================================
-// 16.5 SIMULADOR DE PARCELAMENTO NO CARTÃO (LOJA FÍSICA)
+// 16.5 SIMULADOR DE PARCELAMENTO NO CARTÃƒO (LOJA FÃSICA)
 // =========================================================================
 let currentSimData = {
   model: '',
@@ -3120,7 +3120,7 @@ function calculateInstallment(cashPrice, entryAmount, installmentCount) {
     };
   }
 
-  // Modo Fator (Repassar taxa ao cliente para receber valor líquido à vista)
+  // Modo Fator (Repassar taxa ao cliente para receber valor lÃ­quido Ã  vista)
   const rateDecimal = totalRate / 100;
   const totalAmount = rateDecimal < 1 ? (balanceToFinance / (1 - rateDecimal)) : (balanceToFinance * (1 + rateDecimal));
   const monthlyAmount = totalAmount / installmentCount;
@@ -3292,7 +3292,7 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
               <span>${ram} RAM</span>
             </span>
           ` : ''}
-          ${color && color.toUpperCase() !== 'PADRÃO' ? `
+          ${color && color.toUpperCase() !== 'PADRÃƒO' ? `
             <span class="sim-exec-meta-item">
               <span style="background-color: ${colHex}; width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 1px solid rgba(255,255,255,0.3);"></span>
               <span>Cor: ${color}</span>
@@ -3306,7 +3306,7 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
         <div class="sim-exec-field">
           <label class="sim-exec-label" for="simCashInput">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
-            Preço À Vista (PIX)
+            PreÃ§o Ã€ Vista (PIX)
           </label>
           <div class="sim-exec-input-wrap">
             <span style="font-weight: 800; color: var(--text-muted); margin-right: 6px; font-size: 0.95rem;">R$</span>
@@ -3328,7 +3328,7 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
         <div class="sim-exec-field">
           <label class="sim-exec-label">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-            Saldo no Cartão
+            Saldo no CartÃ£o
           </label>
           <div class="sim-exec-badge-val" id="simHeroCardVal">${formatBRL(currentSimData.cashPrice)}</div>
         </div>
@@ -3414,7 +3414,7 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
             <div class="sim-exec-field">
               <label class="sim-exec-label" for="simTradeInValue">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                Avaliação
+                AvaliaÃ§Ã£o
               </label>
               <div class="sim-exec-input-wrap">
                 <span style="font-weight: 800; color: var(--text-muted); margin-right: 6px; font-size: 0.95rem;">R$</span>
@@ -3485,7 +3485,7 @@ window.recalculateSimulator = function() {
   let rowsHtml = '';
   for (let i = 1; i <= 18; i++) {
     const sim = calculateInstallment(cashVal, totalDeductions, i);
-    const label = i === 1 ? '1x no cartão' : `${i}x`;
+    const label = i === 1 ? '1x no cartÃ£o' : `${i}x`;
 
     rowsHtml += `
       <tr>
@@ -3508,12 +3508,12 @@ window.copyCardSimulationToWhatsApp = async function(btn) {
   const totalDeductions = entryVal + tradeInVal;
   const balance = Math.max(0, cashVal - totalDeductions);
 
-  let text = `SIMULAÇÃO DE PARCELAMENTO\n\n`;
+  let text = `SIMULAÃ‡ÃƒO DE PARCELAMENTO\n\n`;
   text += `Produto: ${d.model} ${d.storage ? `(${d.storage})` : ''}\n`;
   if (d.ram) text += `RAM: ${d.ram}\n`;
-  if (d.color && d.color.toUpperCase() !== 'PADRÃO') text += `Cor: ${d.color}\n`;
+  if (d.color && d.color.toUpperCase() !== 'PADRÃƒO') text += `Cor: ${d.color}\n`;
   text += `\n`;
-  text += `Valor À Vista (PIX): ${formatBRL(cashVal)}\n\n`;
+  text += `Valor Ã€ Vista (PIX): ${formatBRL(cashVal)}\n\n`;
 
   if (d.tradeInActive && tradeInVal > 0) {
     const tradeModel = d.tradeInModel === 'OUTRO' ? (d.tradeInCustomModel || 'Outro Aparelho') : d.tradeInModel;
@@ -3526,10 +3526,10 @@ window.copyCardSimulationToWhatsApp = async function(btn) {
   }
 
   if (totalDeductions > 0) {
-    text += `Saldo a Parcelar no Cartão: ${formatBRL(balance)}\n\n`;
+    text += `Saldo a Parcelar no CartÃ£o: ${formatBRL(balance)}\n\n`;
   }
   
-  text += `OPÇÕES DE PARCELAMENTO NO CARTÃO:\n\n`;
+  text += `OPÃ‡Ã•ES DE PARCELAMENTO NO CARTÃƒO:\n\n`;
 
   const installmentOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
   
@@ -3554,7 +3554,7 @@ window.copyCardSimulationToWhatsApp = async function(btn) {
       btn.innerHTML = origHtml;
     }, 2000);
   } else {
-    alert('Simulação copiada para a área de transferência! Cole no WhatsApp.');
+    alert('SimulaÃ§Ã£o copiada para a Ã¡rea de transferÃªncia! Cole no WhatsApp.');
   }
 };
 
@@ -3577,22 +3577,22 @@ if (clientShowcaseModal) {
   });
 }
 
-// 17. Export Preços do Dia Summary to WhatsApp (Agora com seleção por modelos)
+// 17. Export PreÃ§os do Dia Summary to WhatsApp (Agora com seleÃ§Ã£o por modelos)
 window.exportPricesDayTable = function() {
   openExportSelectionModal('POD');
 };
 
 // =========================================================================
-// SELEÇÃO DE PRODUTOS & EXPORTAÇÃO LIMPA PARA WHATSAPP (UNIVERSAL: SF OU POD)
+// SELEÃ‡ÃƒO DE PRODUTOS & EXPORTAÃ‡ÃƒO LIMPA PARA WHATSAPP (UNIVERSAL: SF OU POD)
 // =========================================================================
 let pdfSelectedVariantsMap = new Map(); // key: variantKey -> boolean
 let pdfCachedFamilies = [];
-let currentExportScope = 'SF'; // 'SF' = Loja Física, 'POD' = Preços do Dia (Fornecedores)
+let currentExportScope = 'SF'; // 'SF' = Loja FÃ­sica, 'POD' = PreÃ§os do Dia (Fornecedores)
 let exportModalIsAllScope = false;
 
 window.openStorefrontExportModal = function(forceAll = true) {
   if (!currentUser) {
-    if (confirm('A exportação completa da tabela para o WhatsApp está disponível para usuários cadastrados. Deseja entrar na sua conta agora?')) {
+    if (confirm('A exportaÃ§Ã£o completa da tabela para o WhatsApp estÃ¡ disponÃ­vel para usuÃ¡rios cadastrados. Deseja entrar na sua conta agora?')) {
       window.location.href = '/login.html';
     }
     return;
@@ -3620,15 +3620,15 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
   if (!modal || !body) return;
 
   if (scopeLabel) {
-    scopeLabel.textContent = exportModalIsAllScope ? 'Voltar para Categoria Atual' : 'Ver Catálogo Inteiro';
+    scopeLabel.textContent = exportModalIsAllScope ? 'Voltar para Categoria Atual' : 'Ver CatÃ¡logo Inteiro';
   }
 
   if (titleEl) {
     if (scope === 'POD') {
-      titleEl.textContent = 'Exportar Preços do Dia (Fornecedores)';
+      titleEl.textContent = 'Exportar PreÃ§os do Dia (Fornecedores)';
     } else {
       titleEl.textContent = exportModalIsAllScope
-        ? 'Exportar Catálogo Completo para o WhatsApp'
+        ? 'Exportar CatÃ¡logo Completo para o WhatsApp'
         : 'Exportar Lista para o WhatsApp';
     }
   }
@@ -3637,7 +3637,7 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
       subEl.textContent = 'Marque os modelos de fornecedor que deseja incluir no texto';
     } else {
       subEl.textContent = exportModalIsAllScope
-        ? 'Exibindo todos os produtos e categorias disponíveis na loja'
+        ? 'Exibindo todos os produtos e categorias disponÃ­veis na loja'
         : 'Marque os modelos que deseja incluir no texto para enviar aos clientes';
     }
   }
@@ -3696,7 +3696,7 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
     });
 
     if (filtered.length === 0) {
-      alert('Nenhum produto encontrado para exportar com os filtros atuais de Preços do Dia.');
+      alert('Nenhum produto encontrado para exportar com os filtros atuais de PreÃ§os do Dia.');
       return;
     }
   } else {
@@ -3733,12 +3733,12 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
     });
 
     if (filtered.length === 0) {
-      alert('Nenhum produto encontrado para exportar com os filtros atuais da Loja Física.');
+      alert('Nenhum produto encontrado para exportar com os filtros atuais da Loja FÃ­sica.');
       return;
     }
   }
 
-  // Limpa o mapa para a visualização atual garantindo que apenas os modelos presentes no modal sejam selecionados
+  // Limpa o mapa para a visualizaÃ§Ã£o atual garantindo que apenas os modelos presentes no modal sejam selecionados
   pdfSelectedVariantsMap.clear();
 
   const modelFamilies = new Map();
@@ -3751,7 +3751,7 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
     const modelKey = isSemi ? `${baseModelName.toUpperCase()} [SEMINOVO]` : baseModelName.toUpperCase();
     const displayName = isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
     const ram = getMacBookRam(p);
-    const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
+    const storageKey = (p.storage || 'PADRÃƒO').trim().toUpperCase();
     const variantKey = `${modelKey}__${storageKey}__${ram || ''}`;
 
     if (!modelFamilies.has(modelKey)) {
@@ -3784,7 +3784,7 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
     }
 
     const stGrp = fam.variantsMap.get(variantKey);
-    const colorName = (p.color || 'Padrão').trim();
+    const colorName = (p.color || 'PadrÃ£o').trim();
     const colorKey = colorName.toUpperCase();
     
     if (!stGrp.colors.has(colorKey)) {
@@ -3838,7 +3838,7 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
 
     variants.forEach(v => {
       const isChecked = pdfSelectedVariantsMap.get(v.varId) === true;
-      const labelText = v.ram ? `${v.storage} (${v.ram} RAM)` : (v.storage || 'Padrão');
+      const labelText = v.ram ? `${v.storage} (${v.ram} RAM)` : (v.storage || 'PadrÃ£o');
 
       html += `
         <label style="display: flex; align-items: center; gap: 8px; background: var(--bg-body); border: 1px solid var(--border-color); padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: 700; color: var(--text-primary); user-select: none;">
@@ -3856,7 +3856,7 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
 
   body.innerHTML = html;
 
-  // Sincronização direta e contínua dos checkboxes
+  // SincronizaÃ§Ã£o direta e contÃ­nua dos checkboxes
   const handleSelectionUpdate = function(e) {
     const cb = e.target.closest('input[type="checkbox"]');
     if (cb && cb.dataset && cb.dataset.varId) {
@@ -3909,7 +3909,7 @@ function updatePdfSelectedCountBadge() {
 
 // Copia lista formatada para WhatsApp com os modelos selecionados
 window.copySelectedStorefrontWhatsApp = async function(btn) {
-  // Sincroniza com os checkboxes reais que estão fisicamente marcados na tela
+  // Sincroniza com os checkboxes reais que estÃ£o fisicamente marcados na tela
   const checkedCbs = document.querySelectorAll('#pdfSelectionListBody input[type="checkbox"]:checked');
   const checkedIds = new Set();
   checkedCbs.forEach(cb => {
@@ -3933,7 +3933,7 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
   let hasNovos = false;
   let hasSemis = false;
 
-  // Organizar os itens selecionados por Seção
+  // Organizar os itens selecionados por SeÃ§Ã£o
   const sectionsMap = new Map();
 
   pdfCachedFamilies.forEach(fam => {
@@ -3981,7 +3981,7 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
 
       colorsArr.forEach(c => {
         const colorFormatted = formatOnlyFirstLetterUpper(c.color);
-        modelLines.push(`${colorFormatted} • ${formatBRL(c.retailPrice)}`);
+        modelLines.push(`${colorFormatted} â€¢ ${formatBRL(c.retailPrice)}`);
       });
 
       const blockText = modelLines.join('\n');
@@ -4002,7 +4002,7 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
   });
 
   if (sectionsMap.size === 0) {
-    alert('Nenhum preço disponível para os modelos selecionados.');
+    alert('Nenhum preÃ§o disponÃ­vel para os modelos selecionados.');
     return;
   }
 
@@ -4028,8 +4028,8 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
       footerLines.push('Emitimos nota fiscal.');
       footerLines.push('');
     }
-    footerLines.push('Valores válidos para pagamento à vista.');
-    footerLines.push('Consulte opções de parcelamento no cartão.');
+    footerLines.push('Valores vÃ¡lidos para pagamento Ã  vista.');
+    footerLines.push('Consulte opÃ§Ãµes de parcelamento no cartÃ£o.');
     footer = footerLines.join('\n');
   }
 
@@ -4059,14 +4059,14 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
   }
 };
 
-// Exporta a lista COMPLETA de todos os produtos do catálogo para o WhatsApp (somente quando logado)
+// Exporta a lista COMPLETA de todos os produtos do catÃ¡logo para o WhatsApp (somente quando logado)
 window.exportAllStorefrontWhatsApp = async function(btn) {
   if (!currentUser) {
-    alert('Você precisa estar conectado a uma conta para exportar a lista de produtos.');
+    alert('VocÃª precisa estar conectado a uma conta para exportar a lista de produtos.');
     return;
   }
 
-  // Filtrar todos os produtos válidos do catálogo inteiro (sem restrição de categoria ou busca)
+  // Filtrar todos os produtos vÃ¡lidos do catÃ¡logo inteiro (sem restriÃ§Ã£o de categoria ou busca)
   const validProducts = (allProducts || []).filter(p => {
     if (isDisallowedProduct(p)) return false;
     if (!p.price || p.price <= 0) return false;
@@ -4074,11 +4074,11 @@ window.exportAllStorefrontWhatsApp = async function(btn) {
   });
 
   if (validProducts.length === 0) {
-    alert('Nenhum produto disponível no catálogo para exportar.');
+    alert('Nenhum produto disponÃ­vel no catÃ¡logo para exportar.');
     return;
   }
 
-  // Agrupamento por Seção e Família de Modelo
+  // Agrupamento por SeÃ§Ã£o e FamÃ­lia de Modelo
   const sectionsMap = new Map();
 
   validProducts.forEach(p => {
@@ -4097,7 +4097,7 @@ window.exportAllStorefrontWhatsApp = async function(btn) {
     const baseModelName = cleanModelName(p.name).replace(/\s+/g, ' ').trim();
     const modelKey = baseModelName.toUpperCase();
     const ram = getMacBookRam(p);
-    const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
+    const storageKey = (p.storage || 'PADRÃƒO').trim().toUpperCase();
     const variantKey = `${modelKey}__${storageKey}__${ram || ''}`;
 
     if (!sectionObj.familiesMap.has(modelKey)) {
@@ -4124,7 +4124,7 @@ window.exportAllStorefrontWhatsApp = async function(btn) {
     }
 
     const stGrp = fam.variantsMap.get(variantKey);
-    const colorName = (p.color || 'Padrão').trim();
+    const colorName = (p.color || 'PadrÃ£o').trim();
     const colorKey = colorName.toUpperCase();
 
     if (!stGrp.colors.has(colorKey)) {
@@ -4192,7 +4192,7 @@ window.exportAllStorefrontWhatsApp = async function(btn) {
 
         colorsArr.forEach(c => {
           const colorFormatted = formatOnlyFirstLetterUpper(c.color);
-          modelLines.push(`${colorFormatted} • ${formatBRL(c.retailPrice)}`);
+          modelLines.push(`${colorFormatted} â€¢ ${formatBRL(c.retailPrice)}`);
         });
 
         sectionBlocks.push(modelLines.join('\n'));
@@ -4206,7 +4206,7 @@ window.exportAllStorefrontWhatsApp = async function(btn) {
   });
 
   if (outputSections.length === 0) {
-    alert('Nenhum preço disponível no catálogo para exportar.');
+    alert('Nenhum preÃ§o disponÃ­vel no catÃ¡logo para exportar.');
     return;
   }
 
@@ -4220,8 +4220,8 @@ window.exportAllStorefrontWhatsApp = async function(btn) {
     footerLines.push('Emitimos nota fiscal.');
     footerLines.push('');
   }
-  footerLines.push('Valores válidos para pagamento à vista.');
-  footerLines.push('Consulte opções de parcelamento no cartão.');
+  footerLines.push('Valores vÃ¡lidos para pagamento Ã  vista.');
+  footerLines.push('Consulte opÃ§Ãµes de parcelamento no cartÃ£o.');
   const footer = footerLines.join('\n');
 
   const fullText = (outputSections.join('\n\n\n') + (footer ? '\n\n' + footer : '')).trim();
@@ -4251,7 +4251,7 @@ window.exportAllStorefrontWhatsApp = async function(btn) {
   }
 };
 
-// Fechar modal de seleção ao clicar fora
+// Fechar modal de seleÃ§Ã£o ao clicar fora
 const pdfSelectionModalEl = document.getElementById('pdfSelectionModal');
 if (pdfSelectionModalEl) {
   pdfSelectionModalEl.addEventListener('click', (e) => {
@@ -4259,7 +4259,7 @@ if (pdfSelectionModalEl) {
   });
 }
 
-// Reset Filters for Preços do Dia
+// Reset Filters for PreÃ§os do Dia
 window.resetPodFilters = function() {
   const podSearchInput = document.getElementById('podSearchInput');
   const podRegionFilter = document.getElementById('podRegionFilter');
@@ -4280,7 +4280,7 @@ window.resetPodFilters = function() {
   renderPricesOfTheDay();
 };
 
-// Preços do Dia Toolbar Controls Event Listeners (Busca instantânea por modelo)
+// PreÃ§os do Dia Toolbar Controls Event Listeners (Busca instantÃ¢nea por modelo)
 const podSearchInput = document.getElementById('podSearchInput');
 const podSearchClearBtn = document.getElementById('podSearchClearBtn');
 const podRegionFilter = document.getElementById('podRegionFilter');
@@ -4338,7 +4338,7 @@ if (podSearchClearBtn) {
   });
 }
 
-// Fechar dropdown de sugestões de modelo ao clicar fora
+// Fechar dropdown de sugestÃµes de modelo ao clicar fora
 document.addEventListener('click', (e) => {
   if (podAutocompleteDropdown && !e.target.closest('.pod-search-wrap')) {
     podAutocompleteDropdown.classList.remove('open');
@@ -4387,7 +4387,7 @@ if (sfSearchInput) {
   sfSearchInput.addEventListener('input', (e) => {
     sfSearchQuery = e.target.value;
     if (sfSearchClearBtn) sfSearchClearBtn.style.display = sfSearchQuery ? 'flex' : 'none';
-    // Ao buscar por texto na Loja Física, sincroniza o botão de categoria para TODOS
+    // Ao buscar por texto na Loja FÃ­sica, sincroniza o botÃ£o de categoria para TODOS
     if (sfCategoryNav && sfSearchQuery.trim()) {
       sfCategoryNav.querySelectorAll('.cat-pill, .pod-cat-pill').forEach(b => {
         b.classList.toggle('active', b.dataset.sfCategory === 'ALL');
@@ -4397,7 +4397,7 @@ if (sfSearchInput) {
     debouncedSfSearch();
   });
 
-  // Fecha o teclado virtual do celular quando o usuário aperta Enter ou Esc
+  // Fecha o teclado virtual do celular quando o usuÃ¡rio aperta Enter ou Esc
   sfSearchInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === 'Escape') {
       sfSearchInput.blur();
@@ -4421,7 +4421,7 @@ if (sfCategoryNav) {
     sfCategoryNav.querySelectorAll('.cat-pill, .pod-cat-pill').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     sfCurrentCategory = btn.dataset.sfCategory || 'ALL';
-    // Se clicar em uma categoria específica e houver busca ativa, limpa a busca para navegar pela categoria
+    // Se clicar em uma categoria especÃ­fica e houver busca ativa, limpa a busca para navegar pela categoria
     if (sfSearchInput && sfSearchQuery) {
       sfSearchInput.value = '';
       sfSearchQuery = '';
@@ -4451,7 +4451,7 @@ if (sfColorFilter) {
   });
 }
 
-// Ações do Top Header
+// AÃ§Ãµes do Top Header
 window.handleCustoFornecedorClick = function() {
   if (!currentUser) {
     window.location.href = '/login.html';
@@ -4497,7 +4497,7 @@ if (sfSearchClearBtnMobile) {
   });
 }
 
-// Fechar dropdown de sugestões de modelo do Preços do Dia ao clicar fora
+// Fechar dropdown de sugestÃµes de modelo do PreÃ§os do Dia ao clicar fora
 document.addEventListener('click', (e) => {
   const podDropdown = document.getElementById('podAutocompleteDropdown');
   if (podDropdown && !e.target.closest('#viewPricesDay .pod-search-wrap')) {
@@ -4516,7 +4516,7 @@ document.querySelectorAll('.pod-search-wrap').forEach(wrap => {
   });
 });
 
-// Initial boot (Loja Física por padrão até verificar autenticação)
+// Initial boot (Loja FÃ­sica por padrÃ£o atÃ© verificar autenticaÃ§Ã£o)
 switchView('storefront');
 loadProducts();
 loadMargins();
@@ -4524,7 +4524,7 @@ loadCardRates();
 checkAuthSession();
 
 // =========================================================================
-// GESTÃO DE SESSÃO & PROTEÇÃO ANTI-PIRATARIA
+// GESTÃƒO DE SESSÃƒO & PROTEÃ‡ÃƒO ANTI-PIRATARIA
 // =========================================================================
 let currentUser = null;
 
@@ -4565,7 +4565,7 @@ async function checkAuthSession() {
         brandLogoLink.title = 'Entrar no Sistema';
       }
 
-      // Sincroniza gaveta mobile: esconde Preços do Dia, Calculadora e Acesso Admin para visitantes
+      // Sincroniza gaveta mobile: esconde PreÃ§os do Dia, Calculadora e Acesso Admin para visitantes
       const mobileDrawerUser = document.getElementById('mobileDrawerUser');
       const mobileDrawerAdminBtn = document.getElementById('mobileDrawerAdminBtn');
       const mobileDrawerPricesDayBtn = document.getElementById('mobileDrawerPricesDayBtn');
@@ -4579,7 +4579,7 @@ async function checkAuthSession() {
       if (mobileDrawerExportAllBtn) mobileDrawerExportAllBtn.style.display = 'none';
       if (mobileDrawerLogoutBtn) mobileDrawerLogoutBtn.style.display = 'none';
 
-      // Garante que o visitante fica exclusivamente na Loja Física
+      // Garante que o visitante fica exclusivamente na Loja FÃ­sica
       const viewSwitchNav = document.getElementById('viewSwitchNav');
       if (viewSwitchNav) viewSwitchNav.classList.add('single-tab');
       switchView('storefront');
@@ -4614,8 +4614,8 @@ async function checkAuthSession() {
     const viewSwitchNav = document.getElementById('viewSwitchNav');
     if (viewSwitchNav) viewSwitchNav.classList.remove('single-tab');
 
-    // Usuário autenticado (Lojista ou Admin):
-    // - Exibe Preços do Dia
+    // UsuÃ¡rio autenticado (Lojista ou Admin):
+    // - Exibe PreÃ§os do Dia
     // - Exibe Calculadora de Taxas
     // - Exibe Exportar Valores (WhatsApp)
     if (tabPricesDay) {
@@ -4634,13 +4634,13 @@ async function checkAuthSession() {
       btnExportAllSfWhatsapp.style.display = 'inline-flex';
     }
 
-    // Registra sessão no WebSocket para controle anti-pirataria
+    // Registra sessÃ£o no WebSocket para controle anti-pirataria
     const sessionToken = getCookie('fornecedor_session');
     if (sessionToken) {
       socket.emit('register_session', sessionToken);
     }
 
-    // Esconde o botão público de login "Painel Admin" e exibe a barra do lojista logado
+    // Esconde o botÃ£o pÃºblico de login "Painel Admin" e exibe a barra do lojista logado
     if (publicAdminTopBtn) {
       publicAdminTopBtn.style.display = 'none';
     }
@@ -4664,7 +4664,7 @@ async function checkAuthSession() {
     const brandLogoLink = document.getElementById('brandLogoLink');
     if (brandLogoLink) {
       brandLogoLink.href = '/';
-      brandLogoLink.title = 'Mundo Apple - Início';
+      brandLogoLink.title = 'Mundo Apple - InÃ­cio';
     }
 
     // Atualiza drawer mobile logado
@@ -4679,7 +4679,7 @@ async function checkAuthSession() {
     if (mobileDrawerExportAllBtn) mobileDrawerExportAllBtn.style.display = 'flex';
     if (mobileDrawerLogoutBtn) mobileDrawerLogoutBtn.style.display = 'flex';
 
-    // Exibe botão de sincronizar na Loja Física apenas quando logado
+    // Exibe botÃ£o de sincronizar na Loja FÃ­sica apenas quando logado
     const sfSyncBtn = document.getElementById('btnSyncSfPrices');
     if (sfSyncBtn) sfSyncBtn.style.display = 'none';
     const topSyncBtn = document.getElementById('btnSyncTopHeader');
@@ -4697,11 +4697,11 @@ async function checkAuthSession() {
     }
 
   } catch (err) {
-    console.error('Erro ao verificar sessão do usuário:', err);
+    console.error('Erro ao verificar sessÃ£o do usuÃ¡rio:', err);
   }
 }
 
-// Sincronizar preços diretamente pela tela da Loja Física (Desktop, Top Header e Mobile Drawer)
+// Sincronizar preÃ§os diretamente pela tela da Loja FÃ­sica (Desktop, Top Header e Mobile Drawer)
 window.triggerStorefrontSyncPrices = async function(btn) {
   const spans = [
     document.getElementById('btnSyncSfPricesText'),
@@ -4729,18 +4729,18 @@ window.triggerStorefrontSyncPrices = async function(btn) {
       if (data.dollarRate) dollarRate = data.dollarRate;
       if (data.latestDate) latestDate = data.latestDate;
       renderStoreFront();
-      spans.forEach(s => s.textContent = `✓ Atualizado (${allProducts.length.toLocaleString('pt-BR')})`);
+      spans.forEach(s => s.textContent = `âœ“ Atualizado (${allProducts.length.toLocaleString('pt-BR')})`);
       if (btn) btn.style.color = 'var(--accent-green)';
     } else {
-      spans.forEach(s => s.textContent = '✓ Catálogo Ativo');
+      spans.forEach(s => s.textContent = 'âœ“ CatÃ¡logo Ativo');
     }
   } catch (err) {
-    console.error('Erro ao atualizar preços:', err);
+    console.error('Erro ao atualizar preÃ§os:', err);
     spans.forEach(s => s.textContent = 'Erro ao atualizar');
   } finally {
     icons.forEach(i => i.style.animation = '');
     setTimeout(() => {
-      spans.forEach((s, idx) => s.textContent = origTexts[idx] || 'Atualizar Preços');
+      spans.forEach((s, idx) => s.textContent = origTexts[idx] || 'Atualizar PreÃ§os');
       if (btn) {
         btn.disabled = false;
         btn.style.color = '#3b82f6';
@@ -4749,7 +4749,7 @@ window.triggerStorefrontSyncPrices = async function(btn) {
   }
 };
 
-// Monta gaveta mobile dinamicamente APENAS em telas móveis quando o usuário clicar
+// Monta gaveta mobile dinamicamente APENAS em telas mÃ³veis quando o usuÃ¡rio clicar
 function ensureMobileDrawerMounted() {
   if (window.innerWidth > 768) return null;
   let drawer = document.getElementById('mobileDrawer');
@@ -4772,7 +4772,7 @@ function ensureMobileDrawerMounted() {
         </svg>
         <span style="font-weight: 800; font-size: 1rem;">Menu</span>
       </div>
-      <button class="mobile-drawer-close" onclick="closeMobileMenu()">✕</button>
+      <button class="mobile-drawer-close" onclick="closeMobileMenu()">âœ•</button>
     </div>
     <div class="mobile-drawer-body">
       <div class="mobile-drawer-user" id="mobileDrawerUser" style="display: none;">
@@ -4784,7 +4784,7 @@ function ensureMobileDrawerMounted() {
             <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
             <polyline points="9 22 9 12 15 12 15 22"/>
           </svg>
-          <span>Loja Física (Preço de Venda)</span>
+          <span>Loja FÃ­sica (PreÃ§o de Venda)</span>
         </button>
         <button class="mobile-drawer-item" id="mobileDrawerPricesDayBtn" onclick="closeMobileMenu(); switchView('prices_of_the_day');" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -4795,7 +4795,7 @@ function ensureMobileDrawerMounted() {
             <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
             <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
           </svg>
-          <span>Preços do dia (Custo Fornecedor)</span>
+          <span>PreÃ§os do dia (Custo Fornecedor)</span>
         </button>
         <button class="mobile-drawer-item" id="mobileDrawerExportBtn" onclick="closeMobileMenu(); openStorefrontExportModal();" style="display: none; color: var(--accent-green);">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -4815,7 +4815,7 @@ function ensureMobileDrawerMounted() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
           </svg>
-          <span id="mobileDrawerSyncText">Atualizar Preços PXT</span>
+          <span id="mobileDrawerSyncText">Atualizar PreÃ§os PXT</span>
         </button>
         <button class="mobile-drawer-item" id="mobileDrawerCalcBtn" onclick="closeMobileMenu(); openFreeCalculator();" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -4844,7 +4844,7 @@ function ensureMobileDrawerMounted() {
             <polyline points="16 17 21 12 16 7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-          <span>Encerrar Sessão</span>
+          <span>Encerrar SessÃ£o</span>
         </button>
       </div>
     </div>
@@ -4853,7 +4853,7 @@ function ensureMobileDrawerMounted() {
   document.body.appendChild(overlay);
   document.body.appendChild(drawer);
 
-  // Se o usuário já estiver logado, exibe os itens restritos na gaveta
+  // Se o usuÃ¡rio jÃ¡ estiver logado, exibe os itens restritos na gaveta
   if (currentUser) {
     const pBtn = drawer.querySelector('#mobileDrawerPricesDayBtn');
     const cBtn = drawer.querySelector('#mobileDrawerCalcBtn');
@@ -4873,14 +4873,14 @@ function ensureMobileDrawerMounted() {
       uBadge.style.display = 'none'; // REMOVIDO A PEDIDO DO USUARIO
     }
     if (aLabel) {
-      aLabel.textContent = currentUser.role === 'admin' ? '👑 Painel Administrador' : '⚙️ Configurar Margens e Loja';
+      aLabel.textContent = currentUser.role === 'admin' ? 'ðŸ‘‘ Painel Administrador' : 'âš™ï¸ Configurar Margens e Loja';
     }
   }
 
   return { drawer, overlay };
 }
 
-// Funções para controle do Menu Hamburger Drawer no Mobile
+// FunÃ§Ãµes para controle do Menu Hamburger Drawer no Mobile
 window.toggleMobileMenu = function() {
   if (window.innerWidth > 768) return; // NUNCA no desktop
   const mounted = ensureMobileDrawerMounted();
@@ -4957,12 +4957,12 @@ socket.on('session_terminated', async (data) => {
   if (typeof clearCachedCatalog === 'function') {
     await clearCachedCatalog();
   }
-  alert('⚠️ Acesso Concorrente Detectado:\n\n' + (data.reason || 'Sua conta foi conectada em outro dispositivo ou navegador. O Fornecedor permite apenas 1 tela ativa por assinatura.'));
+  alert('âš ï¸ Acesso Concorrente Detectado:\n\n' + (data.reason || 'Sua conta foi conectada em outro dispositivo ou navegador. O Fornecedor permite apenas 1 tela ativa por assinatura.'));
   window.location.href = '/login.html';
 });
 
 // =========================================================================
-// MODO CLIENTE & COMPARTILHAMENTO DE CATÁLOGO LIMPO (SEM CUSTOS/FORNECEDORES)
+// MODO CLIENTE & COMPARTILHAMENTO DE CATÃLOGO LIMPO (SEM CUSTOS/FORNECEDORES)
 // =========================================================================
 let isClientMode = window.location.pathname.includes('/catalogo') || window.location.search.includes('mode=cliente');
 
@@ -4992,8 +4992,8 @@ window.toggleClientMode = function() {
 window.shareClientCatalogLink = async function() {
   const catalogUrl = `${window.location.origin}/catalogo`;
   const shareData = {
-    title: 'Catálogo Oficial - Produtos Apple',
-    text: 'Confira nossa lista atualizada de iPhones, Macs e iPads com valores à vista e simulação de parcelamento no cartão:',
+    title: 'CatÃ¡logo Oficial - Produtos Apple',
+    text: 'Confira nossa lista atualizada de iPhones, Macs e iPads com valores Ã  vista e simulaÃ§Ã£o de parcelamento no cartÃ£o:',
     url: catalogUrl
   };
 
@@ -5008,9 +5008,9 @@ window.shareClientCatalogLink = async function() {
 
   try {
     await navigator.clipboard.writeText(catalogUrl);
-    alert(`✅ Link do Catálogo do Cliente Copiado com Sucesso!\n\n${catalogUrl}\n\nEnvie este link no WhatsApp do seu cliente para ele visualizar a vitrine limpa sem preços de custo.`);
+    alert(`âœ… Link do CatÃ¡logo do Cliente Copiado com Sucesso!\n\n${catalogUrl}\n\nEnvie este link no WhatsApp do seu cliente para ele visualizar a vitrine limpa sem preÃ§os de custo.`);
   } catch (err) {
-    prompt('Copie o link do catálogo para enviar ao cliente:', catalogUrl);
+    prompt('Copie o link do catÃ¡logo para enviar ao cliente:', catalogUrl);
   }
 };
 

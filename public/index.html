@@ -1,13 +1,13 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
-  <title>Fornecedor — Preços do Dia em Tempo Real</title>
+  <title>Fornecedor â€” PreÃ§os do Dia em Tempo Real</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css?v=52.0">
+  <link rel="stylesheet" href="/css/styles.css?v=53.0">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310b981'%3E%3Cpath d='M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 1.01-2.85-.92.04-2.02.62-2.67 1.37-.58.66-1.09 1.73-1.02 2.76 1.03.08 2.07-.53 2.68-1.28z'/%3E%3C/svg%3E">
   <script src="/socket.io/socket.io.js"></script>
   <style>
@@ -50,13 +50,13 @@
           </svg>
         </a>
 
-        <!-- Navigation Tabs Segmented (Preços de venda & Custo fornecedor) -->
+        <!-- Navigation Tabs Segmented (PreÃ§os de venda & Custo fornecedor) -->
         <nav class="view-switch-segmented" id="viewSwitchNav">
           <button class="segmented-tab-btn" id="tabPricesDay" onclick="handleCustoFornecedorClick()" style="display: none;">
             Custo fornecedor
           </button>
           <button class="segmented-tab-btn active" id="tabStoreFront" onclick="switchView('storefront')">
-            Preços de venda
+            PreÃ§os de venda
           </button>
         </nav>
       </div>
@@ -88,7 +88,7 @@
         <!-- User Info & Logout -->
         <div class="user-session-info" id="userSessionInfo" style="display: none;">
           <span class="user-store-badge" id="userStoreBadge">Loja</span>
-          <button class="logout-header-btn" onclick="handleHeaderLogout()" title="Encerrar sessão">
+          <button class="logout-header-btn" onclick="handleHeaderLogout()" title="Encerrar sessÃ£o">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
               <polyline points="16 17 21 12 16 7"/>
@@ -112,7 +112,7 @@
 
 
   <!-- =========================================================================
-       VIEW 1: PREÇOS DO DIA (PAINEL OFICIAL AGRUPADO POR MODELO)
+       VIEW 1: PREÃ‡OS DO DIA (PAINEL OFICIAL AGRUPADO POR MODELO)
        ========================================================================= -->
   <div id="viewPricesDay" class="view-container" style="display: none;">
     
@@ -186,7 +186,7 @@
               <line x1="14.5" y1="5.5" x2="18.5" y2="9.5"/>
             </svg>
           </span>
-          <span>Acessórios</span>
+          <span>AcessÃ³rios</span>
           <span class="pod-cat-count" id="countCatACSS">0</span>
         </button>
         <button class="pod-cat-pill" data-category="IMAC">
@@ -207,24 +207,24 @@
     <main class="pod-matrix-container" id="podMatrixGrid">
       <div class="app-catalog-loader">
         <div class="app-spinner"></div>
-        <p style="color: var(--text-primary, #fff); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Sincronizando cotações Apple em tempo real...</p>
-        <span style="color: var(--text-muted, #888); font-size: 0.85rem;">Carregando modelos, cores e melhores preços dos fornecedores</span>
+        <p style="color: var(--text-primary, #fff); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Sincronizando cotaÃ§Ãµes Apple em tempo real...</p>
+        <span style="color: var(--text-muted, #888); font-size: 0.85rem;">Carregando modelos, cores e melhores preÃ§os dos fornecedores</span>
       </div>
     </main>
   </div>
 
   <!-- =========================================================================
-       VIEW 2: LOJA FÍSICA (PREÇOS COM MARGEM DE LUCRO / TELÃO)
+       VIEW 2: LOJA FÃSICA (PREÃ‡OS COM MARGEM DE LUCRO / TELÃƒO)
        ========================================================================= -->
   <div id="viewStoreFront" class="view-container" style="display: block;">
     
-    <!-- Status Line (Top Right: • Catálogo atualizado) -->
+    <!-- Status Line (Top Right: â€¢ CatÃ¡logo atualizado) -->
     <div class="catalog-status-line">
       <span class="catalog-status-dot"></span>
-      <span class="catalog-status-text">Preços atualizados ao vivo</span>
+      <span class="catalog-status-text">PreÃ§os atualizados ao vivo</span>
     </div>
 
-    <!-- Category Nav Pills (iPhone, Seminovos, Mac, iPad, Apple Watch, AirPods, Acessórios, iMac) -->
+    <!-- Category Nav Pills (iPhone, Seminovos, Mac, iPad, Apple Watch, AirPods, AcessÃ³rios, iMac) -->
     <div class="category-pills-row" id="sfCategoryNav">
       <button class="cat-pill active" data-sf-category="IPH">iPhone</button>
       <button class="cat-pill" data-sf-category="SEMI">Seminovos</button>
@@ -232,7 +232,7 @@
       <button class="cat-pill" data-sf-category="IPAD">iPad</button>
       <button class="cat-pill" data-sf-category="RLG">Apple Watch</button>
       <button class="cat-pill" data-sf-category="PODS">AirPods</button>
-      <button class="cat-pill" data-sf-category="ACSS">Acessórios</button>
+      <button class="cat-pill" data-sf-category="ACSS">AcessÃ³rios</button>
       <button class="cat-pill" data-sf-category="IMAC">iMac</button>
     </div>
 
@@ -268,7 +268,7 @@
     <main class="storefront-grid" id="storefrontGrid">
       <div class="app-catalog-loader">
         <div class="app-spinner"></div>
-        <p style="color: var(--text-primary); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Carregando vitrine com preços atualizados...</p>
+        <p style="color: var(--text-primary); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Carregando vitrine com preÃ§os atualizados...</p>
         <span style="color: var(--text-muted); font-size: 0.85rem;">Calculando margens e parcelamentos da loja</span>
       </div>
     </main>
@@ -288,7 +288,7 @@
           </svg>
           <h3 id="allOffersModalTitle">Ofertas do Modelo</h3>
         </div>
-        <button class="modal-close" id="closeAllOffersModal">✕</button>
+        <button class="modal-close" id="closeAllOffersModal">âœ•</button>
       </div>
       <div id="allOffersModalBody" class="modal-body-custom">
         <!-- Injected dynamically -->
@@ -297,7 +297,7 @@
   </div>
 
   <!-- =========================================================================
-       MODAL: SIMULADOR DE PARCELAMENTO NO CARTÃO (LOJA FÍSICA / MAQUININHA)
+       MODAL: SIMULADOR DE PARCELAMENTO NO CARTÃƒO (LOJA FÃSICA / MAQUININHA)
        ========================================================================= -->
   <div class="modal-overlay" id="cardSimulatorModal">
     <div class="modal-content modal-simulator">
@@ -307,9 +307,9 @@
             <rect x="2" y="5" width="20" height="14" rx="2"/>
             <line x1="2" y1="10" x2="22" y2="10"/>
           </svg>
-          <h3 id="cardSimulatorTitle">Simulador de Parcelamento no Cartão</h3>
+          <h3 id="cardSimulatorTitle">Simulador de Parcelamento no CartÃ£o</h3>
         </div>
-        <button class="modal-close" id="closeCardSimulatorModal">✕</button>
+        <button class="modal-close" id="closeCardSimulatorModal">âœ•</button>
       </div>
       <div id="cardSimulatorBody" class="modal-body-custom">
         <!-- Injected dynamically via JS -->
@@ -318,7 +318,7 @@
   </div>
 
   <!-- =========================================================================
-       MODAL: VITRINE CLIENTE (EXPANDIR MODELO ESPECÍFICO)
+       MODAL: VITRINE CLIENTE (EXPANDIR MODELO ESPECÃFICO)
        ========================================================================= -->
   <div class="modal-overlay" id="clientShowcaseModal">
     <div class="modal-content" style="max-width: 580px; width: 92%; max-height: 88vh; display: flex; flex-direction: column; padding: 0; border-radius: 18px; background: var(--bg-card); border: 1px solid var(--border-color); overflow: hidden; box-shadow: var(--shadow-lg);">
@@ -332,10 +332,10 @@
           </div>
           <div>
             <h3 id="showcaseModelTitle" style="font-size: 1.05rem; font-weight: 800; color: var(--text-primary); margin: 0; text-transform: uppercase;">Vitrine do Modelo</h3>
-            <span id="showcaseModelSubtitle" style="font-size: 0.74rem; color: var(--text-muted); font-weight: 600;">Valores à vista e parcelamento</span>
+            <span id="showcaseModelSubtitle" style="font-size: 0.74rem; color: var(--text-muted); font-weight: 600;">Valores Ã  vista e parcelamento</span>
           </div>
         </div>
-        <button class="modal-close" onclick="closeClientShowcaseModal()" style="background: none; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; padding: 4px;">✕</button>
+        <button class="modal-close" onclick="closeClientShowcaseModal()" style="background: none; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; padding: 4px;">âœ•</button>
       </div>
       <div id="clientShowcaseBody" style="padding: 18px 20px; overflow-y: auto; flex: 1;">
         <!-- Injected dynamically via JS -->
@@ -344,7 +344,7 @@
   </div>
 
   <!-- =========================================================================
-       MODAL: EXPORTAR LISTA DE MODELOS PARA WHATSAPP (LOJA FÍSICA)
+       MODAL: EXPORTAR LISTA DE MODELOS PARA WHATSAPP (LOJA FÃSICA)
        ========================================================================= -->
   <div class="modal-overlay" id="pdfSelectionModal">
     <div class="modal-content" style="max-width: 650px; width: 92%; max-height: 85vh; display: flex; flex-direction: column; padding: 0; border-radius: 16px; background: var(--bg-card); border: 1px solid var(--border-color); overflow: hidden;">
@@ -363,7 +363,7 @@
             <p id="exportModalSubtitle" style="font-size: 0.78rem; color: var(--text-muted); margin: 2px 0 0 0;">Marque os modelos que deseja incluir no texto para enviar aos clientes</p>
           </div>
         </div>
-        <button onclick="closePdfSelectionModal()" style="background: none; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; padding: 4px;">✕</button>
+        <button onclick="closePdfSelectionModal()" style="background: none; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; padding: 4px;">âœ•</button>
       </div>
 
       <!-- Quick Action Controls & Search -->
@@ -377,9 +377,9 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
             <span>Desmarcar Todos</span>
           </button>
-          <button type="button" id="btnExportModalToggleScope" onclick="toggleExportModalCatalogScope()" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;" title="Alternar entre produtos da categoria atual e catálogo inteiro">
+          <button type="button" id="btnExportModalToggleScope" onclick="toggleExportModalCatalogScope()" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;" title="Alternar entre produtos da categoria atual e catÃ¡logo inteiro">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-            <span id="exportModalScopeLabel">Ver Catálogo Inteiro</span>
+            <span id="exportModalScopeLabel">Ver CatÃ¡logo Inteiro</span>
           </button>
         </div>
         <span id="pdfSelectedCountBadge" style="font-size: 0.8rem; font-weight: 800; color: var(--accent-green);">0 selecionados</span>

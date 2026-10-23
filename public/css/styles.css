@@ -6634,3 +6634,69 @@ body.light-theme .pod-cat-pill.active {
     row-gap: 22px !important;
   }
 }
+
+/* ===== LIVE STATUS FINAL (clean) ===== */
+.catalog-status-line {
+  float: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  width: fit-content !important;
+  margin: 4px auto 18px !important;
+  padding: 6px 16px 6px 6px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 999px !important;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06) !important;
+}
+.catalog-status-dot {
+  width: auto !important;
+  height: auto !important;
+  border-radius: 999px !important;
+  background: #dc2626 !important;
+  box-shadow: none !important;
+  animation: none !important;
+  padding: 4px 10px 4px 22px !important;
+  position: relative !important;
+  transform: none !important;
+}
+.catalog-status-dot::before {
+  content: "AO VIVO";
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+}
+.catalog-status-dot::after {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin-top: -3.5px;
+  border-radius: 50%;
+  background: #fff;
+  animation: liveBlink 1.2s infinite;
+}
+@keyframes liveBlink { 50% { opacity: 0.2; } }
+.catalog-status-text {
+  font-size: 0.92rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+@media (max-width: 768px) {
+  .catalog-status-line {
+    width: fit-content !important;
+    margin: 2px auto 16px !important;
+    padding: 5px 14px 5px 5px !important;
+  }
+  .catalog-status-text { font-size: 0.88rem !important; }
+}
