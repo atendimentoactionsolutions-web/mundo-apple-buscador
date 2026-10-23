@@ -4236,7 +4236,7 @@ body.light-theme .matrix-color-name {
 }
 
 body.light-theme .matrix-cost-val {
-  color: #0f172a !important;
+  color: #059669 !important;
 }
 
 .matrix-wa-btn {
@@ -7216,6 +7216,21 @@ body.light-theme .pod-cat-pill.active .pod-cat-count {
 .matrix-cost-val,
 .matrix-retail-val,
 .mock-price-val {
+  color: #059669 !important;
+  font-weight: 800 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+
+/* GARANTIA TOTAL: VALORES DE CUSTO E VENDA SEMPRE EM VERDE ESMERALDA */
+body .matrix-cost-val,
+body.light-theme .matrix-cost-val,
+body:not(.light-theme) .matrix-cost-val,
+body .mock-price-val,
+body.light-theme .mock-price-val,
+body:not(.light-theme) .mock-price-val,
+body .matrix-retail-val,
+body.light-theme .matrix-retail-val {
   color: #059669 !important;
   font-weight: 800 !important;
   font-variant-numeric: tabular-nums !important;
