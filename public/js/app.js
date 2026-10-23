@@ -2891,6 +2891,7 @@ function renderPricesOfTheDay() {
         ram: grp.ram,
         isSeminovo: grp.isSeminovo,
         isCusto: true,
+        allOffers: grp.allOffers || [],
         colors: colorsArr.map(c => ({ color: c.color, price: c.displayPrice }))
       });
 
@@ -2902,12 +2903,12 @@ function renderPricesOfTheDay() {
 
         return `
           <div class="matrix-color-row">
-            <div class="matrix-color-left" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo})">
+            <div class="matrix-color-left" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo}, '${cardKey}')">
               <span class="matrix-color-dot" style="background-color: ${hex};" title="Cor: ${col.color}"></span>
               <span class="matrix-color-name" title="${col.color}">${col.color}</span>
             </div>
             <div class="matrix-color-right">
-              <div class="matrix-cost-group" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo})">
+              <div class="matrix-cost-group" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo}, '${cardKey}')">
                 <span class="matrix-cost-label">${col.isSeminovo ? 'PREÇO MÉDIO' : 'CUSTO'}</span>
                 <span class="matrix-cost-val">${formatBRL(col.displayPrice)}</span>
               </div>
@@ -2928,7 +2929,7 @@ function renderPricesOfTheDay() {
               <h3 class="matrix-card-title" title="${grp.model}">${grp.model}</h3>
               <div class="matrix-card-actions">
 
-                <button class="matrix-card-all-btn" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo})" title="Ver todos os fornecedores deste modelo">
+                <button class="matrix-card-all-btn" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo}, '${cardKey}')" title="Ver todos os fornecedores deste modelo">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
                     <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
@@ -2956,7 +2957,7 @@ function renderPricesOfTheDay() {
 }
 
 // 16. Open Modal with All Offers for a Specific Model + Storage + RAM
-window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor, encodedRam, isSeminovo = false) {
+window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor, encodedRam, isSeminovo = false, cardKey = null) {
   const model = decodeURIComponent(encodedModel || '');
   const storage = decodeURIComponent(encodedStorage || '');
   const selectedColor = encodedColor ? decodeURIComponent(encodedColor) : '';
@@ -2972,16 +2973,46 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
   const semiPart = isSeminovo ? ' (Seminovo)' : '';
   title.textContent = `${model}${semiPart}${ramTitlePart}${storageTitlePart}`;
 
-  let offers = allProducts.filter(p => {
-    if (isCpoProduct(p)) return false;
-    const pIsSemi = isSeminovoProduct(p);
-    if (isSeminovo ? !pIsSemi : pIsSemi) return false;
-    if (cleanModelName(p.name).toUpperCase() !== model.trim().toUpperCase()) return false;
-    if (storage && (p.storage || '').trim().toUpperCase() !== storage.trim().toUpperCase()) return false;
-    if (selectedRam && getMacBookRam(p) !== selectedRam) return false;
-    if (selectedColor && (p.color || '').trim().toUpperCase() !== selectedColor.trim().toUpperCase()) return false;
-    return p.price && p.price > 0;
-  });
+  let offers = [];
+
+  // 1. PRIORIDADE MÁXIMA: Buscar direto do grupo do card clicado (100% de garantia sem mismatch)
+  if (cardKey && window.matrixCardMap && window.matrixCardMap.has(cardKey)) {
+    const cardData = window.matrixCardMap.get(cardKey);
+    if (cardData && Array.isArray(cardData.allOffers)) {
+      offers = cardData.allOffers.slice();
+      if (selectedColor) {
+        offers = offers.filter(p => (p.color || '').trim().toUpperCase() === selectedColor.trim().toUpperCase());
+      }
+    }
+  }
+
+  // 2. FALLBACK INTELIGENTE: Caso não venha cardKey ou precise buscar no allProducts com normalização flexível
+  if (offers.length === 0) {
+    const normModel = model.trim().toUpperCase().replace(/\s+/g, ' ');
+    const normStorage = storage.trim().toUpperCase().replace(/\s+/g, '');
+
+    offers = allProducts.filter(p => {
+      if (isCpoProduct(p)) return false;
+      const pIsSemi = isSeminovoProduct(p);
+      if (isSeminovo ? !pIsSemi : pIsSemi) return false;
+
+      // Comparação flexível do nome do modelo
+      const pCleanName = cleanModelName(p.name).toUpperCase().replace(/\s+/g, ' ');
+      if (pCleanName !== normModel && !pCleanName.includes(normModel) && !normModel.includes(pCleanName)) {
+        return false;
+      }
+
+      // Comparação flexível de armazenamento (ex: 256GB vs 256 GB)
+      if (normStorage) {
+        const pStorage = (p.storage || '').trim().toUpperCase().replace(/\s+/g, '');
+        if (pStorage && pStorage !== normStorage) return false;
+      }
+
+      if (selectedRam && getMacBookRam(p) !== selectedRam) return false;
+      if (selectedColor && (p.color || '').trim().toUpperCase() !== selectedColor.trim().toUpperCase()) return false;
+      return p.price && p.price > 0;
+    });
+  }
 
   offers.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
 
