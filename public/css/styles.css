@@ -6620,4 +6620,17 @@ body.light-theme .pod-cat-pill.active {
     box-sizing: border-box !important;
     width: auto !important;
   }
+
+  .cat-pill,
+  .pod-cat-pill {
+    min-height: 42px !important;
+    padding: 9px 18px !important;
+    font-size: 0.88rem !important;
+    font-weight: 700 !important;
+  }
+
+  .pod-matrix-container,
+  .storefront-grid {
+    row-gap: 22px !important;
+  }
 }
