@@ -5305,13 +5305,29 @@ body:not(.light-theme) .header-action-btn:hover {
   padding: 16px 24px 60px 24px;
 }
 
-/* Status Line (Top Right: • Catálogo atualizado) */
+/* Status Line (Top Banner: • Preços atualizados ao vivo) */
 .catalog-status-line {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 10px;
   margin-bottom: 16px;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 1.5px solid #6ee7b7;
+  padding: 9px 20px;
+  border-radius: 999px;
+  box-shadow: 0 3px 12px rgba(16, 185, 129, 0.16);
+  float: right;
+}
+
+#viewStoreFront .category-pills-row {
+  clear: both;
+}
+
+body:not(.light-theme) .catalog-status-line {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25);
 }
 
 .catalog-status-dot {
@@ -5321,37 +5337,31 @@ body:not(.light-theme) .header-action-btn:hover {
   background-color: #10b981;
   display: inline-block;
   flex-shrink: 0;
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.8), 0 0 0 4px rgba(16, 185, 129, 0.18);
-  animation: liveStatusPulse 2s infinite ease-in-out;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.9), 0 0 0 4px rgba(16, 185, 129, 0.22);
+  animation: liveStatusPulse 1.8s infinite ease-in-out;
 }
 
 @keyframes liveStatusPulse {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.8), 0 0 0 4px rgba(16, 185, 129, 0.18);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.9), 0 0 0 4px rgba(16, 185, 129, 0.22);
   }
   50% {
-    transform: scale(1.15);
+    transform: scale(1.18);
     box-shadow: 0 0 14px rgba(16, 185, 129, 1), 0 0 0 7px rgba(16, 185, 129, 0.08);
   }
 }
 
 .catalog-status-text {
-  font-size: 1.08rem;
+  font-size: 1.05rem;
   font-weight: 800;
-  color: #047857;
-  background: #ecfdf5;
-  border: 1.5px solid #a7f3d0;
-  padding: 6px 16px;
-  border-radius: 999px;
-  letter-spacing: 0.2px;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.12);
+  color: #065f46;
+  letter-spacing: 0.25px;
+  line-height: 1.2;
 }
 
 body:not(.light-theme) .catalog-status-text {
   color: #34d399;
-  background: rgba(16, 185, 129, 0.14);
-  border-color: rgba(16, 185, 129, 0.35);
 }
 
 /* Main Search Bar */
