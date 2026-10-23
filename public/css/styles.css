@@ -7040,3 +7040,108 @@ body:not(.light-theme) .live-badge-label {
 }
 
 .filters-sort-row { display: none !important; }
+
+
+/* =========================================================================
+   LAYOUT FULLSCREEN EXPANDIDO COM RESPEITO ÀS BORDAS & ESPAÇAMENTO ENTRE MODELOS
+   ========================================================================= */
+
+/* 1. Ocupar toda a tela no Desktop (100% com padding lateral de 32px a 48px) */
+#viewPricesDay,
+#viewStoreFront {
+  max-width: 98% !important;
+  width: 98% !important;
+  margin: 0 auto !important;
+  padding: 20px 32px 80px 32px !important;
+  box-sizing: border-box !important;
+}
+
+@media (min-width: 1600px) {
+  #viewPricesDay,
+  #viewStoreFront {
+    max-width: 1840px !important;
+    width: 96% !important;
+    padding: 24px 40px 80px 40px !important;
+  }
+}
+
+/* 2. Top Header acompanha a largura total da tela */
+.top-header .header-inner {
+  max-width: 98% !important;
+  width: 98% !important;
+  padding: 0 32px !important;
+  box-sizing: border-box !important;
+}
+
+@media (min-width: 1600px) {
+  .top-header .header-inner {
+    max-width: 1840px !important;
+    width: 96% !important;
+    padding: 0 40px !important;
+  }
+}
+
+/* 3. Espaçamento amplo e nítido entre as linhas de diferentes modelos */
+.pod-matrix-container,
+.storefront-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 36px !important;
+  width: 100% !important;
+}
+
+/* Cada família de modelo (ex: iPhone 18 Pro Max, iPhone 18 Pro...) em sua linha destacada */
+.model-family-row {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 20px !important;
+  width: 100% !important;
+  margin-bottom: 8px !important;
+}
+
+/* Em telas muito largas (ultrawide/grandes monitores), os 4 cards respiram confortavelmente */
+.matrix-card,
+.mock-card {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 1280px) {
+  .model-family-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+  }
+  .pod-matrix-container,
+  .storefront-grid {
+    gap: 30px !important;
+  }
+}
+
+@media (max-width: 960px) {
+  .model-family-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .model-family-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+  #viewPricesDay,
+  #viewStoreFront {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 12px 14px 48px 14px !important;
+  }
+  .top-header .header-inner {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 14px !important;
+  }
+  .pod-matrix-container,
+  .storefront-grid {
+    gap: 24px !important;
+  }
+}
