@@ -7145,3 +7145,78 @@ body:not(.light-theme) .live-badge-label {
     gap: 24px !important;
   }
 }
+
+
+/* =========================================================================
+   TEMA PRETO APPLE NOBRE (DETALHES EM PRETO + VALORES VERDES MANTIDOS)
+   ========================================================================= */
+
+/* 1. Aba ativa do Cabeçalho (Preços de venda / Custo fornecedor) */
+.segmented-tab-btn.active {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.3) !important;
+}
+
+/* 2. Pílula de Categoria Ativa (iPhone, Seminovos, etc.) */
+.cat-pill.active,
+.pod-cat-pill.active,
+body.light-theme .pod-cat-pill.active {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25) !important;
+}
+
+.pod-cat-pill.active .pod-cat-count,
+body.light-theme .pod-cat-pill.active .pod-cat-count {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+/* 3. Badges de Capacidade (256 GB, 512 GB...) -> Cinza neutro elegante estilo Apple */
+.matrix-card-storage,
+.mock-storage-badge {
+  background: #f1f5f9 !important;
+  color: #1e293b !important;
+  border: 1px solid #cbd5e1 !important;
+  font-weight: 700 !important;
+}
+
+/* 4. Botão de Simulação / Ação dos Cards -> Preto Nobre */
+.matrix-wa-btn,
+.mock-card-sim-btn {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25) !important;
+}
+
+.matrix-wa-btn:hover,
+.mock-card-sim-btn:hover {
+  background: #1e293b !important;
+  transform: scale(1.05) !important;
+}
+
+/* 5. Badge AO VIVO no cabeçalho -> Preto com bolinha pulsante verde */
+.header-live-badge {
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05) !important;
+}
+
+.live-badge-label {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+/* 6. GARANTIA ABSOLUTA: VALORES MANTIDOS EM VERDE ESMERALDA VIVO */
+.matrix-cost-val,
+.matrix-retail-val,
+.mock-price-val {
+  color: #059669 !important;
+  font-weight: 800 !important;
+  font-variant-numeric: tabular-nums !important;
+}
