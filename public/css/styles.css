@@ -6654,8 +6654,8 @@ body.light-theme .pod-cat-pill.active {
   width: auto !important;
   height: auto !important;
   border-radius: 999px !important;
-  background: #dc2626 !important;
-  box-shadow: none !important;
+  background: #059669 !important;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3) !important;
   animation: none !important;
   padding: 4px 10px 4px 22px !important;
   position: relative !important;
@@ -6695,8 +6695,12 @@ body.light-theme .pod-cat-pill.active {
 @media (max-width: 768px) {
   .catalog-status-line {
     width: fit-content !important;
-    margin: 2px auto 16px !important;
-    padding: 5px 14px 5px 5px !important;
+    margin: 0 auto 12px !important;
+    padding: 3px 11px 3px 3px !important;
+    gap: 7px !important;
   }
-  .catalog-status-text { font-size: 0.88rem !important; }
+  .catalog-status-dot { padding: 3px 8px 3px 18px !important; }
+  .catalog-status-dot::before { font-size: 0.62rem !important; }
+  .catalog-status-dot::after { left: 7px !important; width: 6px !important; height: 6px !important; margin-top: -3px !important; }
+  .catalog-status-text { font-size: 0.78rem !important; }
 }
