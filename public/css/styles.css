@@ -6969,3 +6969,72 @@ body.light-theme .pod-cat-pill.active .pod-cat-count {
     padding: 12px 14px 48px 14px !important;
   }
 }
+
+
+/* ===== BADGE AO VIVO EXCLUSIVO NO CABEÇALHO ===== */
+.header-live-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  height: 28px !important;
+  padding: 0 12px 0 10px !important;
+  background: #ecfdf5 !important;
+  border: 1px solid rgba(5, 150, 105, 0.3) !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 1px 3px rgba(5, 150, 105, 0.12) !important;
+  user-select: none !important;
+}
+
+body:not(.light-theme) .header-live-badge {
+  background: rgba(5, 150, 105, 0.15) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+.live-dot-pulse {
+  width: 7px !important;
+  height: 7px !important;
+  border-radius: 50% !important;
+  background: #059669 !important;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.25) !important;
+  animation: liveDotBlink 1.4s infinite ease-in-out !important;
+  flex-shrink: 0 !important;
+}
+
+@keyframes liveDotBlink {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.25); }
+  50% { opacity: 0.35; transform: scale(0.85); box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.08); }
+}
+
+.live-badge-label {
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.6px !important;
+  color: #047857 !important;
+  line-height: 1 !important;
+}
+
+body:not(.light-theme) .live-badge-label {
+  color: #34d399 !important;
+}
+
+/* Ocultar resquício antigo se houver */
+.catalog-status-line {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .header-live-badge {
+    height: 24px !important;
+    padding: 0 9px 0 8px !important;
+    gap: 5px !important;
+  }
+  .live-dot-pulse {
+    width: 6px !important;
+    height: 6px !important;
+  }
+  .live-badge-label {
+    font-size: 0.65rem !important;
+    letter-spacing: 0.4px !important;
+  }
+}
