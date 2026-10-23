@@ -7185,19 +7185,55 @@ body.light-theme .pod-cat-pill.active .pod-cat-count {
   font-weight: 700 !important;
 }
 
-/* 4. Botão de Simulação / Ação dos Cards -> Preto Nobre */
+/* 4. Botões de Ação Disfarçados e Minimalistas (Estilo Apple Subtil) */
 .matrix-wa-btn,
 .mock-card-sim-btn {
-  background: #0f172a !important;
-  color: #ffffff !important;
-  border: none !important;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25) !important;
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: none !important;
+  width: 26px !important;
+  height: 26px !important;
+  flex: 0 0 26px !important;
+  opacity: 0.8 !important;
+  transition: all 0.2s ease !important;
+}
+
+.matrix-wa-btn svg,
+.mock-card-sim-btn svg {
+  width: 12px !important;
+  height: 12px !important;
+  stroke: #64748b !important;
+  fill: none !important;
+}
+
+.matrix-wa-btn svg path {
+  fill: #64748b !important;
 }
 
 .matrix-wa-btn:hover,
 .mock-card-sim-btn:hover {
-  background: #1e293b !important;
-  transform: scale(1.05) !important;
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  opacity: 1 !important;
+  transform: scale(1.08) !important;
+}
+
+.matrix-wa-btn:hover svg,
+.mock-card-sim-btn:hover svg {
+  stroke: #0f172a !important;
+}
+
+.matrix-wa-btn:hover svg path {
+  fill: #0f172a !important;
+}
+
+body:not(.light-theme) .matrix-wa-btn,
+body:not(.light-theme) .mock-card-sim-btn {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #94a3b8 !important;
 }
 
 /* 5. Badge AO VIVO no cabeçalho -> Preto com bolinha pulsante verde */
