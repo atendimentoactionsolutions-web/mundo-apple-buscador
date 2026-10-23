@@ -7038,3 +7038,5 @@ body:not(.light-theme) .live-badge-label {
     letter-spacing: 0.4px !important;
   }
 }
+
+.filters-sort-row { display: none !important; }
