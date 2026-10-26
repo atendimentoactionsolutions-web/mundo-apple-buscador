@@ -668,6 +668,12 @@ function getAppleColorHex(colorName) {
   if (!colorName) return '#8e8e93';
   const c = colorName.trim().toUpperCase();
 
+  // Night Sky (Deep Dark Navy/Slate para iPhone Duo)
+  if (c.includes('NIGHT SKY') || c.includes('NIGHTSKY')) return '#2a2f3a';
+
+  // Star White (Pure/Pristine White perolado para iPhone Duo)
+  if (c.includes('STAR WHITE') || c.includes('STARWHITE')) return '#f8fafc';
+
   // Glacier / Glacial (Glacier Ice Blue / Light icy cyan blue)
   if (c.includes('GLACIER') || c.includes('GLACIAL')) return '#a4c6da';
 
@@ -2378,6 +2384,7 @@ function getModelOrderRank(modelName, category) {
   const m = (modelName || '').toUpperCase();
 
   // 1. iPhones (Flagships mais novos primeiro)
+  if (m.includes('IPHONE DUO') || m.includes('DUO')) return 5;
   if (m.includes('IPHONE 18 PRO MAX')) return 10;
   if (m.includes('IPHONE 18 PRO')) return 20;
   if (m.includes('IPHONE 18 AIR') || m.includes('IPHONE 18 PLUS') || m.includes('IPHONE 18 SLIM') || m.includes('IPHONE 18 FOLD')) return 30;
