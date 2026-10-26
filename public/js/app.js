@@ -14,14 +14,14 @@ const socket = io();
 
 // ==========================================
 // MODO DFU (Ajuste Global de Custo Base)
-// Regra: Somente o usuário 'admin' tem DFU ativo (iPhones +100, MacBooks +200, Apple Watch +50).
+// Regra: Somente o usuário 'admin' tem DFU ativo (iPhones +100, MacBooks +200, Apple Watch +100).
 // O usuário 'cledson' NUNCA entra no DFU (+0, custo real).
 // ==========================================
 const storedUser = (localStorage.getItem('logged_username') || '').toLowerCase();
 window.DFU_ACTIVE = (storedUser === 'admin');
 window.DFU_IPHONE_VALUE = 100;
 window.DFU_MAC_VALUE = 200;
-window.DFU_WATCH_VALUE = 50;
+window.DFU_WATCH_VALUE = 100;
 window.DFU_VALUE = 100;
 window.IS_CATALOG_SHIELDED = false;
 
