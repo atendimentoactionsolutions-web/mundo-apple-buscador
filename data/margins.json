@@ -19,11 +19,13 @@
     "AIRTAG_PACK": 350,
     "MAGIC_KEY": 400,
     "MAGIC_MOUSE": 430,
-    "APPLE_TV": 500
+    "APPLE_TV": 500,
+    "IPH_DUO": 2300
   },
   "products": {
     "MACBOOK PRO M5 MAX 14\"": 2500,
     "MACBOOK PRO M5 MAX 16\"": 2500,
-    "MACBOOK PRO M4 MAX 16\"": 2500
+    "MACBOOK PRO M4 MAX 16\"": 2500,
+    "IPHONE DUO": 2300
   }
 }

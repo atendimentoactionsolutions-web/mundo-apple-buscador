@@ -182,6 +182,7 @@
     return {
       categories: {
         SEMINOVOS: 600,
+        IPH_DUO: 2300,
         IPH18: 1300,
         IPH: 750,
         MCB_AIR: 1000,
@@ -218,7 +219,12 @@
       if (margins.products[cleanNameUpper] !== undefined) return Number(margins.products[cleanNameUpper]) || 0;
     }
 
-    // 2. Se for Linha iPhone 18 (Lançamento Importante), aplica a margem de R$ 1.300
+    // 2. Se for Linha iPhone Duo, aplica a margem de R$ 2.300
+    if (nameUpper.includes('IPHONE DUO') || nameUpper.includes('DUO')) {
+      return (margins.categories && margins.categories.IPH_DUO !== undefined) ? Number(margins.categories.IPH_DUO) : 2300;
+    }
+
+    // 2.1. Se for Linha iPhone 18 (Lançamento Importante), aplica a margem de R$ 1.300
     if (nameUpper.includes('IPHONE 18') || nameUpper.includes('IPH 18')) {
       return (margins.categories && margins.categories.IPH18 !== undefined) ? Number(margins.categories.IPH18) : 1300;
     }
