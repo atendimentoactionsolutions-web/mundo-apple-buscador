@@ -1528,7 +1528,7 @@ async function start() {
           }
         }, 15000);
 
-        // 2. Auto-Sync Ativo & Detecção de virada de dia a cada 2 minutos
+        // 2. Auto-Sync Ativo & Detecção de virada de dia a cada 1 minuto (60s)
         setInterval(async () => {
           try {
             const todayStr = `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
@@ -1543,7 +1543,7 @@ async function start() {
           } catch (e) {
             console.warn('[Auto-Sync] Erro no ciclo de sync:', e.message);
           }
-        }, 2 * 60 * 1000);
+        }, 60 * 1000);
 
         // 3. Re-sincronização preventiva total a cada 10 minutos (garantia 100% à prova de falhas)
         setInterval(async () => {
