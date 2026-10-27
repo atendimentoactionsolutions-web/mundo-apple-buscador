@@ -94,14 +94,53 @@ app.use(express.static(path.join(__dirname, 'public'), { index: false, etag: fal
 let authToken = null;
 let pxtSocket = null;
 let productsMap = new Map(); // id -> product
-let dollarRate = 5.1253;
-let dollarVariation = 0.57;
+let dollarRate = 5.3480;
+let dollarVariation = -0.64;
 
-// Busca cotação oficial do dólar comercial em tempo real (AwesomeAPI / Mercado Financeiro)
+// Busca cotação oficial do dólar comercial em tempo real com tripla redundância (HG Brasil, Frankfurter, AwesomeAPI)
 async function fetchLiveDollar() {
+  // Provedor 1: HG Brasil Finance (Extremamente preciso, atualizado minuto a minuto e sem rate-limit na VPS)
   try {
-    const res = await axios.get('https://economia.awesomeapi.com.br/last/USD-BRL', { timeout: 5000 });
-    if (res.data && res.data.USDBRL) {
+    const res = await axios.get('https://api.hgbrasil.com/finance?format=json', {
+      timeout: 6000,
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    const usd = res.data?.results?.currencies?.USD;
+    if (usd && (usd.buy || usd.sell)) {
+      const rate = parseFloat(usd.buy || usd.sell);
+      const varPct = parseFloat(usd.variation || 0);
+      if (rate > 0) {
+        dollarRate = rate;
+        dollarVariation = varPct;
+        invalidateProductsCache();
+        localIo.emit('dollar_rate_update', { dollarRate, dollarVariation });
+        return;
+      }
+    }
+  } catch (e) {}
+
+  // Provedor 2: Frankfurter / Banco Central Europeu
+  try {
+    const res = await axios.get('https://api.frankfurter.app/latest?from=USD&to=BRL', {
+      timeout: 6000,
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    const rate = parseFloat(res.data?.rates?.BRL);
+    if (rate > 0) {
+      dollarRate = rate;
+      invalidateProductsCache();
+      localIo.emit('dollar_rate_update', { dollarRate, dollarVariation });
+      return;
+    }
+  } catch (e) {}
+
+  // Provedor 3: AwesomeAPI (Fallback)
+  try {
+    const res = await axios.get('https://economia.awesomeapi.com.br/last/USD-BRL', {
+      timeout: 6000,
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    if (res.data?.USDBRL) {
       const bid = parseFloat(res.data.USDBRL.bid);
       const pct = parseFloat(res.data.USDBRL.pctChange);
       if (bid > 0) {
@@ -111,9 +150,7 @@ async function fetchLiveDollar() {
         localIo.emit('dollar_rate_update', { dollarRate, dollarVariation });
       }
     }
-  } catch (err) {
-    // Silencioso em caso de falha de rede temporária
-  }
+  } catch (e) {}
 }
 
 let latestDate = '';
