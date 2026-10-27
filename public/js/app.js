@@ -4561,6 +4561,11 @@ loadMargins();
 loadCardRates();
 checkAuthSession();
 
+// Sincronizacao / Auto-refresh periodico a cada 1 minuto (60 segundos)
+setInterval(() => {
+  loadProducts();
+}, 60 * 1000);
+
 // =========================================================================
 // GESTÃO DE SESSÃO & PROTEÇÃO ANTI-PIRATARIA
 // =========================================================================
