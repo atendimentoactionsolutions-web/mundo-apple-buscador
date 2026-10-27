@@ -81,6 +81,22 @@ const colorFilter = document.getElementById('colorFilter');
 const supplierFilter = document.getElementById('supplierFilter');
 const clearFiltersBtn = document.getElementById('clearFiltersBtn');
 const dollarRateText = document.getElementById('dollarRateText');
+
+function updateHeaderDollarDisplay(rate, variation) {
+  const topRateEl = document.getElementById('topHeaderDollarRate');
+  const topVarEl = document.getElementById('topHeaderDollarVar');
+  if (topRateEl && rate) {
+    const num = Number(rate);
+    topRateEl.textContent = `R$ ${num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+  }
+  if (topVarEl && variation !== undefined && variation !== null) {
+    const numVar = Number(variation);
+    const sign = numVar > 0 ? '+' : '';
+    topVarEl.textContent = `${sign}${numVar.toFixed(2)}%`;
+    topVarEl.className = 'dollar-var-badge ' + (numVar > 0 ? 'positive' : (numVar < 0 ? 'negative' : ''));
+  }
+}
+
 const dollarVarText = document.getElementById('dollarVarText');
 const dateText = document.getElementById('dateText');
 const categoryNav = document.getElementById('categoryNav');
@@ -1254,8 +1270,18 @@ socket.on('product_deleted', (evt) => {
   scheduleUiRefresh();
 });
 
+
+socket.on('dollar_rate_update', (data) => {
+  if (data && data.dollarRate) {
+    updateHeaderDollarDisplay(data.dollarRate, data.dollarVariation);
+    if (dollarRateText) dollarRateText.textContent = `R$ ${Number(data.dollarRate).toFixed(4)}`;
+    if (dollarVarText && data.dollarVariation !== undefined) dollarVarText.textContent = `${data.dollarVariation > 0 ? '+' : ''}${Number(data.dollarVariation).toFixed(2)}%`;
+  }
+});
+
 socket.on('catalog_reloaded', (meta) => {
   if (meta && meta.dollarRate && dollarRateText) dollarRateText.textContent = `R$ ${Number(meta.dollarRate).toFixed(4)}`;
+  if (meta && meta.dollarRate) updateHeaderDollarDisplay(meta.dollarRate, meta.dollarVariation);
   if (meta && meta.latestDate && dateText) dateText.textContent = meta.latestDate;
   loadProducts();
 });
