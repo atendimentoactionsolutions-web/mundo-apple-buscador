@@ -12,10 +12,11 @@
 })(typeof self !== 'undefined' ? self : this, function () {
 
   const DFU_CONFIG = {
-    active: true, // DFU ATIVO (iPhones: +100, MacBooks: +200, Apple Watch: +100)
+    active: true, // DFU ATIVO (iPhones: +100, MacBooks: +200, Apple Watch: +100, iPads: +50)
     iphoneValue: 100,
     macValue: 200,
     watchValue: 100,
+    ipadValue: 50,
     value: 100
   };
 
@@ -32,6 +33,7 @@
     const isIphone = cat === 'IPH' || model.includes('IPHONE');
     const isMac = cat === 'MCB' || model.includes('MAC') || model.includes('MACBOOK');
     const isWatch = cat === 'RLG' || model.includes('WATCH');
+    const isIpad = cat === 'IPAD' || cat === 'IPD' || model.includes('IPAD');
     if (isIphone) {
       return numCost + (DFU_CONFIG.iphoneValue || 100);
     }
@@ -39,7 +41,10 @@
       return numCost + (DFU_CONFIG.macValue || 200);
     }
     if (isWatch) {
-      return numCost + DFU_CONFIG.watchValue;
+      return numCost + (DFU_CONFIG.watchValue || 100);
+    }
+    if (isIpad) {
+      return numCost + (DFU_CONFIG.ipadValue || 50);
     }
     return numCost;
   }

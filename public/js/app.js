@@ -22,6 +22,7 @@ window.DFU_ACTIVE = (storedUser === 'admin');
 window.DFU_IPHONE_VALUE = 100;
 window.DFU_MAC_VALUE = 200;
 window.DFU_WATCH_VALUE = 100;
+window.DFU_IPAD_VALUE = 50;
 window.DFU_VALUE = 100;
 window.IS_CATALOG_SHIELDED = false;
 
@@ -50,6 +51,7 @@ function applyDFU(cost, category, rawModel) {
   const isIphone = cat === 'IPH' || model.includes('IPHONE');
   const isMac = cat === 'MCB' || model.includes('MAC') || model.includes('MACBOOK');
   const isWatch = cat === 'RLG' || model.includes('WATCH');
+  const isIpad = cat === 'IPAD' || cat === 'IPD' || model.includes('IPAD');
   if (isIphone) {
     return numCost + (window.DFU_IPHONE_VALUE || 100);
   }
@@ -57,7 +59,10 @@ function applyDFU(cost, category, rawModel) {
     return numCost + (window.DFU_MAC_VALUE || 200);
   }
   if (isWatch) {
-    return numCost + window.DFU_WATCH_VALUE;
+    return numCost + (window.DFU_WATCH_VALUE || 100);
+  }
+  if (isIpad) {
+    return numCost + (window.DFU_IPAD_VALUE || 50);
   }
   return numCost;
 }

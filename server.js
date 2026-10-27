@@ -1205,6 +1205,7 @@ const SERVER_DFU_ACTIVE = true;
 const SERVER_DFU_IPHONE_VALUE = 100;
 const SERVER_DFU_MAC_VALUE = 200;
 const SERVER_DFU_WATCH_VALUE = 100;
+const SERVER_DFU_IPAD_VALUE = 50;
 const SERVER_DFU_VALUE = 100;
 
 function applyServerDFU(cost, category, rawModel) {
