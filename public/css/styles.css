@@ -7331,3 +7331,40 @@ body:not(.light-theme) .dollar-symbol-tag {
   color: #e11d48 !important;
   background: rgba(225, 29, 72, 0.12) !important;
 }
+
+
+/* Mobile discreto para o badge do Dólar */
+@media (max-width: 768px) {
+  .header-dollar-badge {
+    height: 24px !important;
+    padding: 0 6px !important;
+    gap: 4px !important;
+    font-size: 0.72rem !important;
+    border-radius: 6px !important;
+    border-color: rgba(203, 213, 225, 0.6) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  body:not(.light-theme) .header-dollar-badge {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .dollar-symbol-tag {
+    display: none !important; /* Oculta tag USD no mobile para manter clean */
+  }
+
+  .dollar-rate-val {
+    font-size: 0.73rem !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+  }
+
+  .dollar-var-badge {
+    font-size: 0.65rem !important;
+    padding: 1px 3px !important;
+    font-weight: 600 !important;
+    border-radius: 3px !important;
+  }
+}
