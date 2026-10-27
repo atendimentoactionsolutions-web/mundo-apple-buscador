@@ -96,6 +96,26 @@ let pxtSocket = null;
 let productsMap = new Map(); // id -> product
 let dollarRate = 5.1253;
 let dollarVariation = 0.57;
+
+// Busca cotação oficial do dólar comercial em tempo real (AwesomeAPI / Mercado Financeiro)
+async function fetchLiveDollar() {
+  try {
+    const res = await axios.get('https://economia.awesomeapi.com.br/last/USD-BRL', { timeout: 5000 });
+    if (res.data && res.data.USDBRL) {
+      const bid = parseFloat(res.data.USDBRL.bid);
+      const pct = parseFloat(res.data.USDBRL.pctChange);
+      if (bid > 0) {
+        dollarRate = bid;
+        dollarVariation = pct;
+        invalidateProductsCache();
+        localIo.emit('dollar_rate_update', { dollarRate, dollarVariation });
+      }
+    }
+  } catch (err) {
+    // Silencioso em caso de falha de rede temporária
+  }
+}
+
 let latestDate = '';
 let totalSuppliers = 0;
 let isSyncing = false;
@@ -1493,6 +1513,10 @@ async function start() {
   await auth.initAuth();
 
   server.listen(PORT, async () => {
+    // Cotação do dólar ao vivo imediatamente e a cada 1 minuto
+    fetchLiveDollar();
+    setInterval(fetchLiveDollar, 60 * 1000);
+
     console.log(`\n======================================================`);
     console.log(`🚀 BUSCADOR APPLE PRO ONLINE!`);
     console.log(`👉 Acesse no navegador: http://localhost:${PORT}`);
