@@ -142,8 +142,31 @@
     );
   }
 
+  // Regiões/Fornecedores Bloqueados (Tatuapé, Brás, Guarulhos)
+  function isDisallowedSupplierRegion(p) {
+    if (!p) return false;
+    const s = p.supplier || p.fornecedor;
+    if (!s) return false;
+    const name = String(s.name || s || '').toLowerCase();
+    const addr = String(s.address || s.endereco || '').toLowerCase();
+    const loc = String(s.locationFilter || s.regiao || s.cidade || s.location || '').toLowerCase();
+    const full = name + ' ' + addr + ' ' + loc;
+
+    // Tatuapé
+    if (full.includes('tatuap') || full.includes('tatuapé')) return true;
+    // Guarulhos
+    if (full.includes('guarulho') || full.includes('gru')) return true;
+    // Brás (cuidado para não pegar 'brasil' ou 'shopping oriental')
+    // Exclui fornecedores do Brás como 'BAGDA 6620' (MEGA POLO BRÁS) ou com endereço contendo Brás
+    if (/\b(bras|brás)\b/i.test(addr) || /\b(bras|brás)\b/i.test(loc) || full.includes('mega polo br')) {
+      return true;
+    }
+    return false;
+  }
+
   function isDisallowedProduct(p) {
     if (!p) return true;
+    if (isDisallowedSupplierRegion(p)) return true;
     if (isCpoProduct(p)) return true;
     if (isAsIsProduct(p)) return true;
     const cat = (p.category || '').toUpperCase().trim();
@@ -302,6 +325,7 @@
     isSeminovoProduct,
     isCpoProduct,
     isDisallowedProduct,
+    isDisallowedSupplierRegion,
     calculateSupplierReferencePrice,
     getDefaultMargins,
     getProductMargin,
