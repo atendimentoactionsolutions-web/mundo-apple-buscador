@@ -1748,27 +1748,39 @@ let sfSearchQuery = '';
 
 window.switchView = function(viewName) {
   // Se não estiver logado, proibir acesso à visão de preços de fornecedor
-  if (viewName !== 'storefront' && !currentUser) {
+  if (viewName === 'prices_of_the_day' && !currentUser) {
     viewName = 'storefront';
   }
 
   currentView = viewName;
   const viewPricesDay = document.getElementById('viewPricesDay');
   const viewStoreFront = document.getElementById('viewStoreFront');
+  const viewQuotes = document.getElementById('viewQuotes');
   const tabPricesDay = document.getElementById('tabPricesDay');
   const tabStoreFront = document.getElementById('tabStoreFront');
+  const tabQuotes = document.getElementById('tabQuotes');
 
-  if (viewName === 'storefront') {
-    if (viewPricesDay) viewPricesDay.style.display = 'none';
+  // Reset tabs
+  if (tabPricesDay) tabPricesDay.classList.remove('active');
+  if (tabStoreFront) tabStoreFront.classList.remove('active');
+  if (tabQuotes) tabQuotes.classList.remove('active');
+
+  // Reset views
+  if (viewPricesDay) viewPricesDay.style.display = 'none';
+  if (viewStoreFront) viewStoreFront.style.display = 'none';
+  if (viewQuotes) viewQuotes.style.display = 'none';
+
+  if (viewName === 'quotes') {
+    if (viewQuotes) viewQuotes.style.display = 'block';
+    if (tabQuotes) tabQuotes.classList.add('active');
+    if (typeof loadQuotes === 'function') loadQuotes();
+  } else if (viewName === 'storefront') {
     if (viewStoreFront) viewStoreFront.style.display = 'block';
-    if (tabPricesDay) tabPricesDay.classList.remove('active');
     if (tabStoreFront) tabStoreFront.classList.add('active');
     renderStoreFront();
   } else {
     if (viewPricesDay) viewPricesDay.style.display = 'block';
-    if (viewStoreFront) viewStoreFront.style.display = 'none';
     if (tabPricesDay) tabPricesDay.classList.add('active');
-    if (tabStoreFront) tabStoreFront.classList.remove('active');
     renderPricesOfTheDay();
   }
 };
@@ -4859,6 +4871,16 @@ function ensureMobileDrawerMounted() {
             <polyline points="9 22 9 12 15 12 15 22"/>
           </svg>
           <span>Loja Física (Preço de Venda)</span>
+        </button>
+        <button class="mobile-drawer-item" id="mobileDrawerQuotesBtn" onclick="closeMobileMenu(); switchView('quotes');">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          <span>Orçamentos & Propostas</span>
         </button>
         <button class="mobile-drawer-item" id="mobileDrawerPricesDayBtn" onclick="closeMobileMenu(); switchView('prices_of_the_day');" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
