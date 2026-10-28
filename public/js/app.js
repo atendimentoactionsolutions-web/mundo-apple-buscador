@@ -3676,13 +3676,14 @@ window.copyCardSimulationToWhatsApp = async function(btn) {
 
   let text = `SIMULAÇÃO DE PARCELAMENTO\n\n`;
   const qty = d.quantity || 1;
-  text += `Produto: ${qty > 1 ? `${qty}x ` : ''}${d.model} ${d.storage ? `(${d.storage})` : ''}\n`;
+  text += `Produto: ${d.model} ${d.storage ? `(${d.storage})` : ''}\n`;
+  text += `Quantidade: ${qty} unidade${qty > 1 ? 's' : ''}\n`;
   if (d.ram) text += `RAM: ${d.ram}\n`;
   if (d.color && d.color.toUpperCase() !== 'PADRÃO') text += `Cor: ${d.color}\n`;
   if (qty > 1) text += `Preço Unitário: ${formatBRL(d.unitPrice || cashVal)}\n`;
   if (d.discountAmount > 0) {
     const discLabel = d.discountType === 'PERCENT' ? `${d.discountValue}%` : formatBRL(d.discountAmount);
-    text += `Desconto: - ${formatBRL(d.discountAmount)} (${discLabel})\n`;
+    text += `Desconto: - ${formatBRL(d.discountAmount)}${d.discountType === 'PERCENT' ? ` (${discLabel})` : ''}\n`;
   }
   text += `\n`;
   text += `Valor Total À Vista (PIX): ${formatBRL(cashVal)}\n\n`;
