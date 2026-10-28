@@ -1747,8 +1747,8 @@ let sfCurrentCategory = 'IPH';
 let sfSearchQuery = '';
 
 window.switchView = function(viewName) {
-  // Se não estiver logado, proibir acesso à visão de preços de fornecedor
-  if (viewName === 'prices_of_the_day' && !currentUser) {
+  // Se não estiver logado, proibir acesso a Preços de Fornecedor e Orçamentos
+  if ((viewName === 'prices_of_the_day' || viewName === 'quotes') && !currentUser) {
     viewName = 'storefront';
   }
 
@@ -4637,6 +4637,8 @@ async function checkAuthSession() {
       if (window.PricingCore && typeof window.PricingCore.setDfuActive === 'function') {
         window.PricingCore.setDfuActive(false);
       }
+      const tabQuotes = document.getElementById('tabQuotes');
+      if (tabQuotes) tabQuotes.style.display = 'none';
       if (tabPricesDay) tabPricesDay.style.display = 'none';
       if (btnOpenCalculator) btnOpenCalculator.style.display = 'none';
       if (btnExportTopHeader) btnExportTopHeader.style.display = 'none';
@@ -4659,6 +4661,8 @@ async function checkAuthSession() {
       const mobileDrawerLogoutBtn = document.getElementById('mobileDrawerLogoutBtn');
       if (mobileDrawerUser) mobileDrawerUser.style.display = 'none';
       if (mobileDrawerAdminBtn) mobileDrawerAdminBtn.style.display = 'none';
+      const mobileDrawerQuotesBtn = document.getElementById('mobileDrawerQuotesBtn');
+      if (mobileDrawerQuotesBtn) mobileDrawerQuotesBtn.style.display = 'none';
       if (mobileDrawerPricesDayBtn) mobileDrawerPricesDayBtn.style.display = 'none';
       if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'none';
       if (mobileDrawerExportBtn) mobileDrawerExportBtn.style.display = 'none';
@@ -4704,6 +4708,10 @@ async function checkAuthSession() {
     // - Exibe Preços do Dia
     // - Exibe Calculadora de Taxas
     // - Exibe Exportar Valores (WhatsApp)
+    const tabQuotes = document.getElementById('tabQuotes');
+    if (tabQuotes) {
+      tabQuotes.style.display = 'inline-flex';
+    }
     if (tabPricesDay) {
       tabPricesDay.style.display = 'inline-flex';
     }
@@ -4759,6 +4767,8 @@ async function checkAuthSession() {
       mobileDrawerUser.style.display = 'block';
       mobileDrawerUserBadge.style.display = 'none'; // REMOVIDO A PEDIDO DO USUARIO
     }
+    const mobileDrawerQuotesBtn = document.getElementById('mobileDrawerQuotesBtn');
+    if (mobileDrawerQuotesBtn) mobileDrawerQuotesBtn.style.display = 'flex';
     if (mobileDrawerPricesDayBtn) mobileDrawerPricesDayBtn.style.display = 'flex';
     if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'flex';
     if (mobileDrawerExportBtn) mobileDrawerExportBtn.style.display = 'flex';
@@ -4872,7 +4882,7 @@ function ensureMobileDrawerMounted() {
           </svg>
           <span>Loja Física (Preço de Venda)</span>
         </button>
-        <button class="mobile-drawer-item" id="mobileDrawerQuotesBtn" onclick="closeMobileMenu(); switchView('quotes');">
+        <button class="mobile-drawer-item" id="mobileDrawerQuotesBtn" onclick="closeMobileMenu(); switchView('quotes');" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14 2 14 8 20 8"/>
