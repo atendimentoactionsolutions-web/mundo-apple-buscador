@@ -7,6 +7,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const auth = require('./auth');
+const quotesManager = require('./quotes');
 const PricingCore = require('./public/js/pricing-core.js');
 
 const PXT_BASE_URL = 'https://backend-api.buscadorpxt.com.br';
@@ -853,6 +854,92 @@ app.post('/api/admin/lojistas/:id/block', requireAdminApi, async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
+
+// =========================================================================
+// MÓDULO DE ORÇAMENTOS E PROPOSTAS COMERCIAIS (MUNDO APPLE DELIVERY)
+// =========================================================================
+
+// Listar orçamentos com filtros e dashboard
+app.get('/api/quotes', requireAuthApi, (req, res) => {
+  try {
+    const filters = {
+      search: req.query.search || '',
+      status: req.query.status || 'ALL'
+    };
+    const result = quotesManager.listQuotes(filters);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao carregar orçamentos: ' + err.message });
+  }
+});
+
+// Obter orçamento por ID ou Código
+app.get('/api/quotes/:id', requireAuthApi, (req, res) => {
+  try {
+    const quote = quotesManager.getQuoteById(req.params.id);
+    if (!quote) return res.status(404).json({ error: 'Orçamento não encontrado.' });
+    res.json({ success: true, quote });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar orçamento: ' + err.message });
+  }
+});
+
+// Criar novo orçamento
+app.post('/api/quotes', requireAuthApi, (req, res) => {
+  try {
+    const quote = quotesManager.createQuote(req.body, req.user);
+    res.json({ success: true, quote });
+  } catch (err) {
+    res.status(400).json({ error: 'Erro ao criar orçamento: ' + err.message });
+  }
+});
+
+// Atualizar orçamento existente
+app.put('/api/quotes/:id', requireAuthApi, (req, res) => {
+  try {
+    const updated = quotesManager.updateQuote(req.params.id, req.body, req.user);
+    if (!updated) return res.status(404).json({ error: 'Orçamento não encontrado.' });
+    res.json({ success: true, quote: updated });
+  } catch (err) {
+    res.status(400).json({ error: 'Erro ao atualizar orçamento: ' + err.message });
+  }
+});
+
+// Atualizar status do orçamento (RASCUNHO, ENVIADO, APROVADO, RECUSADO, EXPIRADO)
+app.patch('/api/quotes/:id/status', requireAuthApi, (req, res) => {
+  try {
+    const { status } = req.body || {};
+    if (!status) return res.status(400).json({ error: 'Status obrigatório.' });
+    const updated = quotesManager.updateQuoteStatus(req.params.id, status);
+    if (!updated) return res.status(404).json({ error: 'Orçamento não encontrado.' });
+    res.json({ success: true, quote: updated });
+  } catch (err) {
+    res.status(400).json({ error: 'Erro ao atualizar status: ' + err.message });
+  }
+});
+
+// Duplicar orçamento
+app.post('/api/quotes/:id/duplicate', requireAuthApi, (req, res) => {
+  try {
+    const duplicated = quotesManager.duplicateQuote(req.params.id, req.user);
+    if (!duplicated) return res.status(404).json({ error: 'Orçamento não encontrado para duplicar.' });
+    res.json({ success: true, quote: duplicated });
+  } catch (err) {
+    res.status(400).json({ error: 'Erro ao duplicar orçamento: ' + err.message });
+  }
+});
+
+// Excluir orçamento
+app.delete('/api/quotes/:id', requireAuthApi, (req, res) => {
+  try {
+    const ok = quotesManager.deleteQuote(req.params.id);
+    if (!ok) return res.status(404).json({ error: 'Orçamento não encontrado para exclusão.' });
+    res.json({ success: true, message: 'Orçamento excluído com sucesso.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao excluir orçamento: ' + err.message });
+  }
+});
+
 
 app.put('/api/admin/lojistas/:id/password', requireAdminApi, async (req, res) => {
   try {
