@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/styles.css?v=68.0">
+  <link rel="stylesheet" href="/css/quotes.css?v=1.0">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310b981'%3E%3Cpath d='M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 1.01-2.85-.92.04-2.02.62-2.67 1.37-.58.66-1.09 1.73-1.02 2.76 1.03.08 2.07-.53 2.68-1.28z'/%3E%3C/svg%3E">
   <script src="/socket.io/socket.io.js"></script>
   <style>
@@ -57,6 +58,9 @@
           </button>
           <button class="segmented-tab-btn active" id="tabStoreFront" onclick="switchView('storefront')">
             Preços de venda
+          </button>
+          <button class="segmented-tab-btn" id="tabQuotes" onclick="switchView('quotes')">
+            Orçamentos
           </button>
         </nav>
       </div>
@@ -282,6 +286,121 @@
   </div>
 
   <!-- =========================================================================
+       VIEW 3: MÓDULO DE ORÇAMENTOS E PROPOSTAS COMERCIAIS
+       ========================================================================= -->
+  <div id="viewQuotes" style="display: none;">
+    <div class="quotes-view-container">
+      
+      <!-- Top Page Header -->
+      <div class="quotes-page-header">
+        <div class="quotes-header-titles">
+          <h1>Gestão de Orçamentos & Propostas</h1>
+          <p>Crie propostas comerciais premium com produtos Apple, descontos, trade-in e parcelamento oficial</p>
+        </div>
+        <button class="btn-new-quote" onclick="openNewQuoteModal()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>Novo Orçamento</span>
+        </button>
+      </div>
+
+      <!-- Dashboard de Indicadores -->
+      <div class="quotes-stats-grid">
+        <div class="stat-card-quote">
+          <div class="stat-icon-wrap primary">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="stat-info-wrap">
+            <span class="stat-label">Total Gerados</span>
+            <strong class="stat-number" id="statQuotesTotal">0</strong>
+          </div>
+        </div>
+
+        <div class="stat-card-quote">
+          <div class="stat-icon-wrap success">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div class="stat-info-wrap">
+            <span class="stat-label">Aprovados</span>
+            <strong class="stat-number green" id="statQuotesApproved">0</strong>
+          </div>
+        </div>
+
+        <div class="stat-card-quote">
+          <div class="stat-icon-wrap warning">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="stat-info-wrap">
+            <span class="stat-label">Em Negociação</span>
+            <strong class="stat-number" id="statQuotesPending">0</strong>
+          </div>
+        </div>
+
+        <div class="stat-card-quote">
+          <div class="stat-icon-wrap accent">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="stat-info-wrap">
+            <span class="stat-label">Volume Aprovado</span>
+            <strong class="stat-number green" id="statQuotesApprovedVol">R$ 0,00</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toolbar de Busca e Filtros -->
+      <div class="quotes-filter-toolbar">
+        <div class="quotes-search-box">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="color: var(--text-muted);"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="quotesSearchInput" placeholder="Buscar por cliente, WhatsApp ou número da proposta..." oninput="loadQuotes(this.value, document.getElementById('quotesStatusFilter').value)">
+        </div>
+
+        <div class="quotes-filter-group">
+          <select class="quotes-filter-select" id="quotesStatusFilter" onchange="loadQuotes(document.getElementById('quotesSearchInput').value, this.value)">
+            <option value="ALL">Todos os Status</option>
+            <option value="RASCUNHO">Rascunho</option>
+            <option value="ENVIADO">Enviado</option>
+            <option value="APROVADO">Aprovado</option>
+            <option value="RECUSADO">Recusado</option>
+            <option value="EXPIRADO">Expirado</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tabela Desktop -->
+      <div class="quotes-table-container">
+        <table class="quotes-table">
+          <thead>
+            <tr>
+              <th class="col-code">Número / Data</th>
+              <th class="col-customer">Cliente</th>
+              <th class="col-items text-center">Itens</th>
+              <th class="col-total">Valor Total</th>
+              <th class="col-status text-center">Status</th>
+              <th class="col-actions text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="quotesTableBody">
+            <!-- Linhas injetadas via JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Cards Mobile -->
+      <div class="quotes-mobile-cards" id="quotesMobileCards">
+        <!-- Cards injetados via JS -->
+      </div>
+
+      <!-- Empty State -->
+      <div class="quotes-empty-state" id="quotesEmptyState" style="display: none;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="color: var(--text-muted); margin: 0 auto;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <h3>Nenhum orçamento encontrado</h3>
+        <p>Crie sua primeira proposta comercial personalizada para enviar aos clientes.</p>
+        <button class="btn-new-quote" onclick="openNewQuoteModal()">Criar Primeiro Orçamento</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =========================================================================
        MODAL: TODAS AS OFERTAS DO MODELO (AO CLICAR EM "TODAS")
        ========================================================================= -->
   <div class="modal-overlay" id="allOffersModal">
@@ -408,7 +527,194 @@
     </div>
   </div>
 
+
+  <!-- =========================================================================
+       MODAL: CONSTRUTOR DE ORÇAMENTO COMERCIAL (FULL BUILDER)
+       ========================================================================= -->
+  <div class="modal-overlay" id="quoteBuilderModal">
+    <div class="modal-content modal-quote-builder">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-green);">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="12" y1="18" x2="12" y2="12"/>
+            <line x1="9" y1="15" x2="15" y2="15"/>
+          </svg>
+          <h3 id="quoteBuilderTitle">Novo Orçamento Comercial</h3>
+        </div>
+        <button class="modal-close" onclick="closeQuoteBuilderModal()">✕</button>
+      </div>
+
+      <div class="qb-layout-body">
+        
+        <!-- 1. Dados do Cliente e Proposta -->
+        <div class="qb-section">
+          <h4 class="qb-section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Dados do Cliente & Proposta
+          </h4>
+          <div class="qb-form-grid">
+            <div class="qb-field">
+              <label>Nome Completo *</label>
+              <input type="text" id="qbCustomerName" placeholder="Ex: Felipe Silveira">
+            </div>
+            <div class="qb-field">
+              <label>WhatsApp / Telefone</label>
+              <input type="text" id="qbCustomerPhone" placeholder="(11) 99999-9999">
+            </div>
+            <div class="qb-field">
+              <label>CPF / CNPJ (Opcional)</label>
+              <input type="text" id="qbCustomerDoc" placeholder="000.000.000-00">
+            </div>
+            <div class="qb-field">
+              <label>Data de Emissão</label>
+              <input type="date" id="qbIssueDate">
+            </div>
+            <div class="qb-field">
+              <label>Validade (Dias)</label>
+              <input type="number" min="1" max="30" id="qbValidityDays" value="3">
+            </div>
+            <div class="qb-field">
+              <label>Status</label>
+              <select id="qbStatusSelect">
+                <option value="RASCUNHO">Rascunho</option>
+                <option value="ENVIADO">Enviado</option>
+                <option value="APROVADO">Aprovado</option>
+                <option value="RECUSADO">Recusado</option>
+                <option value="EXPIRADO">Expirado</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Produtos do Orçamento (Integração Direta do Catálogo) -->
+        <div class="qb-section">
+          <h4 class="qb-section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            Produtos e Configurações Selecionadas
+          </h4>
+
+          <!-- Busca de Produtos no Catálogo -->
+          <div class="qb-search-wrap" id="qbCatalogSearchWrap">
+            <div class="qb-search-input-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="color: var(--text-muted);"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="text" id="qbCatalogSearchInput" placeholder="Digite para buscar modelo (ex: iPhone 16 Pro, MacBook M5, iPad...)" oninput="onQuoteCatalogSearch(this)" autocomplete="off">
+            </div>
+            <div class="qb-dropdown-results" id="qbCatalogDropdown">
+              <!-- Resultados injetados via JS -->
+            </div>
+          </div>
+
+          <!-- Lista de Itens Adicionados -->
+          <div class="qb-items-list" id="qbItemsList">
+            <!-- Injetados dinamicamente -->
+          </div>
+        </div>
+
+        <!-- 3. Aparelho na Troca (Trade-In) -->
+        <div class="qb-section">
+          <label class="qb-tradein-toggle">
+            <input type="checkbox" id="qbHasTradeIn" onchange="onTradeInToggle(this)" style="width: 18px; height: 18px; accent-color: var(--accent-green); cursor: pointer;">
+            <span>Cliente possui aparelho para dar na troca? (Trade-In)</span>
+          </label>
+
+          <div class="qb-form-grid" id="qbTradeInWrap" style="display: none; background: var(--bg-card-header); padding: 14px 16px; border-radius: 10px; border: 1px solid var(--border-color); margin-top: 8px;">
+            <div class="qb-field">
+              <label>Modelo do Aparelho Usado</label>
+              <input type="text" id="qbTradeInModel" placeholder="Ex: iPhone 14 Pro 128GB Roxo">
+            </div>
+            <div class="qb-field">
+              <label>Estado / Observações</label>
+              <input type="text" id="qbTradeInDesc" placeholder="Ex: Bateria 86%, com caixa, sem marcas">
+            </div>
+            <div class="qb-field">
+              <label>Valor de Avaliação (R$)</label>
+              <input type="text" id="qbTradeInAmount" placeholder="R$ 0,00" oninput="onTradeInValInput(this)">
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Desconto Geral & Condições Comerciais -->
+        <div class="qb-section">
+          <h4 class="qb-section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+            Desconto Geral & Pagamento
+          </h4>
+
+          <div class="qb-form-grid">
+            <div class="qb-field">
+              <label>Desconto Geral</label>
+              <div class="qb-disc-group" style="background: var(--bg-body);">
+                <select class="qb-disc-type-select" id="qbGeneralDiscountType" onchange="onGeneralDiscountTypeChange(this.value)">
+                  <option value="FIXED">R$</option>
+                  <option value="PERCENT">%</option>
+                </select>
+                <input type="number" min="0" step="any" id="qbGeneralDiscountVal" placeholder="0" oninput="onGeneralDiscountValChange(this.value)" class="qb-disc-val-input" style="width: 100%;">
+              </div>
+            </div>
+
+            <div class="qb-field">
+              <label>Entrada PIX / Espécie (R$)</label>
+              <input type="text" id="qbCashDownPayment" placeholder="R$ 0,00" oninput="onCashDownPaymentInput(this)">
+            </div>
+
+            <div class="qb-field" style="grid-column: span 2;">
+              <label>Condições de Pagamento / Observações</label>
+              <input type="text" id="qbCommercialConditions" value="À vista no PIX com entrega imediata ou em até 18x no cartão.">
+            </div>
+          </div>
+
+          <!-- Simulação de Parcelamento do Saldo -->
+          <div style="margin-top: 16px;">
+            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Simulador de Parcelamento no Cartão (Reutilizando taxas vigentes)</label>
+            <div id="qbInstallmentsList">
+              <!-- Injetado dinamicamente -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Resumo Financeiro da Proposta -->
+        <div class="qb-financial-summary">
+          <div class="qb-summary-row">
+            <span>Subtotal Bruto dos Produtos:</span>
+            <strong id="qbSummaryGross">R$ 0,00</strong>
+          </div>
+          <div class="qb-summary-row">
+            <span>Descontos Individuais por Item:</span>
+            <strong id="qbSummaryItemsDisc" style="color: #b91c1c;">- R$ 0,00</strong>
+          </div>
+          <div class="qb-summary-row" style="display: none;">
+            <span>Avaliação Aparelho na Troca (Trade-In):</span>
+            <strong id="qbSummaryTradeIn" style="color: var(--accent-green);">- R$ 0,00</strong>
+          </div>
+          <div class="qb-summary-row" style="display: none;">
+            <span>Desconto Geral da Proposta:</span>
+            <strong id="qbSummaryGenDisc" style="color: #b91c1c;">- R$ 0,00</strong>
+          </div>
+          <div class="qb-summary-row total-highlight">
+            <span>Valor Total da Proposta:</span>
+            <strong class="qb-total-val" id="qbSummaryNet">R$ 0,00</strong>
+          </div>
+          <div class="qb-summary-row" style="margin-top: 6px; font-size: 0.8rem;">
+            <span>Saldo a Parcelar no Cartão (após entrada/troca):</span>
+            <strong id="qbSummaryBalanceCard">R$ 0,00</strong>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="qb-modal-footer">
+        <button type="button" class="qb-btn-cancel" onclick="closeQuoteBuilderModal()">Cancelar</button>
+        <button type="button" class="qb-btn-save" id="qbSaveBtn" onclick="saveCurrentQuote()">Salvar Orçamento</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/js/pricing-core.js?v=1.4"></script>
-  <script src="/js/app.js?v=73.0"></script>
+  <script src="/js/jspdf.umd.min.js"></script>
+  <script src="/js/jspdf.plugin.autotable.min.js"></script>
+  <script src="/js/quotes-module.js?v=1.0"></script>
+  <script src="/js/app.js?v=74.0"></script>
 </body>
 </html>
