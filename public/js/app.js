@@ -3334,12 +3334,17 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
   const storage = decodeURIComponent(encodedStorage || '');
   const color = decodeURIComponent(encodedColor || '');
   const ram = decodeURIComponent(encodedRam || '');
+  const baseUnitPrice = Number(cashPrice) || 0;
 
   currentSimData = {
     model: model || 'Calculadora de Taxas',
     storage,
     color,
-    cashPrice: Number(cashPrice) || 0,
+    unitPrice: baseUnitPrice,
+    quantity: 1,
+    discountType: 'FIXED', // 'FIXED' (R$) ou 'PERCENT' (%)
+    discountValue: 0,
+    cashPrice: baseUnitPrice,
     ram,
     entryAmount: 0,
     tradeInActive: false,
@@ -3383,25 +3388,51 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
       </div>
 
       <!-- Integrated Financial Controls -->
-      <div class="sim-exec-controls">
+      <div class="sim-exec-controls" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
         <div class="sim-exec-field">
           <label class="sim-exec-label" for="simCashInput">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
-            Preço À Vista (PIX)
+            Preço Unitário
           </label>
           <div class="sim-exec-input-wrap">
-            <span style="font-weight: 800; color: var(--text-muted); margin-right: 6px; font-size: 0.95rem;">R$</span>
-            <input type="text" id="simCashInput" class="sim-exec-input" placeholder="0,00" value="${formatCurrencyInput(currentSimData.cashPrice)}" oninput="handleSimCashInput(this)">
+            <span style="font-weight: 800; color: var(--text-muted); margin-right: 4px; font-size: 0.9rem;">R$</span>
+            <input type="text" id="simCashInput" class="sim-exec-input" placeholder="0,00" value="${formatCurrencyInput(currentSimData.unitPrice)}" oninput="handleSimUnitPriceInput(this)">
+          </div>
+        </div>
+
+        <div class="sim-exec-field">
+          <label class="sim-exec-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Quantidade
+          </label>
+          <div class="sim-exec-input-wrap" style="padding: 0 4px; justify-content: space-between;">
+            <button type="button" onclick="handleSimQtyStep(-1)" style="border: none; background: transparent; width: 30px; height: 100%; font-size: 1.1rem; font-weight: 800; cursor: pointer; color: var(--text-primary);">−</button>
+            <input type="number" id="simQtyInput" min="1" max="99" value="1" onchange="handleSimQtyInput(this)" style="width: 38px; border: none; background: transparent; text-align: center; font-size: 0.95rem; font-weight: 800; color: var(--text-primary); outline: none;">
+            <button type="button" onclick="handleSimQtyStep(1)" style="border: none; background: transparent; width: 30px; height: 100%; font-size: 1.1rem; font-weight: 800; cursor: pointer; color: var(--text-primary);">+</button>
+          </div>
+        </div>
+
+        <div class="sim-exec-field">
+          <label class="sim-exec-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+            Desconto
+          </label>
+          <div class="sim-exec-input-wrap" style="padding: 0; overflow: hidden;">
+            <select id="simDiscountType" onchange="handleSimDiscountTypeChange(this)" style="border: none; background: rgba(0,0,0,0.04); font-size: 0.8rem; font-weight: 800; padding: 0 8px; height: 100%; border-right: 1.5px solid var(--border-color); color: var(--text-primary); outline: none; cursor: pointer;">
+              <option value="FIXED">R$</option>
+              <option value="PERCENT">%</option>
+            </select>
+            <input type="number" id="simDiscountValue" min="0" step="any" placeholder="0" oninput="handleSimDiscountValueInput(this)" style="width: 100%; height: 100%; border: none; background: transparent; padding: 0 8px; font-size: 0.95rem; font-weight: 800; color: var(--text-primary); outline: none;">
           </div>
         </div>
 
         <div class="sim-exec-field">
           <label class="sim-exec-label" for="simEntryInput">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            Entrada PIX (Opcional)
+            Entrada PIX
           </label>
           <div class="sim-exec-input-wrap">
-            <span style="font-weight: 800; color: var(--text-muted); margin-right: 6px; font-size: 0.95rem;">R$</span>
+            <span style="font-weight: 800; color: var(--text-muted); margin-right: 4px; font-size: 0.9rem;">R$</span>
             <input type="text" id="simEntryInput" class="sim-exec-input" placeholder="0,00" value="" oninput="handleSimEntryInput(this)">
           </div>
         </div>
@@ -3538,13 +3569,67 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
   modal.classList.add('active');
 };
 
+
+window.handleSimUnitPriceInput = function(inp) {
+  const num = parseCurrencyInput(inp.value);
+  inp.value = formatCurrencyInput(num);
+  currentSimData.unitPrice = num;
+  recalculateSimulator();
+};
+
+window.handleSimQtyStep = function(delta) {
+  const qtyInp = document.getElementById('simQtyInput');
+  const current = currentSimData.quantity || 1;
+  const next = Math.max(1, current + delta);
+  currentSimData.quantity = next;
+  if (qtyInp) qtyInp.value = next;
+  recalculateSimulator();
+};
+
+window.handleSimQtyInput = function(inp) {
+  const next = Math.max(1, parseInt(inp.value) || 1);
+  inp.value = next;
+  currentSimData.quantity = next;
+  recalculateSimulator();
+};
+
+window.handleSimDiscountTypeChange = function(sel) {
+  currentSimData.discountType = sel.value;
+  recalculateSimulator();
+};
+
+window.handleSimDiscountValueInput = function(inp) {
+  const val = Math.max(0, parseFloat(inp.value) || 0);
+  currentSimData.discountValue = val;
+  recalculateSimulator();
+};
+
 window.recalculateSimulator = function() {
   const gridContainer = document.getElementById('simInstallmentsGrid');
   const heroCardVal = document.getElementById('simHeroCardVal');
 
   if (!gridContainer) return;
 
-  const cashVal = currentSimData.cashPrice || 0;
+  // 1. Cálculo do valor total bruto com Quantidade
+  const unitPrice = currentSimData.unitPrice !== undefined ? currentSimData.unitPrice : (currentSimData.cashPrice || 0);
+  const qty = currentSimData.quantity || 1;
+  const grossTotal = unitPrice * qty;
+
+  // 2. Aplicação do Desconto (R$ ou %)
+  const discType = currentSimData.discountType || 'FIXED';
+  const discVal = Number(currentSimData.discountValue) || 0;
+  let discountAmount = 0;
+  if (discType === 'PERCENT') {
+    discountAmount = grossTotal * (Math.min(100, discVal) / 100);
+  } else {
+    discountAmount = Math.min(grossTotal, discVal);
+  }
+
+  // 3. Preço Total à vista com desconto aplicado
+  const cashVal = Math.max(0, Math.round(grossTotal - discountAmount));
+  currentSimData.cashPrice = cashVal;
+  currentSimData.discountAmount = discountAmount;
+
   const entryVal = currentSimData.entryAmount || 0;
   const tradeInVal = (currentSimData.tradeInActive ? currentSimData.tradeInAmount : 0) || 0;
   const totalDeductions = entryVal + tradeInVal;
@@ -3590,11 +3675,17 @@ window.copyCardSimulationToWhatsApp = async function(btn) {
   const balance = Math.max(0, cashVal - totalDeductions);
 
   let text = `SIMULAÇÃO DE PARCELAMENTO\n\n`;
-  text += `Produto: ${d.model} ${d.storage ? `(${d.storage})` : ''}\n`;
+  const qty = d.quantity || 1;
+  text += `Produto: ${qty > 1 ? `${qty}x ` : ''}${d.model} ${d.storage ? `(${d.storage})` : ''}\n`;
   if (d.ram) text += `RAM: ${d.ram}\n`;
   if (d.color && d.color.toUpperCase() !== 'PADRÃO') text += `Cor: ${d.color}\n`;
+  if (qty > 1) text += `Preço Unitário: ${formatBRL(d.unitPrice || cashVal)}\n`;
+  if (d.discountAmount > 0) {
+    const discLabel = d.discountType === 'PERCENT' ? `${d.discountValue}%` : formatBRL(d.discountAmount);
+    text += `Desconto: - ${formatBRL(d.discountAmount)} (${discLabel})\n`;
+  }
   text += `\n`;
-  text += `Valor À Vista (PIX): ${formatBRL(cashVal)}\n\n`;
+  text += `Valor Total À Vista (PIX): ${formatBRL(cashVal)}\n\n`;
 
   if (d.tradeInActive && tradeInVal > 0) {
     const tradeModel = d.tradeInModel === 'OUTRO' ? (d.tradeInCustomModel || 'Outro Aparelho') : d.tradeInModel;
