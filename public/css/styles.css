@@ -2871,6 +2871,42 @@ body.light-theme .all-offer-item:hover {
   border-radius: 6px;
 }
 
+.sim-color-picker {
+  max-width: 100%;
+  padding: 0 8px;
+  background: var(--bg-card);
+}
+
+.sim-color-picker:focus-within {
+  border-color: var(--accent-green);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15);
+}
+
+.sim-color-dot {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+}
+
+.sim-color-select {
+  min-width: 0;
+  max-width: 240px;
+  min-height: 36px;
+  border: none;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.sim-color-select:focus-visible {
+  outline: 2px solid var(--accent-green);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+
 /* Control Bar (Inputs monetários) */
 .sim-exec-controls {
   display: grid;

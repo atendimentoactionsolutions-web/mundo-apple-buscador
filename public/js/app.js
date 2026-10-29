@@ -3329,6 +3329,63 @@ window.handleSimTradeInValueInput = function(inp) {
   recalculateSimulator();
 };
 
+function getSimulatorColorOptions(model, storage, ram, color, unitPrice) {
+  if (!currentUser || !color) return [];
+
+  const normalize = value => String(value || '').trim().toUpperCase().replace(/\s+/g, '');
+  const isSemi = /\bSEMI[\s-]*NOVO\b/i.test(model);
+  const rawModel = cleanModelName(model.replace(/\s*\(Seminovo\)\s*$/i, ''));
+  const colors = new Map();
+
+  // Consulta o catálogo inteiro, mesmo quando a vitrine está filtrada por cor.
+  allProducts.forEach(product => {
+    if (isDisallowedProduct(product) || !(Number(product.price) > 0)) return;
+    if (isSeminovoProduct(product) !== isSemi) return;
+    if (normalize(cleanModelName(product.name)) !== normalize(rawModel)) return;
+    if (normalize(product.storage) !== normalize(storage)) return;
+    if (normalize(getMacBookRam(product)) !== normalize(ram)) return;
+
+    const name = (product.color || 'Padrão').trim();
+    const key = normalize(name);
+    if (!colors.has(key)) colors.set(key, { color: name, offers: [] });
+    colors.get(key).offers.push(product);
+  });
+
+  const options = Array.from(colors.values()).map(option => {
+    const category = option.offers[0].category;
+    const referencePrice = calculateSupplierReferencePrice(option.offers, isSemi);
+    return {
+      color: option.color,
+      price: applyDFU(referencePrice, category, rawModel) + getProductMargin(rawModel, category, isSemi)
+    };
+  });
+
+  // Preserva a cor e o valor do card que abriu o simulador.
+  const initialOption = options.find(option => normalize(option.color) === normalize(color));
+  if (initialOption) {
+    initialOption.color = color;
+    initialOption.price = unitPrice;
+  } else {
+    options.push({ color, price: unitPrice });
+  }
+
+  return options.sort((a, b) => a.color.localeCompare(b.color, 'pt-BR'));
+}
+
+window.handleSimColorChange = function(select) {
+  if (!currentUser) return;
+  const option = (currentSimData.colorOptions || []).find(item => item.color === select.value);
+  if (!option) return;
+
+  currentSimData.color = option.color;
+  currentSimData.unitPrice = option.price;
+  const priceInput = document.getElementById('simCashInput');
+  if (priceInput) priceInput.value = formatCurrencyInput(option.price);
+  const colorDot = document.getElementById('simColorDot');
+  if (colorDot) colorDot.style.backgroundColor = getAppleColorHex(option.color);
+  recalculateSimulator();
+};
+
 window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, cashPrice, encodedRam) {
   const model = decodeURIComponent(encodedModel || '');
   const storage = decodeURIComponent(encodedStorage || '');
@@ -3340,6 +3397,7 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
     model: model || 'Calculadora de Taxas',
     storage,
     color,
+    colorOptions: getSimulatorColorOptions(model, storage, ram, color, baseUnitPrice),
     unitPrice: baseUnitPrice,
     quantity: 1,
     discountType: 'FIXED', // 'FIXED' (R$) ou 'PERCENT' (%)
@@ -3378,7 +3436,15 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
               <span>${ram} RAM</span>
             </span>
           ` : ''}
-          ${color && color.toUpperCase() !== 'PADRÃO' ? `
+          ${currentUser && currentSimData.colorOptions.length ? `
+            <label class="sim-exec-meta-item sim-color-picker" for="simColorSelect">
+              <span id="simColorDot" class="sim-color-dot" style="background-color: ${colHex};"></span>
+              <span>Cor:</span>
+              <select id="simColorSelect" class="sim-color-select" onchange="handleSimColorChange(this)" title="Selecionar cor e atualizar o preço do orçamento">
+                ${currentSimData.colorOptions.map(option => `<option value="${escapeHtml(option.color)}"${option.color === color ? ' selected' : ''}>${escapeHtml(option.color)}</option>`).join('')}
+              </select>
+            </label>
+          ` : color && color.toUpperCase() !== 'PADRÃO' ? `
             <span class="sim-exec-meta-item">
               <span style="background-color: ${colHex}; width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 1px solid rgba(255,255,255,0.3);"></span>
               <span>Cor: ${color}</span>
