@@ -29,6 +29,7 @@ const ANDROID_CATEGORIES = new Set(['MI', 'NOTE', 'PAD', 'POCO', 'RDM', 'REAL'])
 const APPLE_CATEGORIES = new Set(['IPH', 'MCB', 'IPAD', 'IPD', 'RLG', 'PODS', 'ACSS', 'IMAC', 'MNTR']);
 
 const app = express();
+const asyncHandler = handler => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 const server = http.createServer(app);
 const localIo = new Server(server, {
   cors: { origin: '*' }
@@ -73,12 +74,12 @@ app.get(['/admin', '/admin.html', '/painel', '/painel.html'], (req, res) => {
 
 app.get('/login', (req, res) => res.redirect('/login.html'));
 
-app.get('/login.html', async (req, res, next) => {
+app.get('/login.html', asyncHandler(async (req, res, next) => {
   const token = auth.getSessionTokenFromRequest(req);
   const user = await auth.findUserBySessionToken(token);
   if (user) return res.redirect('/');
   next();
-});
+}));
 
 // Bloqueia qualquer acesso direto a arquivos de painel administrativo
 app.use((req, res, next) => {
@@ -756,7 +757,7 @@ app.get('/health', (req, res) => {
 });
 
 // Middleware de Proteção de API para Usuários Autenticados
-async function requireAuthApi(req, res, next) {
+const requireAuthApi = asyncHandler(async (req, res, next) => {
   const token = auth.getSessionTokenFromRequest(req);
   if (!token) {
     return res.status(401).json({ error: 'Acesso não autorizado. Faça login.', code: 'UNAUTHORIZED' });
@@ -770,10 +771,10 @@ async function requireAuthApi(req, res, next) {
   }
   req.user = user;
   next();
-}
+});
 
 // Middleware de Proteção de API para Administrador
-async function requireAdminApi(req, res, next) {
+const requireAdminApi = asyncHandler(async (req, res, next) => {
   const token = auth.getSessionTokenFromRequest(req);
   if (!token) return res.status(401).json({ error: 'Não autenticado' });
   const user = await auth.findUserBySessionToken(token);
@@ -782,11 +783,11 @@ async function requireAdminApi(req, res, next) {
   }
   req.user = user;
   next();
-}
+});
 
 // --- ROTAS DE AUTENTICAÇÃO ---
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', asyncHandler(async (req, res) => {
   const { username, password } = req.body || {};
   const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   const result = await auth.loginUser(username, password, clientIp, localIo);
@@ -795,16 +796,17 @@ app.post('/api/auth/login', async (req, res) => {
     return res.json({ success: true, user: result.user });
   }
   return res.status(401).json(result);
-});
+}));
 
-app.post('/api/auth/logout', async (req, res) => {
+app.post('/api/auth/logout', asyncHandler(async (req, res) => {
   const token = auth.getSessionTokenFromRequest(req);
   if (token) await auth.logoutUser(token);
+  if (token) localIo.in(`session_${token}`).disconnectSockets(true);
   clearSessionCookie(res);
   res.json({ success: true });
-});
+}));
 
-app.get('/api/auth/me', async (req, res) => {
+app.get('/api/auth/me', asyncHandler(async (req, res) => {
   const token = auth.getSessionTokenFromRequest(req);
   if (!token) return res.status(401).json({ error: 'Não autenticado' });
   const user = await auth.findUserBySessionToken(token);
@@ -820,40 +822,44 @@ app.get('/api/auth/me', async (req, res) => {
     customMargins: user.custom_margins || null,
     customCardRates: user.custom_card_rates || null
   });
-});
+}));
 
 // --- ROTAS ADMINISTRATIVAS (GESTÃO DE LOJISTAS) ---
-app.get('/api/admin/lojistas', requireAdminApi, async (req, res) => {
+app.get('/api/admin/lojistas', requireAdminApi, asyncHandler(async (req, res) => {
   const list = await auth.listLojistas();
   res.json(list);
-});
+}));
 
-app.post('/api/admin/lojistas', requireAdminApi, async (req, res) => {
+app.post('/api/admin/lojistas', requireAdminApi, asyncHandler(async (req, res) => {
   try {
     const lojista = await auth.createLojista(req.body);
     res.json({ success: true, lojista });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
+}));
 
-app.post('/api/admin/lojistas/:id/renew', requireAdminApi, async (req, res) => {
+app.post('/api/admin/lojistas/:id/renew', requireAdminApi, asyncHandler(async (req, res) => {
   try {
     const result = await auth.renewLojista(req.params.id, req.body.days || 30);
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
+}));
 
-app.post('/api/admin/lojistas/:id/block', requireAdminApi, async (req, res) => {
+app.post('/api/admin/lojistas/:id/block', requireAdminApi, asyncHandler(async (req, res) => {
   try {
     const result = await auth.toggleBlockLojista(req.params.id);
+    if (result.status === 'blocked') {
+      localIo.to(`user_${req.params.id}`).emit('session_terminated', { reason: 'Sua conta foi suspensa.' });
+      localIo.in(`user_${req.params.id}`).disconnectSockets(true);
+    }
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
+}));
 
 // =========================================================================
 // MÓDULO DE ORÇAMENTOS E PROPOSTAS COMERCIAIS (MUNDO APPLE DELIVERY)
@@ -866,7 +872,7 @@ app.get('/api/quotes', requireAuthApi, (req, res) => {
       search: req.query.search || '',
       status: req.query.status || 'ALL'
     };
-    const result = quotesManager.listQuotes(filters);
+    const result = quotesManager.listQuotes(filters, req.user);
     res.json({ success: true, ...result });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao carregar orçamentos: ' + err.message });
@@ -876,7 +882,7 @@ app.get('/api/quotes', requireAuthApi, (req, res) => {
 // Obter orçamento por ID ou Código
 app.get('/api/quotes/:id', requireAuthApi, (req, res) => {
   try {
-    const quote = quotesManager.getQuoteById(req.params.id);
+    const quote = quotesManager.getQuoteById(req.params.id, req.user);
     if (!quote) return res.status(404).json({ error: 'Orçamento não encontrado.' });
     res.json({ success: true, quote });
   } catch (err) {
@@ -910,7 +916,7 @@ app.patch('/api/quotes/:id/status', requireAuthApi, (req, res) => {
   try {
     const { status } = req.body || {};
     if (!status) return res.status(400).json({ error: 'Status obrigatório.' });
-    const updated = quotesManager.updateQuoteStatus(req.params.id, status);
+    const updated = quotesManager.updateQuoteStatus(req.params.id, status, req.user);
     if (!updated) return res.status(404).json({ error: 'Orçamento não encontrado.' });
     res.json({ success: true, quote: updated });
   } catch (err) {
@@ -932,7 +938,7 @@ app.post('/api/quotes/:id/duplicate', requireAuthApi, (req, res) => {
 // Excluir orçamento
 app.delete('/api/quotes/:id', requireAuthApi, (req, res) => {
   try {
-    const ok = quotesManager.deleteQuote(req.params.id);
+    const ok = quotesManager.deleteQuote(req.params.id, req.user);
     if (!ok) return res.status(404).json({ error: 'Orçamento não encontrado para exclusão.' });
     res.json({ success: true, message: 'Orçamento excluído com sucesso.' });
   } catch (err) {
@@ -941,23 +947,26 @@ app.delete('/api/quotes/:id', requireAuthApi, (req, res) => {
 });
 
 
-app.put('/api/admin/lojistas/:id/password', requireAdminApi, async (req, res) => {
+app.put('/api/admin/lojistas/:id/password', requireAdminApi, asyncHandler(async (req, res) => {
   try {
     const result = await auth.updateLojistaPassword(req.params.id, req.body.newPassword);
+    localIo.to(`user_${req.params.id}`).emit('session_terminated', { reason: 'Sua senha foi alterada. Faça login novamente.' });
+    localIo.in(`user_${req.params.id}`).disconnectSockets(true);
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
+}));
 
-app.delete('/api/admin/lojistas/:id', requireAdminApi, async (req, res) => {
+app.delete('/api/admin/lojistas/:id', requireAdminApi, asyncHandler(async (req, res) => {
   try {
     const result = await auth.deleteLojista(req.params.id);
+    localIo.in(`user_${req.params.id}`).disconnectSockets(true);
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
+}));
 
 function isCpoProduct(p) {
   if (!p) return false;
@@ -1084,7 +1093,7 @@ function saveMargins(marginsData) {
     if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
     fs.writeFileSync(MARGINS_FILE_PATH, JSON.stringify(marginsData, null, 2), 'utf-8');
     invalidateProductsCache();
-    localIo.emit('margins_updated', marginsData);
+    localIo.emit('margins_updated');
     return true;
   } catch (err) {
     console.error('[Margens] Erro ao salvar margens:', err.message);
@@ -1143,7 +1152,7 @@ function saveCardRates(ratesData) {
     const dataDir = path.join(__dirname, 'data');
     if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
     fs.writeFileSync(CARD_RATES_FILE_PATH, JSON.stringify(ratesData, null, 2), 'utf-8');
-    localIo.emit('card_rates_updated', ratesData);
+    localIo.emit('card_rates_updated');
     return true;
   } catch (err) {
     console.error('[Taxas Maquininha] Erro ao salvar taxas:', err.message);
@@ -1152,7 +1161,7 @@ function saveCardRates(ratesData) {
 }
 
 // Rota de margens ativas (se logado como lojista, retorna as margens DELE; se admin, globais; se NÃO LOGADO, esconde tudo)
-app.get('/api/margins', async (req, res) => {
+app.get('/api/margins', asyncHandler(async (req, res) => {
   const token = auth.getSessionTokenFromRequest(req);
   if (token) {
     const user = await auth.findUserBySessionToken(token);
@@ -1165,10 +1174,10 @@ app.get('/api/margins', async (req, res) => {
   }
   // Visitante não autenticado: esconde completamente as margens secretas
   res.json({ success: true, margins: { categories: {}, products: {} }, isShielded: true });
-});
+}));
 
 // Endpoint para o lojista ou admin atualizar suas próprias margens (incluindo exceção por modelo)
-app.post('/api/margins/custom', async (req, res) => {
+app.post('/api/margins/custom', asyncHandler(async (req, res) => {
   const token = auth.getSessionTokenFromRequest(req);
   if (!token) return res.status(401).json({ error: 'Faça login para salvar margens.' });
   const user = await auth.findUserBySessionToken(token);
@@ -1224,19 +1233,19 @@ app.post('/api/margins/custom', async (req, res) => {
 
   await auth.updateLojistaMargins(user.id, newCustom);
   res.json({ success: true, margins: newCustom });
-});
+}));
 
 // Rotas protegidas de Admin para gerenciar margens globais
-app.get('/api/admin/margins', async (req, res) => {
+app.get('/api/admin/margins', asyncHandler(async (req, res) => {
   const token = auth.getSessionTokenFromRequest(req);
   const user = await auth.findUserBySessionToken(token);
   if (!user || user.role !== 'admin') {
     return res.status(403).json({ error: 'Acesso negado' });
   }
   res.json({ success: true, margins: loadMargins() });
-});
+}));
 
-app.post('/api/admin/margins', async (req, res) => {
+app.post('/api/admin/margins', asyncHandler(async (req, res) => {
   const token = auth.getSessionTokenFromRequest(req);
   const user = await auth.findUserBySessionToken(token);
   if (!user || user.role !== 'admin') {
@@ -1256,10 +1265,10 @@ app.post('/api/admin/margins', async (req, res) => {
   } else {
     res.status(500).json({ error: 'Falha ao salvar margens de lucro' });
   }
-});
+}));
 
 // Rota de taxas da maquininha ativas (se logado como lojista, retorna as taxas DELE; caso contrário, globais)
-app.get('/api/card-rates', async (req, res) => {
+app.get('/api/card-rates', asyncHandler(async (req, res) => {
   const token = auth.getSessionTokenFromRequest(req);
   if (token) {
     const user = await auth.findUserBySessionToken(token);
@@ -1268,10 +1277,10 @@ app.get('/api/card-rates', async (req, res) => {
     }
   }
   res.json({ success: true, rates: loadCardRates(), isLojistaCustom: false });
-});
+}));
 
 // Endpoint para lojista salvar suas próprias taxas de maquininha
-app.post('/api/card-rates/custom', async (req, res) => {
+app.post('/api/card-rates/custom', asyncHandler(async (req, res) => {
   const token = auth.getSessionTokenFromRequest(req);
   if (!token) return res.status(401).json({ error: 'Faça login para salvar taxas.' });
   const user = await auth.findUserBySessionToken(token);
@@ -1307,19 +1316,19 @@ app.post('/api/card-rates/custom', async (req, res) => {
 
   await auth.updateLojistaCardRates(user.id, updated);
   res.json({ success: true, rates: updated });
-});
+}));
 
 // Rotas de Admin para taxas da maquininha
-app.get('/api/admin/card-rates', async (req, res) => {
+app.get('/api/admin/card-rates', asyncHandler(async (req, res) => {
   const token = auth.getSessionTokenFromRequest(req);
   const user = await auth.findUserBySessionToken(token);
   if (!user || user.role !== 'admin') {
     return res.status(403).json({ error: 'Acesso negado' });
   }
   res.json({ success: true, rates: loadCardRates() });
-});
+}));
 
-app.post('/api/admin/card-rates', async (req, res) => {
+app.post('/api/admin/card-rates', asyncHandler(async (req, res) => {
   const token = auth.getSessionTokenFromRequest(req);
   const user = await auth.findUserBySessionToken(token);
   if (!user || user.role !== 'admin') {
@@ -1340,7 +1349,7 @@ app.post('/api/admin/card-rates', async (req, res) => {
   } else {
     res.status(500).json({ error: 'Falha ao salvar taxas da maquininha' });
   }
-});
+}));
 
 // =========================================================================
 // BLINDAGEM DE SEGURANÇA E DADOS (ANTI-INSPEÇÃO PARA VISITANTES)
@@ -1407,7 +1416,7 @@ function formatProductForClient(p, isAuthed = false, marginsData = null) {
 
 // --- ROTAS DE PRODUTOS (ACESSO DIRETO) ---
 
-app.get(['/api/products', '/api/v1/vitrine', '/api/vitrine'], async (req, res) => {
+app.get(['/api/products', '/api/v1/vitrine', '/api/vitrine'], asyncHandler(async (req, res) => {
   const targetDate = req.query.date;
   const token = auth.getSessionTokenFromRequest(req);
   const user = token ? await auth.findUserBySessionToken(token) : null;
@@ -1481,9 +1490,9 @@ app.get(['/api/products', '/api/v1/vitrine', '/api/vitrine'], async (req, res) =
 
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.send(payload);
-});
+}));
 
-app.get('/api/price-history/:id', requireAuthApi, async (req, res) => {
+app.get('/api/price-history/:id', requireAuthApi, asyncHandler(async (req, res) => {
   const { id } = req.params;
   try {
     const resp = await axios.get(`${PXT_BASE_URL}/products/${id}/price-history`, {
@@ -1493,7 +1502,7 @@ app.get('/api/price-history/:id', requireAuthApi, async (req, res) => {
   } catch (err) {
     res.status(err.response?.status || 500).json({ error: 'Falha ao buscar histórico de preço' });
   }
-});
+}));
 
 app.get('/api/stats', (req, res) => {
   const uniqueSuppliers = new Set(Array.from(productsMap.values()).map(p => p.supplier?.name).filter(Boolean)).size;
@@ -1507,17 +1516,17 @@ app.get('/api/stats', (req, res) => {
   });
 });
 
-app.post('/api/sync', requireAdminApi, async (req, res) => {
+app.post('/api/sync', requireAdminApi, asyncHandler(async (req, res) => {
   try {
     await fetchProducts();
     res.json({ success: true, count: productsMap.size });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+}));
 
 // Endpoint seguro para o sincronizador local enviar catálogo novo diretamente
-app.post('/api/admin/push-catalog', async (req, res) => {
+app.post('/api/admin/push-catalog', asyncHandler(async (req, res) => {
   const syncSecret = process.env.SYNC_SECRET || 'apple_mundo_pxt_secret_sync_2026';
   const authHeader = req.headers['x-sync-secret'];
   
@@ -1561,7 +1570,7 @@ app.post('/api/admin/push-catalog', async (req, res) => {
 
   console.log(`[Push Sync] ✅ Catálogo atualizado com sucesso! ${productsMap.size} produtos recebidos. Data: ${latestDate}`);
   res.json({ success: true, count: productsMap.size, date: latestDate });
-});
+}));
 
 // Local client socket connection com Anti-Pirataria e segregação de salas
 localIo.on('connection', async (clientSocket) => {

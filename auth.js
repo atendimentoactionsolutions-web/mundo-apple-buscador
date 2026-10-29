@@ -57,10 +57,12 @@ function getLocalUsers() {
       return defaultAdmin;
     }
     const raw = fs.readFileSync(LOCAL_USERS_FILE, 'utf-8');
-    return JSON.parse(raw);
+    const users = JSON.parse(raw);
+    if (!Array.isArray(users)) throw new Error('Formato inválido de users.json.');
+    return users;
   } catch (err) {
     console.error('[Auth] Erro ao ler users.json local:', err.message);
-    return [];
+    throw new Error('Não foi possível ler os usuários. Os dados existentes foram preservados.', { cause: err });
   }
 }
 
@@ -70,9 +72,12 @@ function saveLocalUsers(users) {
     if (!fs.existsSync(LOCAL_DATA_DIR)) {
       fs.mkdirSync(LOCAL_DATA_DIR, { recursive: true });
     }
-    fs.writeFileSync(LOCAL_USERS_FILE, JSON.stringify(users, null, 2));
+    const temporary = path.join(LOCAL_DATA_DIR, `users_${crypto.randomUUID()}.tmp`);
+    fs.writeFileSync(temporary, JSON.stringify(users, null, 2));
+    fs.renameSync(temporary, LOCAL_USERS_FILE);
   } catch (err) {
     console.error('[Auth] Erro ao salvar users.json local:', err.message);
+    throw err;
   }
 }
 
@@ -118,7 +123,7 @@ async function initAuth() {
 
 // Busca usuário por username
 async function findUserByUsername(username) {
-  const cleanUser = (username || '').trim().toLowerCase();
+  const cleanUser = typeof username === 'string' ? username.trim().toLowerCase() : '';
   const users = getLocalUsers();
   return users.find(u => (u.username || '').toLowerCase() === cleanUser) || null;
 }
@@ -133,6 +138,10 @@ async function findUserBySessionToken(token) {
     return false;
   });
   if (!user) return null;
+  if (user.role !== 'admin') {
+    if (user.status === 'blocked') return null;
+    if (user.expires_at && !(new Date(user.expires_at).getTime() > Date.now())) return null;
+  }
 
   // Garante que o administrador sempre tem status ativo e acesso vitalício ilimitado
   if (user.role === 'admin') {
@@ -144,6 +153,9 @@ async function findUserBySessionToken(token) {
 
 // Login de usuário
 async function loginUser(username, password, clientIp, ioInstance) {
+  if (typeof username !== 'string' || typeof password !== 'string' || !username.trim() || !password) {
+    return { success: false, error: 'Informe o usuário e a senha.' };
+  }
   const user = await findUserByUsername(username);
   if (!user) {
     return { success: false, error: 'Usuário ou senha incorretos.' };
@@ -185,6 +197,7 @@ async function loginUser(username, password, clientIp, ioInstance) {
       ioInstance.to(`user_${user.id}`).emit('session_terminated', {
         reason: 'Sua conta foi acessada em outro dispositivo ou navegador. O sistema permite apenas 1 tela ativa por assinatura.'
       });
+      ioInstance.in(`user_${user.id}`).disconnectSockets(true);
     }
   }
 
@@ -269,7 +282,7 @@ function formatLojistaResponse(u) {
     const exp = new Date(u.expires_at);
     const diffMs = exp - now;
     daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    if (daysRemaining < 0) {
+    if (!(exp.getTime() > now.getTime())) {
       daysRemaining = 0;
       isExpired = true;
     }
@@ -300,10 +313,11 @@ async function listLojistas() {
 
 // Cadastra um novo lojista
 async function createLojista({ storeName, ownerName, whatsapp, username, password, days = 30 }) {
-  const cleanUser = (username || '').trim().toLowerCase();
-  if (!cleanUser || !password || !storeName) {
+  const cleanUser = typeof username === 'string' ? username.trim().toLowerCase() : '';
+  if (!cleanUser || typeof password !== 'string' || !password || typeof storeName !== 'string' || !storeName.trim()) {
     throw new Error('Preencha os campos obrigatórios: Nome da Loja, Usuário e Senha.');
   }
+  if (!Number.isInteger(Number(days)) || Number(days) < 0) throw new Error('Informe uma quantidade válida de dias.');
 
   const existing = await findUserByUsername(cleanUser);
   if (existing) {
@@ -319,7 +333,7 @@ async function createLojista({ storeName, ownerName, whatsapp, username, passwor
   }
 
   const newLojista = {
-    id: 'lojista_' + Date.now(),
+    id: 'lojista_' + crypto.randomUUID(),
     store_name: storeName.trim(),
     owner_name: (ownerName || '').trim(),
     whatsapp: (whatsapp || '').trim(),
@@ -387,6 +401,7 @@ async function updateLojistaCardRates(id, customCardRates) {
 
 // Renova a assinatura (+30 dias ou período especificado)
 async function renewLojista(id, daysToAdd = 30) {
+  if (!Number.isInteger(Number(daysToAdd)) || Number(daysToAdd) <= 0) throw new Error('Informe um número positivo de dias para renovar.');
   const users = getLocalUsers();
   const idx = users.findIndex(u => u.id === id);
   if (idx === -1) throw new Error('Lojista não encontrado.');
@@ -462,7 +477,7 @@ async function deleteLojista(id) {
 function getSessionTokenFromRequest(req) {
   const cookieHeader = req.headers.cookie;
   if (!cookieHeader) return null;
-  const match = cookieHeader.match(/fornecedor_session=([^;]+)/);
+  const match = cookieHeader.match(/(?:^|;\s*)fornecedor_session=([^;]+)/);
   if (match) return match[1];
   return null;
 }
