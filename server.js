@@ -9,6 +9,7 @@ const fs = require('fs');
 const auth = require('./auth');
 const quotesManager = require('./quotes');
 const PricingCore = require('./public/js/pricing-core.js');
+const QuoteCore = require('./public/js/quote-core.js');
 
 const PXT_BASE_URL = 'https://backend-api.buscadorpxt.com.br';
 const USER_EMAIL = 'felippemiranda1991@gmail.com';
@@ -1093,10 +1094,19 @@ function loadMargins() {
 }
 
 function saveMargins(marginsData) {
+  for (const group of [marginsData.categories || {}, marginsData.products || {}]) {
+    for (const value of Object.values(group)) {
+      if (!Number.isFinite(Number(value)) || Number(value) < 0) {
+        const error = new Error('Margem inválida.'); error.status = 400; throw error;
+      }
+    }
+  }
   try {
     const dataDir = path.join(__dirname, 'data');
     if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-    fs.writeFileSync(MARGINS_FILE_PATH, JSON.stringify(marginsData, null, 2), 'utf-8');
+    const temporary = `${MARGINS_FILE_PATH}.tmp`;
+    fs.writeFileSync(temporary, JSON.stringify(marginsData, null, 2), 'utf-8');
+    fs.renameSync(temporary, MARGINS_FILE_PATH);
     invalidateProductsCache();
     localIo.emit('margins_updated');
     return true;
@@ -1153,15 +1163,27 @@ function loadCardRates() {
 }
 
 function saveCardRates(ratesData) {
+  validateCardRates(ratesData);
   try {
     const dataDir = path.join(__dirname, 'data');
     if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-    fs.writeFileSync(CARD_RATES_FILE_PATH, JSON.stringify(ratesData, null, 2), 'utf-8');
+    const temporary = `${CARD_RATES_FILE_PATH}.tmp`;
+    fs.writeFileSync(temporary, JSON.stringify(ratesData, null, 2), 'utf-8');
+    fs.renameSync(temporary, CARD_RATES_FILE_PATH);
     localIo.emit('card_rates_updated');
     return true;
   } catch (err) {
     console.error('[Taxas Maquininha] Erro ao salvar taxas:', err.message);
     return false;
+  }
+}
+
+function validateCardRates(rates) {
+  try {
+    for (let count = 1; count <= 18; count++) QuoteCore.installment(100, 0, count, rates);
+  } catch (error) {
+    error.status = 400;
+    throw error;
   }
 }
 
@@ -1296,7 +1318,7 @@ app.post('/api/card-rates/custom', asyncHandler(async (req, res) => {
   if (user.role === 'admin') {
     const current = loadCardRates();
     const updated = {
-      baseRate: typeof baseRate === 'number' ? baseRate : (parseFloat(baseRate) || current.baseRate),
+      baseRate: baseRate === undefined ? current.baseRate : Number(baseRate),
       calculationMode: calculationMode || current.calculationMode,
       installmentRates: installmentRates ? { ...current.installmentRates, ...installmentRates } : current.installmentRates
     };
@@ -1344,7 +1366,7 @@ app.post('/api/admin/card-rates', asyncHandler(async (req, res) => {
   const current = loadCardRates();
 
   const updated = {
-    baseRate: typeof baseRate === 'number' ? baseRate : (parseFloat(baseRate) || current.baseRate),
+    baseRate: baseRate === undefined ? current.baseRate : Number(baseRate),
     calculationMode: calculationMode || current.calculationMode,
     installmentRates: installmentRates ? { ...current.installmentRates, ...installmentRates } : current.installmentRates
   };

@@ -379,6 +379,9 @@ async function createLojista({ storeName, ownerName, whatsapp, username, passwor
 
 // Atualiza margens personalizadas do lojista
 async function updateLojistaMargins(id, customMargins) {
+  for (const group of [customMargins.categories || {}, customMargins.products || {}]) {
+    if (Object.values(group).some(value => !Number.isFinite(Number(value)) || Number(value) < 0)) throw new Error('Margem inválida.');
+  }
   const users = getLocalUsers();
   const idx = users.findIndex(u => u.id === id);
   if (idx !== -1) {
@@ -390,6 +393,8 @@ async function updateLojistaMargins(id, customMargins) {
 
 // Atualiza taxas de maquininha personalizadas do lojista
 async function updateLojistaCardRates(id, customCardRates) {
+  const QuoteCore = require('./public/js/quote-core');
+  for (let count = 1; count <= 18; count++) QuoteCore.installment(100, 0, count, customCardRates);
   const users = getLocalUsers();
   const idx = users.findIndex(u => u.id === id);
   if (idx !== -1) {

@@ -263,6 +263,7 @@ async function clearCachedCatalog() {
 // Inicializa cache em memória instantaneamente antes da rede
 async function restoreCachedCatalog() {
   const cached = await getCachedCatalog();
+  if (cached && cached.isShielded !== !currentUser) return;
   if (cached && allProducts.length === 0) {
     const list = Array.isArray(cached) ? cached : (cached.products || []);
     if (list.length > 0) {
@@ -3205,35 +3206,7 @@ let currentSimData = {
 };
 
 function calculateInstallment(cashPrice, entryAmount, installmentCount) {
-  const baseRate = typeof cardRates.baseRate === 'number' ? cardRates.baseRate : 2.69;
-  const parcelRate = cardRates.installmentRates && cardRates.installmentRates[String(installmentCount)] !== undefined 
-    ? Number(cardRates.installmentRates[String(installmentCount)]) 
-    : (installmentCount * 0.75);
-  const totalRate = baseRate + parcelRate;
-  
-  const balanceToFinance = Math.max(0, cashPrice - (Number(entryAmount) || 0));
-  if (balanceToFinance <= 0) {
-    return {
-      installmentCount,
-      totalRate,
-      totalAmount: 0,
-      monthlyAmount: 0,
-      balanceToFinance: 0
-    };
-  }
-
-  // Modo Fator (Repassar taxa ao cliente para receber valor líquido à vista)
-  const rateDecimal = totalRate / 100;
-  const totalAmount = rateDecimal < 1 ? (balanceToFinance / (1 - rateDecimal)) : (balanceToFinance * (1 + rateDecimal));
-  const monthlyAmount = totalAmount / installmentCount;
-
-  return {
-    installmentCount,
-    totalRate,
-    totalAmount,
-    monthlyAmount,
-    balanceToFinance
-  };
+  return QuoteCore.installment(cashPrice, entryAmount, installmentCount, cardRates);
 }
 
 window.openFreeCalculator = function(initialAmount = 0) {
@@ -4787,7 +4760,7 @@ async function initializeApp() {
 
 // Sincronizacao / Auto-refresh periodico a cada 1 minuto (60 segundos)
 setInterval(() => {
-  loadProducts();
+  checkAuthSession().then(() => loadProducts());
 }, 60 * 1000);
 
 // =========================================================================
@@ -4810,6 +4783,11 @@ async function checkAuthSession() {
     const mobileDrawerExportAllBtn = document.getElementById('mobileDrawerExportAllBtn');
 
     if (res.status === 401 || res.status === 403) {
+      if (currentUser) {
+        allProducts = [];
+        catalogRequestId++;
+        window.IS_CATALOG_SHIELDED = true;
+      }
       currentUser = null;
       updateCatalogPresentation();
       localStorage.removeItem('logged_username');
