@@ -3380,6 +3380,130 @@ window.handleSimColorChange = function(select) {
   recalculateSimulator();
 };
 
+function getSimProductKey(model, storage, ram, color) {
+  return [model, storage, ram, color].map(value => String(value || '').trim().toUpperCase().replace(/\s+/g, '')).join('__');
+}
+
+function getSimCatalogOptions() {
+  const variants = new Map();
+  allProducts.forEach(product => {
+    if (isDisallowedProduct(product) || !(Number(product.price) > 0)) return;
+    const rawModel = cleanModelName(product.name);
+    const isSemi = isSeminovoProduct(product);
+    const model = isSemi ? `${rawModel} (Seminovo)` : rawModel;
+    const storage = (product.storage || '').trim();
+    const ram = getMacBookRam(product);
+    const color = (product.color || 'Padrão').trim();
+    const key = getSimProductKey(model, storage, ram, color);
+    if (!variants.has(key)) variants.set(key, { key, model, rawModel, storage, ram, color, isSemi, category: product.category, offers: [] });
+    variants.get(key).offers.push(product);
+  });
+  return Array.from(variants.values()).map(variant => ({
+    key: variant.key, model: variant.model, storage: variant.storage, ram: variant.ram,
+    color: variant.color, isSemi: variant.isSemi,
+    unitPrice: applyDFU(calculateSupplierReferencePrice(variant.offers, variant.isSemi), variant.category, variant.rawModel)
+      + getProductMargin(variant.rawModel, variant.category, variant.isSemi)
+  })).sort((a, b) => a.model.localeCompare(b.model, 'pt-BR') || a.unitPrice - b.unitPrice);
+}
+
+window.toggleSimProductPicker = function() {
+  const picker = document.getElementById('simProductPicker');
+  if (!picker) return;
+  picker.hidden = !picker.hidden;
+  document.getElementById('simAddProductButton')?.setAttribute('aria-expanded', String(!picker.hidden));
+  if (!picker.hidden) {
+    const input = document.getElementById('simProductSearch');
+    searchSimProducts(input?.value || '');
+    input?.focus();
+  }
+};
+
+window.searchSimProducts = function(query) {
+  const results = document.getElementById('simProductResults');
+  if (!results) return;
+  const normalize = value => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const tokens = normalize(query).trim().split(/\s+/).filter(Boolean);
+  const options = currentSimData.catalogOptions || [];
+  const matches = options.map((option, index) => ({ option, index }))
+    .filter(({ option }) => tokens.every(token => normalize(`${option.model} ${option.storage} ${option.ram} ${option.color}`).includes(token)));
+  if (!matches.length) {
+    results.innerHTML = '<p class="sim-product-empty">Nenhum produto encontrado. Tente outro modelo, capacidade ou cor.</p>';
+    return;
+  }
+  results.innerHTML = matches.slice(0, 20).map(({ option, index }) => `
+    <button type="button" class="sim-product-result" onclick="addSimProduct(${index})" aria-label="${escapeHtml(`Adicionar ${option.model}, ${option.storage}, ${option.color}, ${formatBRL(option.unitPrice)}`)}">
+      <span><strong>${escapeHtml(option.model)}</strong><small>${escapeHtml([option.storage, option.ram ? `${option.ram} RAM` : '', option.color].filter(Boolean).join(' · '))}</small></span>
+      <span class="sim-product-result-price">${formatBRL(option.unitPrice)} <span aria-hidden="true">＋</span></span>
+    </button>
+  `).join('') + (matches.length > 20 ? '<p class="sim-product-empty">Digite o modelo, a capacidade ou a cor para refinar a busca.</p>' : '');
+};
+
+window.addSimProduct = function(index) {
+  const option = currentSimData.catalogOptions?.[index];
+  if (!option) return;
+  const primaryKey = getSimProductKey(currentSimData.model, currentSimData.storage, currentSimData.ram, currentSimData.color);
+  if (option.key === primaryKey) {
+    handleSimQtyStep(1);
+  } else {
+    const existing = currentSimData.additionalItems.find(item => item.key === option.key);
+    if (existing) existing.quantity = Math.min(99, existing.quantity + 1);
+    else currentSimData.additionalItems.push({ ...option, quantity: 1 });
+  }
+  renderSimAdditionalItems();
+  recalculateSimulator();
+};
+
+function renderSimAdditionalItems() {
+  const container = document.getElementById('simAdditionalItems');
+  if (!container) return;
+  container.innerHTML = (currentSimData.additionalItems || []).map((item, index) => `
+    <article class="sim-added-product">
+      <div class="sim-added-product-info">
+        <strong>${escapeHtml(item.model)}</strong>
+        <span>${escapeHtml([item.storage, item.ram ? `${item.ram} RAM` : '', item.color].filter(Boolean).join(' · '))}</span>
+      </div>
+      <div class="sim-added-product-controls">
+        <label>Valor unitário${currentUser ? `<span class="sim-added-money"><span>R$</span><input type="text" inputmode="decimal" value="${formatCurrencyInput(item.unitPrice)}" aria-label="${escapeHtml(`Valor unitário de ${item.model}`)}" onfocus="this.select()" oninput="updateSimProductPrice(${index}, this)"></span>` : `<strong>${formatBRL(item.unitPrice)}</strong>`}</label>
+        <label>Qtd<input type="number" min="1" max="99" value="${item.quantity}" aria-label="${escapeHtml(`Quantidade de ${item.model}`)}" onchange="updateSimProductQuantity(${index}, this)"></label>
+        <div class="sim-added-subtotal"><span>Subtotal</span><strong id="simAdditionalSubtotal-${index}">${formatBRL(item.unitPrice * item.quantity)}</strong></div>
+        <button type="button" class="sim-remove-product" onclick="removeSimProduct(${index})" aria-label="${escapeHtml(`Remover ${item.model}`)}">✕</button>
+      </div>
+    </article>
+  `).join('');
+}
+
+window.updateSimProductQuantity = function(index, input) {
+  const item = currentSimData.additionalItems?.[index];
+  if (!item) return;
+  item.quantity = Math.min(99, Math.max(1, parseInt(input.value) || 1));
+  input.value = item.quantity;
+  const subtotal = document.getElementById(`simAdditionalSubtotal-${index}`);
+  if (subtotal) subtotal.textContent = formatBRL(item.unitPrice * item.quantity);
+  recalculateSimulator();
+};
+
+window.updateSimProductPrice = function(index, input) {
+  const item = currentSimData.additionalItems?.[index];
+  if (!currentUser || !item) return;
+  const price = parseCurrencyInput(input.value);
+  if (!Number.isFinite(price) || price < 0 || price > 1e10 || /^\s*-/.test(input.value)) {
+    input.value = formatCurrencyInput(item.unitPrice);
+    return;
+  }
+  item.unitPrice = price;
+  input.value = formatCurrencyInput(price);
+  const subtotal = document.getElementById(`simAdditionalSubtotal-${index}`);
+  if (subtotal) subtotal.textContent = formatBRL(item.unitPrice * item.quantity);
+  recalculateSimulator();
+};
+
+window.removeSimProduct = function(index) {
+  if (!Number.isInteger(index) || !currentSimData.additionalItems?.[index]) return;
+  currentSimData.additionalItems.splice(index, 1);
+  renderSimAdditionalItems();
+  recalculateSimulator();
+};
+
 window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, cashPrice, encodedRam) {
   const model = decodeURIComponent(encodedModel || '');
   const storage = decodeURIComponent(encodedStorage || '');
@@ -3392,6 +3516,8 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
     storage,
     color,
     colorOptions: getSimulatorColorOptions(model, storage, ram, color, baseUnitPrice),
+    additionalItems: [],
+    catalogOptions: getSimCatalogOptions(),
     unitPrice: baseUnitPrice,
     quantity: 1,
     discountType: 'FIXED', // 'FIXED' (R$) ou 'PERCENT' (%)
@@ -3447,6 +3573,23 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
         </div>
       </div>
 
+      <section class="sim-add-products" aria-label="Adicionar produtos à cotação">
+        <div class="sim-add-products-heading">
+          <span>Monte sua cotação</span>
+          <button type="button" id="simAddProductButton" class="sim-add-product-button" onclick="toggleSimProductPicker()" aria-expanded="false" aria-controls="simProductPicker">＋ Adicionar outro produto</button>
+        </div>
+        <div id="simProductPicker" class="sim-product-picker" hidden>
+          <label for="simProductSearch">Buscar no catálogo</label>
+          <input type="search" id="simProductSearch" placeholder="Busque modelo, capacidade ou cor…" oninput="searchSimProducts(this.value)" autocomplete="off">
+          <div id="simProductResults" class="sim-product-results" aria-live="polite"></div>
+        </div>
+        <div id="simAdditionalItems" class="sim-additional-items"></div>
+        <div id="simBundleSummary" class="sim-bundle-summary" hidden>
+          <span>Total dos produtos <strong id="simBundleGross"></strong></span>
+          <small>O desconto, a entrada e a troca são aplicados ao total da cotação.</small>
+        </div>
+      </section>
+
       <!-- Integrated Financial Controls -->
       <div class="sim-exec-controls" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
         <div class="sim-exec-field">
@@ -3475,7 +3618,7 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
         <div class="sim-exec-field">
           <label class="sim-exec-label">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
-            Desconto
+            Desconto total
           </label>
           <div class="sim-exec-input-wrap" style="padding: 0; overflow: hidden;">
             <select id="simDiscountType" onchange="handleSimDiscountTypeChange(this)" style="border: none; background: rgba(0,0,0,0.04); font-size: 0.8rem; font-weight: 800; padding: 0 8px; height: 100%; border-right: 1.5px solid var(--border-color); color: var(--text-primary); outline: none; cursor: pointer;">
