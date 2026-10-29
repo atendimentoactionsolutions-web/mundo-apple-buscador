@@ -1399,6 +1399,7 @@ function getServerProductMargin(rawModel, category, isSemi, marginsData) {
 function formatProductForClient(p, isAuthed = false, marginsData = null) {
   if (!p) return null;
   if (isDisallowedProduct(p)) return null;
+  const isSemi = PricingCore.isSeminovoProduct(p);
   
   if (isAuthed) {
     return {
@@ -1410,8 +1411,8 @@ function formatProductForClient(p, isAuthed = false, marginsData = null) {
       storage: p.storage,
       color: p.color,
       region: p.region,
-      isSeminovo: p.isSeminovo || false,
-      condition: p.condition || (p.isSeminovo ? 'SEMINOVO' : 'NOVO'),
+      isSeminovo: isSemi,
+      condition: p.condition || (isSemi ? 'SEMINOVO' : 'NOVO'),
       supplier: p.supplier ? {
         name: p.supplier.name,
         whatsappNumber: p.supplier.whatsappNumber,
@@ -1424,7 +1425,7 @@ function formatProductForClient(p, isAuthed = false, marginsData = null) {
 
   // Visitante não autenticado: TOTALMENTE BLINDADO!
   // Preço de venda final da loja com DFU e Margem de Lucro incorporados no servidor via PricingCore
-  const retailPrice = PricingCore.calculateRetailPrice(p.price, p.category, p.name, p.isSeminovo, marginsData || loadMargins());
+  const retailPrice = PricingCore.calculateRetailPrice(p.price, p.category, p.name, isSemi, marginsData || loadMargins());
 
   return {
     id: p.id,
@@ -1435,8 +1436,8 @@ function formatProductForClient(p, isAuthed = false, marginsData = null) {
     storage: p.storage,
     color: p.color,
     region: p.region,
-    isSeminovo: p.isSeminovo || false,
-    condition: p.condition || (p.isSeminovo ? 'SEMINOVO' : 'NOVO'),
+    isSeminovo: isSemi,
+    condition: p.condition || (isSemi ? 'SEMINOVO' : 'NOVO'),
     supplier: null // BLINDADO: Nenhum dado de fornecedor exposto!
   };
 }

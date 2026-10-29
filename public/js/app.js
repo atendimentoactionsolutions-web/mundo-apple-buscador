@@ -2106,7 +2106,7 @@ function renderStoreFront() {
       <article class="mock-card">
         <div class="mock-card-header">
           <div class="mock-card-title-row">
-            <h3 class="mock-card-title" title="${card.displayName}">${formatDisplayModelName(card.displayName)}</h3>
+            <h3 class="mock-card-title" title="${escapeHtml(card.displayName)}">${escapeHtml(formatDisplayModelName(card.displayName))}</h3>
             <button class="mock-card-ver-btn" onclick="openClientShowcaseModal('${cardKey}')" title="Ver detalhes do modelo">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
@@ -3416,18 +3416,18 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
     <div class="sim-exec-container">
       <!-- Executive Header -->
       <div class="sim-exec-header">
-        <div class="sim-exec-title">${currentSimData.model}</div>
+        <div class="sim-exec-title">${escapeHtml(currentSimData.model)}</div>
         <div class="sim-exec-meta">
           ${storage ? `
             <span class="sim-exec-meta-item">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-              <span>${storage}</span>
+              <span>${escapeHtml(storage)}</span>
             </span>
           ` : ''}
           ${ram ? `
             <span class="sim-exec-meta-item">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/></svg>
-              <span>${ram} RAM</span>
+              <span>${escapeHtml(ram)} RAM</span>
             </span>
           ` : ''}
           ${currentUser && currentSimData.colorOptions.length ? `
@@ -3441,7 +3441,7 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
           ` : color && color.toUpperCase() !== 'PADRÃO' ? `
             <span class="sim-exec-meta-item">
               <span style="background-color: ${colHex}; width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 1px solid rgba(255,255,255,0.3);"></span>
-              <span>Cor: ${color}</span>
+              <span>Cor: ${escapeHtml(color)}</span>
             </span>
           ` : ''}
         </div>

@@ -247,6 +247,10 @@
       if (margins.products[cleanNameUpper] !== undefined) return Number(margins.products[cleanNameUpper]) || 0;
     }
 
+    if (isSemi) {
+      return (margins.categories && margins.categories.SEMINOVOS !== undefined) ? Number(margins.categories.SEMINOVOS) : 600;
+    }
+
     // 2. Se for Linha iPhone Duo, aplica a margem de R$ 2.300
     if (nameUpper.includes('IPHONE DUO') || nameUpper.includes('DUO')) {
       return (margins.categories && margins.categories.IPH_DUO !== undefined) ? Number(margins.categories.IPH_DUO) : 2300;
