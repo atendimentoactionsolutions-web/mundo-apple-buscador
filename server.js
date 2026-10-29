@@ -1036,43 +1036,33 @@ function saveCatalogSnapshot(options = {}) {
 }
 
 function getHistoricalCatalog(dateParam) {
+  const latest = !dateParam || dateParam === 'latest';
   try {
     const dataDir = path.join(__dirname, 'data');
-    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-
-    const files = fs.readdirSync(dataDir).filter(f => f.startsWith('snapshot_') && f.endsWith('.json'));
-
-    // Tenta encontrar snapshot de data específica
-    if (dateParam && dateParam !== 'yesterday') {
-      const match = files.find(f => f.includes(dateParam));
-      if (match) {
-        const content = fs.readFileSync(path.join(dataDir, match), 'utf-8');
-        return JSON.parse(content);
-      }
+    if (!fs.existsSync(dataDir)) return [];
+    let target = dateParam;
+    if (target === 'yesterday') {
+      const date = new Date();
+      date.setDate(date.getDate() - 1);
+      target = date.toISOString().slice(0, 10);
+    } else if (/^\d{2}-\d{2}$/.test(target || '')) {
+      const [day, month] = target.split('-');
+      target = `${new Date().getFullYear()}-${month}-${day}`;
     }
-
-    // Se for 'yesterday', busca o snapshot anterior ou snapshot_latest / cached_catalog
-    const snapshotFiles = files.filter(f => f !== 'snapshot_latest.json').sort().reverse();
-    if (snapshotFiles.length > 1) {
-      const yesterdayContent = fs.readFileSync(path.join(dataDir, snapshotFiles[1]), 'utf-8');
-      return JSON.parse(yesterdayContent);
+    const files = fs.readdirSync(dataDir).filter(name => /^snapshot_\d{4}-\d{2}-\d{2}\.json$/.test(name))
+      .sort().reverse();
+    const candidates = latest ? ['snapshot_latest.json', ...files, 'cached_catalog.json']
+      : /^\d{4}-\d{2}-\d{2}$/.test(target || '') ? [`snapshot_${target}.json`] : [];
+    for (const name of candidates) {
+      const file = path.join(dataDir, name);
+      if (!fs.existsSync(file)) continue;
+      const products = JSON.parse(fs.readFileSync(file, 'utf8'));
+      if (Array.isArray(products)) return products.filter(product => !isDisallowedProduct(product));
     }
-    if (snapshotFiles.length > 0) {
-      const content = fs.readFileSync(path.join(dataDir, snapshotFiles[0]), 'utf-8');
-      return JSON.parse(content);
-    }
-
-    const cachedPath = path.join(dataDir, 'cached_catalog.json');
-    if (fs.existsSync(cachedPath)) {
-      const content = fs.readFileSync(cachedPath, 'utf-8');
-      return JSON.parse(content);
-    }
-  } catch (err) {
-    console.warn('[Snapshot] Erro ao carregar snapshot histórico:', err.message);
+  } catch (error) {
+    console.warn('[Snapshot]', error.message);
   }
-
-  // Fallback: se não houver arquivo antigo ainda, retorna os produtos atuais filtrados
-  return Array.from(productsMap.values()).filter(p => !isDisallowedProduct(p));
+  return latest ? Array.from(productsMap.values()).filter(product => !isDisallowedProduct(product)) : [];
 }
 
 // --- ROTAS E GESTÃO DE MARGENS DE LUCRO / LOJA FÍSICA ---
