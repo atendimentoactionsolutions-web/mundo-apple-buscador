@@ -2007,7 +2007,8 @@ function renderStoreFront() {
   });
 
   if (countText) {
-    countText.textContent = `Mostrando ${cardsList.length} modelos na Loja Física`;
+    const modelCount = new Set(cardsList.map(card => `${card.rawModelName}__${card.isSeminovo}`)).size;
+    countText.textContent = `${modelCount} modelo${modelCount === 1 ? '' : 's'} · ${cardsList.length} configuraç${cardsList.length === 1 ? 'ão' : 'ões'}`;
   }
 
   if (cardsList.length === 0) {
@@ -2042,7 +2043,12 @@ function renderStoreFront() {
   let cardIndex = 0;
 
   Array.from(cardsByModel.values()).forEach(modelCards => {
-    html += '<section class="model-family-row">';
+    const family = modelCards[0];
+    html += `<section class="model-family-row" aria-label="${escapeHtml(family.displayName)}">
+      <header class="model-family-heading">
+        <h2>${escapeHtml(formatDisplayModelName(family.rawModelName))}${family.isSeminovo ? ' <span class="family-condition">Seminovo</span>' : ''}</h2>
+        <span>${modelCards.length} configuraç${modelCards.length === 1 ? 'ão' : 'ões'}</span>
+      </header>`;
     modelCards.forEach(card => {
     const idx = cardIndex++;
     const cardKey = `sf_card_${idx}`;
@@ -2059,24 +2065,24 @@ function renderStoreFront() {
       const hex = getAppleColorHex(col.color);
 
       return `
-        <div class="mock-color-row" onclick="openCardSimulator('${encodeURIComponent(card.displayName)}', '${encodeURIComponent(card.storage)}', '${encodeURIComponent(col.color)}', ${col.retailPrice}, '${encodeURIComponent(card.ram || '')}')" title="Clique para simular parcelamento">
-          <div class="mock-color-left">
-            <span class="mock-color-dot" style="background-color: ${hex};" title="Cor: ${col.color}"></span>
-            <span class="mock-color-name" title="${col.color}">${formatColorName(col.color)}</span>
-          </div>
-          <div class="mock-color-right">
-            <div class="mock-price-block">
+        <button type="button" class="mock-color-row" data-model="${escapeHtml(encodeURIComponent(card.displayName))}" data-storage="${escapeHtml(encodeURIComponent(card.storage))}" data-color="${escapeHtml(encodeURIComponent(col.color))}" data-price="${col.retailPrice}" data-ram="${escapeHtml(encodeURIComponent(card.ram || ''))}" onclick="openCardSimulator(this.dataset.model, this.dataset.storage, this.dataset.color, Number(this.dataset.price), this.dataset.ram)" aria-label="${escapeHtml(`Simular ${card.displayName} ${card.storage}, cor ${col.color}, ${formatBRL(col.retailPrice)} à vista`)}">
+          <span class="mock-color-left">
+            <span class="mock-color-dot" style="background-color: ${hex};" aria-hidden="true"></span>
+            <span class="mock-color-name" title="${escapeHtml(col.color)}">${escapeHtml(formatColorName(col.color))}</span>
+          </span>
+          <span class="mock-color-right">
+            <span class="mock-price-block">
               <span class="mock-price-label">À VISTA</span>
               <span class="mock-price-val">${formatBRLClean(col.retailPrice)}</span>
-            </div>
-            <button class="mock-card-sim-btn" title="Simular parcelamento no cartão" onclick="event.stopPropagation(); openCardSimulator('${encodeURIComponent(card.displayName)}', '${encodeURIComponent(card.storage)}', '${encodeURIComponent(col.color)}', ${col.retailPrice}, '${encodeURIComponent(card.ram || '')}')">
+            </span>
+            <span class="mock-card-sim-btn" aria-hidden="true">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="5" width="20" height="14" rx="2.5"/>
                 <line x1="2" y1="10" x2="22" y2="10"/>
               </svg>
-            </button>
-          </div>
-        </div>
+            </span>
+          </span>
+        </button>
       `;
     }).join('');
 
@@ -4790,6 +4796,7 @@ async function checkAuthSession() {
 
     if (res.status === 401) {
       currentUser = null;
+      updateCatalogPresentation();
       localStorage.removeItem('logged_username');
       window.DFU_ACTIVE = false;
       if (window.PricingCore && typeof window.PricingCore.setDfuActive === 'function') {
@@ -4837,6 +4844,7 @@ async function checkAuthSession() {
 
     const user = await res.json();
     currentUser = user;
+    updateCatalogPresentation();
     const username = (user.username || '').toLowerCase();
     localStorage.setItem('logged_username', username);
 
@@ -5230,27 +5238,40 @@ socket.on('session_terminated', async (data) => {
 // =========================================================================
 let isClientMode = window.location.pathname.includes('/catalogo') || window.location.search.includes('mode=cliente');
 
+function updateCatalogPresentation() {
+  const authenticated = Boolean(currentUser);
+  const customerView = !authenticated || isClientMode;
+  document.body.classList.toggle('session-authenticated', authenticated);
+  document.body.classList.toggle('client-mode-active', isClientMode);
+  const heading = document.getElementById('catalogHeading');
+  const description = document.getElementById('catalogDescription');
+  const label = document.getElementById('catalogModeLabel');
+  const toggle = document.getElementById('btnClientMode');
+  const toggleText = document.getElementById('txtClientModeBtn');
+  if (heading) heading.textContent = customerView ? 'Encontre seu próximo Apple.' : 'Seu catálogo de vendas.';
+  if (description) description.textContent = customerView
+    ? 'Compare modelos, escolha sua cor e simule o parcelamento.'
+    : 'Consulte os preços e escolha uma cor para preparar o orçamento.';
+  if (label) label.textContent = customerView ? 'CATÁLOGO APPLE' : 'ÁREA DA LOJA';
+  if (toggle) {
+    toggle.style.display = authenticated ? 'inline-flex' : 'none';
+    toggle.setAttribute('aria-pressed', String(isClientMode));
+  }
+  if (toggleText) toggleText.textContent = isClientMode ? 'Voltar à loja' : 'Modo cliente';
+}
+
 function initClientModeCheck() {
   if (isClientMode) {
-    document.body.classList.add('client-mode-active');
     switchView('storefront');
-    const txtBtn = document.getElementById('txtClientModeBtn');
-    if (txtBtn) txtBtn.textContent = 'Modo Lojista';
   }
+  updateCatalogPresentation();
 }
 
 window.toggleClientMode = function() {
+  if (!currentUser) return;
   isClientMode = !isClientMode;
-  if (isClientMode) {
-    document.body.classList.add('client-mode-active');
-    switchView('storefront');
-    const txtBtn = document.getElementById('txtClientModeBtn');
-    if (txtBtn) txtBtn.textContent = 'Modo Lojista';
-  } else {
-    document.body.classList.remove('client-mode-active');
-    const txtBtn = document.getElementById('txtClientModeBtn');
-    if (txtBtn) txtBtn.textContent = 'Modo Cliente';
-  }
+  updateCatalogPresentation();
+  switchView('storefront');
 };
 
 window.shareClientCatalogLink = async function() {
