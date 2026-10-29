@@ -1,4 +1,7 @@
 node_modules/
+.npm-cache/
+data/pxt_token.txt
+data/*.tmp
 .DS_Store
 .env
 .env.local

@@ -261,11 +261,6 @@
       return (margins.categories && margins.categories.IPH18 !== undefined) ? Number(margins.categories.IPH18) : 1300;
     }
 
-    // 3. Se for Seminovo, aplica a margem de Seminovos (padrão R$ 600)
-    if (isSemi) {
-      return (margins.categories && margins.categories.SEMINOVOS !== undefined) ? Number(margins.categories.SEMINOVOS) : 600;
-    }
-
     // 4. Margem padrão por Categoria
     if (margins.categories) {
       if (nameUpper.includes('FOLIO') || nameUpper.includes('SMART FOLIO')) {

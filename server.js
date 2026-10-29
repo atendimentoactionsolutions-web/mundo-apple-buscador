@@ -11,9 +11,12 @@ const quotesManager = require('./quotes');
 const PricingCore = require('./public/js/pricing-core.js');
 const QuoteCore = require('./public/js/quote-core.js');
 
+const localEnvFile = path.join(__dirname, '.env');
+if (fs.existsSync(localEnvFile) && typeof process.loadEnvFile === 'function') process.loadEnvFile(localEnvFile);
+
 const PXT_BASE_URL = 'https://backend-api.buscadorpxt.com.br';
-const USER_EMAIL = 'felippemiranda1991@gmail.com';
-const USER_PASS = 'Finasjoias10';
+const USER_EMAIL = process.env.PXT_EMAIL;
+const USER_PASS = process.env.PXT_PASSWORD;
 const PORT = process.env.PORT || 3333;
 const PAUSE_PXT_UPSTREAM = process.env.PAUSE_PXT_UPSTREAM === 'true'; // Padrão falso = TEMPO REAL ATIVO!
 
@@ -345,6 +348,7 @@ async function authenticate() {
   }
 
   try {
+    if (!USER_EMAIL || !USER_PASS) throw new Error('Configure PXT_EMAIL e PXT_PASSWORD ou PXT_AUTH_TOKEN para conectar ao PXT.');
     console.log('[Auth] Autenticando com Buscador PXT via credenciais...');
     const resp = await axios.post(`${PXT_BASE_URL}/auth/login`, {
       email: USER_EMAIL,
