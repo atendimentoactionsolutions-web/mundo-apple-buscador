@@ -1878,7 +1878,6 @@ function updateStoreFrontColorFilterOptions(products) {
 // Renderizador da View Loja Física (Mockup Fiel ao Design)
 function renderStoreFront() {
   const container = document.getElementById('storefrontGrid');
-  const countText = document.getElementById('sfShownCountText');
   if (!container) return;
 
   const sLower = sfSearchQuery.trim().toLowerCase();
@@ -2021,11 +2020,6 @@ function renderStoreFront() {
     return (parseInt(a.ram) || 0) - (parseInt(b.ram) || 0);
   });
 
-  if (countText) {
-    const modelCount = new Set(cardsList.map(card => `${card.rawModelName}__${card.isSeminovo}`)).size;
-    countText.textContent = `${modelCount} modelo${modelCount === 1 ? '' : 's'} · ${cardsList.length} configuraç${cardsList.length === 1 ? 'ão' : 'ões'}`;
-  }
-
   if (cardsList.length === 0) {
     if (allProducts.length === 0 && catalogStatus === 'loading') {
       container.innerHTML = `
@@ -2060,11 +2054,7 @@ function renderStoreFront() {
 
   Array.from(cardsByModel.values()).forEach(modelCards => {
     const family = modelCards[0];
-    html += `<section class="model-family-row" aria-label="${escapeHtml(family.displayName)}">
-      <header class="model-family-heading">
-        <h2>${escapeHtml(formatDisplayModelName(family.rawModelName))}${family.isSeminovo ? ' <span class="family-condition">Seminovo</span>' : ''}</h2>
-        <span>${modelCards.length} configuraç${modelCards.length === 1 ? 'ão' : 'ões'}</span>
-      </header>`;
+    html += `<section class="model-family-row" aria-label="${escapeHtml(family.displayName)}">`;
     modelCards.forEach(card => {
     const idx = cardIndex++;
     const cardKey = `sf_card_${idx}`;
@@ -3587,7 +3577,6 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
 
       <section class="sim-add-products" aria-label="Adicionar produtos à cotação">
         <div class="sim-add-products-heading">
-          <span>Monte sua cotação</span>
           <button type="button" id="simAddProductButton" class="sim-add-product-button" onclick="toggleSimProductPicker()" aria-expanded="false" aria-controls="simProductPicker">＋ Adicionar outro produto</button>
         </div>
         <div id="simProductPicker" class="sim-product-picker" hidden>
@@ -3598,7 +3587,6 @@ window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, 
         <div id="simAdditionalItems" class="sim-additional-items"></div>
         <div id="simBundleSummary" class="sim-bundle-summary" hidden>
           <span>Total dos produtos <strong id="simBundleGross"></strong></span>
-          <small>O desconto, a entrada e a troca são aplicados ao total da cotação.</small>
         </div>
       </section>
 
