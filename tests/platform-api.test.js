@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { once } = require('node:events');
 const { io } = require('socket.io-client');
-const { platform } = require('./helpers/platform');
+const { platform, temporaryProject, isolatedModules } = require('./helpers/platform');
 
 function quote() {
   return { customer: { name: 'Test Customer' }, items: [
@@ -77,5 +77,25 @@ test('API regression: sessions, store isolation, calculations and realtime updat
     assert.equal((await app.request('/api/auth/me', 'test-admin')).status, 500);
     assert.equal(fs.readFileSync(file, 'utf8'), '{damaged');
     fs.writeFileSync(file, backup);
+    const quotesFile = path.join(app.root, 'data/quotes.json');
+    fs.writeFileSync(quotesFile, '{damaged');
+    assert.equal((await app.request('/api/quotes', 'test-admin')).status, 500);
+    assert.equal(fs.readFileSync(quotesFile, 'utf8'), '{damaged');
   });
+});
+
+test('a fresh installation cannot silently create an admin with a shared default password', async t => {
+  const root = temporaryProject(t);
+  const modules = isolatedModules(root, { BOOTSTRAP_ADMIN_PASSWORD: '' });
+  t.after(modules.close);
+  await assert.rejects(() => modules.load('auth.js').initAuth(), /preservados/);
+  assert.equal(fs.existsSync(path.join(root, 'data/users.json')), false);
+});
+
+test('a failed initial upstream connection keeps the cached catalog and schedules recovery', async t => {
+  const app = await platform(t, { PAUSE_PXT_UPSTREAM: 'false', PXT_EMAIL: '', PXT_PASSWORD: '', PXT_AUTH_TOKEN: '' });
+  const catalog = await app.request('/api/products');
+  assert.equal(catalog.status, 200);
+  assert.equal(catalog.body.data.length, 1);
+  assert.ok(app.intervals.includes(15000));
 });

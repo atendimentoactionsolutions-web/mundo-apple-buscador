@@ -14,10 +14,11 @@ function temporaryProject(t) {
   });
   return root;
 }
-function isolatedModules(root) {
+function isolatedModules(root, environment = {}) {
   const cache = new Map();
   const timers = new Set();
   const errors = [];
+  const intervals = [];
   function load(name) {
     if (cache.has(name)) return cache.get(name).exports;
     const module = { exports: {} };
@@ -26,16 +27,16 @@ function isolatedModules(root) {
       module, __dirname: root, Buffer, URL, URLSearchParams,
       require: request => request === './auth' ? load('auth.js') : request === './quotes' ? load('quotes.js')
         : request.startsWith('./public/js/') ? require(path.join(project, request)) : require(request),
-      process: { env: { ...process.env, PORT: '0', PAUSE_PXT_UPSTREAM: 'true', DISABLE_LIVE_DOLLAR: 'true' }, on() {} },
+      process: { env: { ...process.env, PORT: '0', PAUSE_PXT_UPSTREAM: 'true', DISABLE_LIVE_DOLLAR: 'true', ...environment }, on() {} },
       console: { log() {}, warn() {}, error: (...args) => errors.push(args) },
-      setInterval: (...args) => { const timer = setInterval(...args); timers.add(timer); return timer; },
+      setInterval: (...args) => { intervals.push(args[1]); const timer = setInterval(...args); timers.add(timer); return timer; },
       setTimeout: (...args) => { const timer = setTimeout(...args); timers.add(timer); return timer; },
       clearInterval, clearTimeout
     });
     vm.runInContext(fs.readFileSync(path.join(project, name), 'utf8'), context, { filename: name });
     return module.exports;
   }
-  return { load, errors, close: () => timers.forEach(clearTimeout) };
+  return { load, errors, intervals, close: () => timers.forEach(clearTimeout) };
 }
 function seed(root) {
   fs.mkdirSync(path.join(root, 'data'), { recursive: true });
@@ -54,10 +55,10 @@ function seed(root) {
     { id: 'phone-1', name: 'IPHONE 17 PRO', category: 'IPH', storage: '256GB', color: 'BLUE', price: 6000, supplier: { name: 'Supplier', whatsappNumber: '00000000' } }
   ]));
 }
-async function platform(t) {
+async function platform(t, environment = {}) {
   const root = temporaryProject(t);
   seed(root);
-  const modules = isolatedModules(root);
+  const modules = isolatedModules(root, environment);
   const server = modules.load('server.js');
   await server.start();
   if (!server.server.listening) await once(server.server, 'listening');
