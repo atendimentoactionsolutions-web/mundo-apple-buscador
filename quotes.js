@@ -1,6 +1,34 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const QuoteCore = require('./public/js/quote-core');
+const STATUSES = new Set(['RASCUNHO', 'ENVIADO', 'APROVADO', 'RECUSADO', 'EXPIRADO']);
+function canAccessQuote(quote, user) {
+  return !user || user.role === 'admin' || (quote.createdBy?.id && quote.createdBy.id === user.id);
+}
+function validateQuote(quote, rates) {
+  if (!STATUSES.has(quote.status)) throw new Error('Status de orçamento inválido.');
+  if (!quote.customer?.name?.trim()) throw new Error('Informe o nome do cliente.');
+  if (!Array.isArray(quote.items) || quote.items.length === 0) throw new Error('Adicione um produto ao orçamento.');
+  quote.items = quote.items.map(item => ({ ...item,
+    quantity: QuoteCore.quantity(item.quantity),
+    unitPrice: QuoteCore.amount(item.unitPrice, 'Preço unitário'),
+    discountValue: QuoteCore.amount(item.discountValue, 'Desconto'),
+    subtotal: QuoteCore.itemSubtotal(item)
+  }));
+  const result = QuoteCore.totals(quote.items, quote.tradeIn, quote.discount, quote.paymentTerms);
+  quote.totals = result.totals;
+  quote.totalAmount = result.totals.netTotal;
+  quote.tradeIn.tradeInAmount = result.totals.tradeInDeduction;
+  quote.paymentTerms.cashDownPayment = result.cashDownPayment;
+  quote.paymentTerms.financedAmount = result.financedAmount;
+  const selected = Number(quote.paymentTerms.selectedInstallmentCount ?? 12);
+  if (!Number.isInteger(selected) || selected < 1 || selected > 18) throw new Error('Parcelamento inválido.');
+  quote.paymentTerms.selectedInstallmentCount = selected;
+  quote.paymentTerms.installmentOptions = result.financedAmount > 0
+    ? Array.from({ length: 18 }, (_, index) => QuoteCore.installment(result.financedAmount, 0, index + 1, rates)) : [];
+  return quote;
+}
 
 const DATA_DIR = path.join(__dirname, 'data');
 const QUOTES_FILE = path.join(DATA_DIR, 'quotes.json');
@@ -28,7 +56,7 @@ function readQuotesData() {
     return parsed;
   } catch (err) {
     console.error('[Quotes] Erro ao ler arquivo quotes.json:', err.message);
-    return { nextNumber: 1, quotes: [] };
+    throw new Error('Não foi possível ler os orçamentos. Os dados existentes foram preservados.', { cause: err });
   }
 }
 
@@ -45,9 +73,10 @@ function generateQuoteNumber(year, seq) {
 }
 
 // Lista orçamentos com suporte a busca, status e paginação/ordenação
-function listQuotes(filters = {}) {
+function listQuotes(filters = {}, user = null) {
   const data = readQuotesData();
-  let list = [...data.quotes];
+  const accessible = data.quotes.filter(quote => canAccessQuote(quote, user));
+  let list = [...accessible];
 
   if (filters.search) {
     const s = filters.search.trim().toLowerCase();
@@ -67,13 +96,13 @@ function listQuotes(filters = {}) {
 
   // Estatísticas para o Dashboard
   const stats = {
-    totalQuotes: data.quotes.length,
-    approvedCount: data.quotes.filter(q => q.status === 'APROVADO').length,
-    pendingCount: data.quotes.filter(q => q.status === 'ENVIADO' || q.status === 'RASCUNHO').length,
-    totalApprovedAmount: data.quotes
+    totalQuotes: accessible.length,
+    approvedCount: accessible.filter(q => q.status === 'APROVADO').length,
+    pendingCount: accessible.filter(q => q.status === 'ENVIADO' || q.status === 'RASCUNHO').length,
+    totalApprovedAmount: accessible
       .filter(q => q.status === 'APROVADO')
       .reduce((acc, q) => acc + (Number(q.totalAmount) || 0), 0),
-    totalPipelineAmount: data.quotes
+    totalPipelineAmount: accessible
       .filter(q => q.status !== 'RECUSADO' && q.status !== 'EXPIRADO')
       .reduce((acc, q) => acc + (Number(q.totalAmount) || 0), 0)
   };
@@ -84,12 +113,12 @@ function listQuotes(filters = {}) {
   };
 }
 
-function getQuoteById(id) {
+function getQuoteById(id, user = null) {
   const data = readQuotesData();
-  return data.quotes.find(q => q.id === id || q.code === id) || null;
+  return data.quotes.find(q => (q.id === id || q.code === id) && canAccessQuote(q, user)) || null;
 }
 
-function createQuote(payload, user) {
+function createQuote(payload, user, rates) {
   const data = readQuotesData();
   const now = new Date();
   const year = now.getFullYear();
@@ -125,10 +154,10 @@ function createQuote(payload, user) {
       ram: item.ram || '',
       color: item.color || '',
       condition: item.condition || 'NOVO',
-      quantity: Math.max(1, parseInt(item.quantity) || 1),
-      unitPrice: Number(item.unitPrice) || 0,
+      quantity: item.quantity ?? 1,
+      unitPrice: item.unitPrice ?? 0,
       discountType: item.discountType || 'FIXED', // 'FIXED' (R$) ou 'PERCENT' (%)
-      discountValue: Math.max(0, Number(item.discountValue) || 0),
+      discountValue: item.discountValue ?? 0,
       subtotal: Number(item.subtotal) || 0
     })) : [],
     tradeIn: {
@@ -161,17 +190,19 @@ function createQuote(payload, user) {
     totalAmount: Number(payload.totals?.netTotal || payload.totalAmount) || 0
   };
 
+  validateQuote(quote, rates);
   data.quotes.unshift(quote);
   saveQuotesData(data);
   return quote;
 }
 
-function updateQuote(id, payload, user) {
+function updateQuote(id, payload, user, rates) {
   const data = readQuotesData();
   const idx = data.quotes.findIndex(q => q.id === id);
   if (idx === -1) return null;
 
   const current = data.quotes[idx];
+  if (!canAccessQuote(current, user)) return null;
   const now = new Date();
 
   const updated = {
@@ -180,6 +211,7 @@ function updateQuote(id, payload, user) {
     id: current.id,
     code: current.code, // Mantém o número original intacto!
     createdAt: current.createdAt,
+    createdBy: current.createdBy,
     updatedAt: now.toISOString(),
     customer: {
       ...current.customer,
@@ -209,25 +241,27 @@ function updateQuote(id, payload, user) {
     totalAmount: Number(payload.totals?.netTotal ?? payload.totalAmount ?? current.totalAmount) || 0
   };
 
+  validateQuote(updated, rates);
   data.quotes[idx] = updated;
   saveQuotesData(data);
   return updated;
 }
 
-function updateQuoteStatus(id, newStatus) {
+function updateQuoteStatus(id, newStatus, user = null) {
+  if (!STATUSES.has(newStatus)) throw new Error('Status de orçamento inválido.');
   const data = readQuotesData();
   const quote = data.quotes.find(q => q.id === id);
-  if (!quote) return null;
+  if (!quote || !canAccessQuote(quote, user)) return null;
   quote.status = newStatus;
   quote.updatedAt = new Date().toISOString();
   saveQuotesData(data);
   return quote;
 }
 
-function duplicateQuote(id, user) {
+function duplicateQuote(id, user, rates) {
   const data = readQuotesData();
   const source = data.quotes.find(q => q.id === id);
-  if (!source) return null;
+  if (!source || !canAccessQuote(source, user)) return null;
 
   // Clona o payload e cria um novo orçamento com nova numeração
   const clonePayload = JSON.parse(JSON.stringify(source));
@@ -238,13 +272,13 @@ function duplicateQuote(id, user) {
   clonePayload.status = 'RASCUNHO';
   clonePayload.customer.name = `${source.customer.name || 'Cliente'} (Cópia)`;
 
-  return createQuote(clonePayload, user);
+  return createQuote(clonePayload, user, rates);
 }
 
-function deleteQuote(id) {
+function deleteQuote(id, user = null) {
   const data = readQuotesData();
   const initialLen = data.quotes.length;
-  data.quotes = data.quotes.filter(q => q.id !== id);
+  data.quotes = data.quotes.filter(q => q.id !== id || !canAccessQuote(q, user));
   if (data.quotes.length !== initialLen) {
     saveQuotesData(data);
     return true;
