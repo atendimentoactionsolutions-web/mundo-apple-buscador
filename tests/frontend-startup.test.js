@@ -84,3 +84,13 @@ test('store prices, quote search and numeric product IDs stay consistent', async
   assert.equal(app.read('margins.categories.IPH'), 400);
   assert.match(app.elements.get('storefrontGrid').innerHTML, /data-price="6400"/);
 });
+
+test('an empty response replaces the old products instead of keeping stale offers', async () => {
+  const products = [{ id: 1, name: 'IPHONE 17', category: 'IPH', color: 'BLACK', price: 6000 }];
+  const app = await setup(null, products);
+  assert.equal(app.read('allProducts.length'), 1);
+  products.length = 0;
+  await app.context.loadProducts();
+  assert.equal(app.read('allProducts.length'), 0);
+  assert.match(app.elements.get('storefrontGrid').innerHTML, /Nenhum produto encontrado/);
+});
