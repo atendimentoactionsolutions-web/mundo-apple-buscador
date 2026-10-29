@@ -40,9 +40,13 @@ test('API regression: sessions, store isolation, calculations and realtime updat
     assert.equal(otherStore.body.quotes.length, 0);
     assert.equal(otherStore.body.stats.totalQuotes, 0);
     assert.equal((await app.request('/api/quotes', 'test-admin')).body.quotes.length, 1);
+    const ownerUpdate = await app.request(`/api/quotes/${saved.id}`, 'test-a', 'PUT', { ...quote(), createdBy: { id: 'store-b' } });
+    assert.equal(ownerUpdate.body.quote.createdBy.id, 'store-a');
     const invalid = quote(); invalid.items[0].unitPrice = -1;
     assert.equal((await app.request('/api/quotes', 'test-a', 'POST', invalid)).status, 400);
     assert.equal((await app.request(`/api/quotes/${saved.id}/status`, 'test-a', 'PATCH', { status: '<script>' })).status, 400);
+    const history = await app.request('/api/products?date=yesterday', 'test-admin');
+    assert.equal(history.body.data.length, 0, 'Missing history never masquerades as today catalog');
   });
   await t.test('configuration updates preserve a zero fee and do not broadcast secret margins', async () => {
     const socket = io(app.origin, { transports: ['websocket'], reconnection: false });

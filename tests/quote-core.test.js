@@ -26,4 +26,5 @@ test('seminovo margins apply to newer iPhone families, with model overrides pres
   assert.equal(pricing.getProductMargin('IPHONE 18 PRO', 'IPH', false, margins), 1300);
   margins.products['IPHONE 18 PRO'] = 700;
   assert.equal(pricing.getProductMargin('IPHONE 18 PRO', 'IPH', true, margins), 700);
+  assert.equal(pricing.getProductMargin('IPHONE 17', 'IPH', false, { categories: { IPH: '400' }, products: {} }), 400);
 });
