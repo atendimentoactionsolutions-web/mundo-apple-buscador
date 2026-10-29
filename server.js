@@ -1340,7 +1340,7 @@ app.post('/api/card-rates/custom', asyncHandler(async (req, res) => {
   };
 
   const updated = {
-    baseRate: typeof baseRate === 'number' ? baseRate : (parseFloat(baseRate) || 0),
+    baseRate: baseRate === undefined ? current.baseRate : Number(baseRate),
     calculationMode: calculationMode || 'factor',
     installmentRates: installmentRates ? { ...current.installmentRates, ...installmentRates } : current.installmentRates
   };
