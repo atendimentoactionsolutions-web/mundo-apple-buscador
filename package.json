@@ -4,7 +4,11 @@
   "description": "Buscador PXT Exclusivo Apple Novos/Lacrados em Tempo Real",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "overrides": {
+    "qs": "^6.16.2"
   },
   "dependencies": {
     "axios": "^1.7.7",

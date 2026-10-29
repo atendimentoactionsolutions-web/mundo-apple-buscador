@@ -1,0 +1,139 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.19.0
+2 info using node@v24.21.0
+3 silly config load:file:C:\Program Files\nodejs\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\Mundo Apple\Projects\mundo-apple-buscador\.npmrc
+5 silly config load:file:C:\Users\Mundo Apple\.npmrc
+6 silly config load:file:C:\Users\Mundo Apple\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm install
+8 verbose argv "install" "--ignore-scripts" "--cache" ".npm-cache" "--fetch-retries" "0"
+9 verbose logfile logs-max:10 dir:C:\Users\Mundo Apple\Projects\mundo-apple-buscador\.npm-cache\_logs\2026-10-29T18_08_21_291Z-
+10 verbose logfile C:\Users\Mundo Apple\Projects\mundo-apple-buscador\.npm-cache\_logs\2026-10-29T18_08_21_291Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4496293888 maxSize:1124073472 maxEntrySize:562036736
+13 silly idealTree buildDeps
+14 silly fetch manifest qs@^6.16.2
+15 silly packumentCache full:https://registry.npmjs.org/qs cache-miss
+16 http cache https://registry.npmjs.org/qs 46ms (cache hit)
+17 silly packumentCache full:https://registry.npmjs.org/qs set size:397169 disposed:false
+18 silly placeDep ROOT qs@6.17.1 REPLACE for: express@4.22.2 want: ^6.16.2
+19 silly reify mark retired [
+19 silly reify   'C:\\Users\\Mundo Apple\\Projects\\mundo-apple-buscador\\node_modules\\body-parser\\node_modules\\qs'
+19 silly reify ]
+20 silly reify mark retired [
+20 silly reify   'C:\\Users\\Mundo Apple\\Projects\\mundo-apple-buscador\\node_modules\\qs'
+20 silly reify ]
+21 silly reify moves {
+21 silly reify   'C:\\Users\\Mundo Apple\\Projects\\mundo-apple-buscador\\node_modules\\body-parser\\node_modules\\qs': 'C:\\Users\\Mundo Apple\\Projects\\mundo-apple-buscador\\node_modules\\body-parser\\node_modules\\.qs-zczRxYLl',
+21 silly reify   'C:\\Users\\Mundo Apple\\Projects\\mundo-apple-buscador\\node_modules\\qs': 'C:\\Users\\Mundo Apple\\Projects\\mundo-apple-buscador\\node_modules\\.qs-T7Mh6Ijr'
+21 silly reify }
+22 silly audit bulk request {
+22 silly audit   '@socket.io/component-emitter': [ '3.1.2' ],
+22 silly audit   '@types/cors': [ '2.8.19' ],
+22 silly audit   '@types/node': [ '26.4.1' ],
+22 silly audit   '@types/ws': [ '8.18.1' ],
+22 silly audit   accepts: [ '1.3.8' ],
+22 silly audit   'agent-base': [ '6.0.2' ],
+22 silly audit   debug: [ '4.4.3', '2.6.9' ],
+22 silly audit   ms: [ '2.1.3', '2.0.0' ],
+22 silly audit   'array-flatten': [ '1.1.1' ],
+22 silly audit   asynckit: [ '0.4.0' ],
+22 silly audit   axios: [ '1.20.0' ],
+22 silly audit   base64id: [ '2.0.0' ],
+22 silly audit   'body-parser': [ '1.20.9' ],
+22 silly audit   qs: [ '6.17.1' ],
+22 silly audit   bytes: [ '3.1.2' ],
+22 silly audit   'call-bind-apply-helpers': [ '1.0.2' ],
+22 silly audit   'call-bound': [ '1.0.4' ],
+22 silly audit   'combined-stream': [ '1.0.8' ],
+22 silly audit   'content-disposition': [ '0.5.4' ],
+22 silly audit   'content-type': [ '1.0.5' ],
+22 silly audit   cookie: [ '0.7.2' ],
+22 silly audit   'cookie-signature': [ '1.0.7' ],
+22 silly audit   cors: [ '2.8.6' ],
+22 silly audit   'delayed-stream': [ '1.0.0' ],
+22 silly audit   depd: [ '2.0.0' ],
+22 silly audit   destroy: [ '1.2.0' ],
+22 silly audit   'dunder-proto': [ '1.0.1' ],
+22 silly audit   'ee-first': [ '1.1.1' ],
+22 silly audit   encodeurl: [ '2.0.0' ],
+22 silly audit   'engine.io': [ '6.6.10' ],
+22 silly audit   'engine.io-client': [ '6.6.6' ],
+22 silly audit   'engine.io-parser': [ '5.2.3' ],
+22 silly audit   'es-define-property': [ '1.0.1' ],
+22 silly audit   'es-errors': [ '1.3.0' ],
+22 silly audit   'es-object-atoms': [ '1.1.2' ],
+22 silly audit   'es-set-tostringtag': [ '2.1.0' ],
+22 silly audit   'escape-html': [ '1.0.3' ],
+22 silly audit   etag: [ '1.8.1' ],
+22 silly audit   express: [ '4.22.2' ],
+22 silly audit   finalhandler: [ '1.3.2' ],
+22 silly audit   'follow-redirects': [ '1.16.2' ],
+22 silly audit   'form-data': [ '4.0.6' ],
+22 silly audit   forwarded: [ '0.2.0' ],
+22 silly audit   fresh: [ '0.5.2' ],
+22 silly audit   'function-bind': [ '1.1.2' ],
+22 silly audit   'get-intrinsic': [ '1.3.0' ],
+22 silly audit   'get-proto': [ '1.0.1' ],
+22 silly audit   gopd: [ '1.2.0' ],
+22 silly audit   'has-symbols': [ '1.1.0' ],
+22 silly audit   'has-tostringtag': [ '1.0.2' ],
+22 silly audit   hasown: [ '2.0.4' ],
+22 silly audit   'http-errors': [ '2.0.1' ],
+22 silly audit   'https-proxy-agent': [ '5.0.1' ],
+22 silly audit   'iconv-lite': [ '0.4.24' ],
+22 silly audit   inherits: [ '2.0.4' ],
+22 silly audit   'ipaddr.js': [ '1.9.1' ],
+22 silly audit   'math-intrinsics': [ '1.1.0' ],
+22 silly audit   'media-typer': [ '0.3.0' ],
+22 silly audit   'merge-descriptors': [ '1.0.3' ],
+22 silly audit   methods: [ '1.1.2' ],
+22 silly audit   mime: [ '1.6.0' ],
+22 silly audit   'mime-db': [ '1.52.0' ],
+22 silly audit   'mime-types': [ '2.1.35' ],
+22 silly audit   negotiator: [ '0.6.3' ],
+22 silly audit   'object-assign': [ '4.1.1' ],
+22 silly audit   'object-inspect': [ '1.13.4' ],
+22 silly audit   'on-finished': [ '2.4.1' ],
+22 silly audit   parseurl: [ '1.3.3' ],
+22 silly audit   'path-to-regexp': [ '0.1.13' ],
+22 silly audit   'proxy-addr': [ '2.0.8' ],
+22 silly audit   'proxy-from-env': [ '2.1.0' ],
+22 silly audit   'range-parser': [ '1.2.1' ],
+22 silly audit   'raw-body': [ '2.5.3' ],
+22 silly audit   'safe-buffer': [ '5.2.1' ],
+22 silly audit   'safer-buffer': [ '2.1.2' ],
+22 silly audit   send: [ '0.19.2' ],
+22 silly audit   'serve-static': [ '1.16.3' ],
+22 silly audit   setprototypeof: [ '1.2.0' ],
+22 silly audit   'side-channel': [ '1.1.1' ],
+22 silly audit   'side-channel-list': [ '1.0.1' ],
+22 silly audit   'side-channel-map': [ '1.0.1' ],
+22 silly audit   'side-channel-weakmap': [ '1.0.2' ],
+22 silly audit   'socket.io': [ '4.8.3' ],
+22 silly audit   'socket.io-adapter': [ '2.5.8' ],
+22 silly audit   'socket.io-client': [ '4.8.3' ],
+22 silly audit   'socket.io-parser': [ '4.2.7' ],
+22 silly audit   statuses: [ '2.0.2' ],
+22 silly audit   toidentifier: [ '1.0.1' ],
+22 silly audit   'type-is': [ '1.6.18' ],
+22 silly audit   'undici-types': [ '8.3.0' ],
+22 silly audit   unpipe: [ '1.0.0' ],
+22 silly audit   'utils-merge': [ '1.0.1' ],
+22 silly audit   vary: [ '1.1.2' ],
+22 silly audit   ws: [ '8.21.3' ],
+22 silly audit   'xmlhttprequest-ssl': [ '2.1.2' ]
+22 silly audit }
+23 http cache qs@https://registry.npmjs.org/qs/-/qs-6.17.1.tgz 0ms (cache hit)
+24 silly tarball no local data for qs@https://registry.npmjs.org/qs/-/qs-6.17.1.tgz. Extracting by manifest.
+25 http fetch GET 200 https://registry.npmjs.org/qs/-/qs-6.17.1.tgz 224ms (cache miss)
+26 http fetch POST 200 https://registry.npmjs.org/-/npm/v1/security/advisories/bulk 256ms
+27 silly audit report {}
+28 silly CHANGE node_modules/qs
+29 silly REMOVE node_modules/body-parser/node_modules/qs
+30 verbose cwd C:\Users\Mundo Apple\Projects\mundo-apple-buscador
+31 verbose os Windows_NT 10.0.19045
+32 verbose node v24.21.0
+33 verbose npm  v11.19.0
+34 verbose exit 0
+35 info ok
