@@ -1647,8 +1647,10 @@ async function start() {
 
   server.listen(PORT, async () => {
     // Cotação do dólar ao vivo imediatamente e a cada 1 minuto
-    fetchLiveDollar();
-    setInterval(fetchLiveDollar, 60 * 1000);
+    if (process.env.DISABLE_LIVE_DOLLAR !== 'true') {
+      fetchLiveDollar();
+      setInterval(fetchLiveDollar, 60 * 1000);
+    }
 
     console.log(`\n======================================================`);
     console.log(`🚀 BUSCADOR APPLE PRO ONLINE!`);
@@ -1717,4 +1719,17 @@ async function start() {
   });
 }
 
-start();
+app.use((err, req, res, next) => {
+  console.error('[HTTP]', err.message);
+  if (res.headersSent) return next(err);
+  const status = Number.isInteger(err.status) ? err.status : 500;
+  res.status(status).json({ error: status === 500 ? 'Não foi possível concluir a operação. Tente novamente.' : 'Solicitação inválida.' });
+});
+
+if (require.main === module) {
+  start().catch(err => {
+    console.error('[Startup]', err.message);
+    process.exitCode = 1;
+  });
+}
+module.exports = { app, server, localIo, start };
