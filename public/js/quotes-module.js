@@ -423,23 +423,7 @@ function removeItemFromBuilder(index) {
 }
 
 function calculateSingleItemSubtotal(item) {
-  if (window.QuoteCore) {
-    item.subtotal = QuoteCore.itemSubtotal(item);
-    return item.subtotal;
-  }
-  const qty = item.quantity || 1;
-  const price = Number(item.unitPrice) || 0;
-  const discVal = Number(item.discountValue) || 0;
-
-  let unitDiscount = 0;
-  if (item.discountType === 'PERCENT') {
-    unitDiscount = price * (Math.min(100, discVal) / 100);
-  } else {
-    unitDiscount = Math.min(price, discVal);
-  }
-
-  const finalUnit = Math.max(0, price - unitDiscount);
-  item.subtotal = Math.round((finalUnit * qty + Number.EPSILON) * 100) / 100;
+  item.subtotal = QuoteCore.itemSubtotal(item);
   return item.subtotal;
 }
 
@@ -556,95 +540,25 @@ document.addEventListener('click', (e) => {
 // =========================================================================
 
 function recalculateQuoteTotals() {
-  // 1. Total bruto dos itens
-  let grossTotal = 0;
-  let itemsDiscountTotal = 0;
-
-  (currentBuilderData.items || []).forEach(it => {
-    const rawSum = (Number(it.unitPrice) || 0) * (it.quantity || 1);
-    grossTotal += rawSum;
-    itemsDiscountTotal += Math.max(0, rawSum - (it.subtotal || 0));
-  });
-
-  const subtotalAfterItems = Math.max(0, grossTotal - itemsDiscountTotal);
-
-  // 2. Aparelho na Troca (Trade-In)
-  const tradeInVal = currentBuilderData.tradeIn.hasTradeIn ? (Number(currentBuilderData.tradeIn.tradeInAmount) || 0) : 0;
-  const afterTradeIn = Math.max(0, subtotalAfterItems - tradeInVal);
-
-  // 3. Desconto Geral da Proposta
-  const discType = currentBuilderData.discount.type || 'FIXED';
-  const discVal = Number(currentBuilderData.discount.value) || 0;
-  let generalDiscountAmount = 0;
-
-  if (discType === 'PERCENT') {
-    generalDiscountAmount = afterTradeIn * (Math.min(100, discVal) / 100);
-  } else {
-    generalDiscountAmount = Math.min(afterTradeIn, discVal);
-  }
-
-  // 4. Valor Final Líquido
-  const netTotal = Math.max(0, Math.round((afterTradeIn - generalDiscountAmount + Number.EPSILON) * 100) / 100);
-
-  // 5. Entrada PIX e Saldo no Cartão
-  const cashDown = Math.min(netTotal, Number(currentBuilderData.paymentTerms.cashDownPayment) || 0);
-  const balanceToFinance = Math.max(0, netTotal - cashDown);
-
-  // Atualiza totais salvos no builder
-  if (window.QuoteCore) {
-    const result = QuoteCore.totals(currentBuilderData.items || [], currentBuilderData.tradeIn, currentBuilderData.discount, currentBuilderData.paymentTerms);
-    currentBuilderData.totals = result.totals;
-    currentBuilderData.totalAmount = result.totals.netTotal;
-    currentBuilderData.paymentTerms.cashDownPayment = result.cashDownPayment;
-    currentBuilderData.paymentTerms.financedAmount = result.financedAmount;
-    const summary = {
-      qbSummaryGross: result.totals.grossTotal,
-      qbSummaryItemsDisc: -result.totals.itemsDiscountTotal,
-      qbSummaryTradeIn: -result.totals.tradeInDeduction,
-      qbSummaryGenDisc: -result.totals.generalDiscount,
-      qbSummaryNet: result.totals.netTotal,
-      qbSummaryBalanceCard: result.financedAmount
-    };
-    Object.entries(summary).forEach(([id, value]) => {
-      const element = document.getElementById(id);
-      if (element) element.textContent = formatMoneyBR(value);
-      if (element && (id === 'qbSummaryTradeIn' || id === 'qbSummaryGenDisc')) element.parentElement.style.display = value ? 'flex' : 'none';
-    });
-    renderQuoteCardInstallments(result.financedAmount);
-    return;
-  }
-  currentBuilderData.totals = {
-    grossTotal,
-    itemsDiscountTotal,
-    tradeInDeduction: tradeInVal,
-    generalDiscount: generalDiscountAmount,
-    netTotal
+  const result = QuoteCore.totals(currentBuilderData.items || [], currentBuilderData.tradeIn, currentBuilderData.discount, currentBuilderData.paymentTerms);
+  currentBuilderData.totals = result.totals;
+  currentBuilderData.totalAmount = result.totals.netTotal;
+  currentBuilderData.paymentTerms.cashDownPayment = result.cashDownPayment;
+  currentBuilderData.paymentTerms.financedAmount = result.financedAmount;
+  const summary = {
+    qbSummaryGross: result.totals.grossTotal,
+    qbSummaryItemsDisc: -result.totals.itemsDiscountTotal,
+    qbSummaryTradeIn: -result.totals.tradeInDeduction,
+    qbSummaryGenDisc: -result.totals.generalDiscount,
+    qbSummaryNet: result.totals.netTotal,
+    qbSummaryBalanceCard: result.financedAmount
   };
-  currentBuilderData.totalAmount = netTotal;
-
-  // Renderizar Resumo na Interface
-  const elGross = document.getElementById('qbSummaryGross');
-  const elItemsDisc = document.getElementById('qbSummaryItemsDisc');
-  const elTradeIn = document.getElementById('qbSummaryTradeIn');
-  const elGenDisc = document.getElementById('qbSummaryGenDisc');
-  const elNet = document.getElementById('qbSummaryNet');
-  const elBalanceCard = document.getElementById('qbSummaryBalanceCard');
-
-  if (elGross) elGross.textContent = formatMoneyBR(grossTotal);
-  if (elItemsDisc) elItemsDisc.textContent = `- ${formatMoneyBR(itemsDiscountTotal)}`;
-  if (elTradeIn) {
-    elTradeIn.textContent = tradeInVal > 0 ? `- ${formatMoneyBR(tradeInVal)}` : 'R$ 0,00';
-    elTradeIn.parentElement.style.display = tradeInVal > 0 ? 'flex' : 'none';
-  }
-  if (elGenDisc) {
-    elGenDisc.textContent = generalDiscountAmount > 0 ? `- ${formatMoneyBR(generalDiscountAmount)}` : 'R$ 0,00';
-    elGenDisc.parentElement.style.display = generalDiscountAmount > 0 ? 'flex' : 'none';
-  }
-  if (elNet) elNet.textContent = formatMoneyBR(netTotal);
-  if (elBalanceCard) elBalanceCard.textContent = formatMoneyBR(balanceToFinance);
-
-  // Calcular e Renderizar Tabela de Parcelamento do Cartão
-  renderQuoteCardInstallments(balanceToFinance);
+  Object.entries(summary).forEach(([id, value]) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = formatMoneyBR(value);
+    if (element && (id === 'qbSummaryTradeIn' || id === 'qbSummaryGenDisc')) element.parentElement.style.display = value ? 'flex' : 'none';
+  });
+  renderQuoteCardInstallments(result.financedAmount);
 }
 
 // Simulação de Cartão no Orçamento
