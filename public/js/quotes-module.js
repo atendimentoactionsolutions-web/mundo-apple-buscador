@@ -7,12 +7,17 @@ let quotesStats = { totalQuotes: 0, approvedCount: 0, pendingCount: 0, totalAppr
 let currentQuoteEditing = null; // null = novo, object = editando
 
 // Estado temporário do builder atual
+function quoteIssueDate() {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
 let currentBuilderData = {
   id: null,
   code: '',
   status: 'RASCUNHO',
   customer: { name: '', whatsapp: '', doc: '', notes: '' },
-  dates: { issueDate: new Date().toISOString().split('T')[0], validityDays: 3 },
+  dates: { issueDate: quoteIssueDate(), validityDays: 3 },
   items: [],
   tradeIn: { hasTradeIn: false, modelName: '', description: '', tradeInAmount: 0 },
   discount: { type: 'FIXED', value: 0 },
@@ -195,7 +200,7 @@ function openNewQuoteModal() {
     code: '',
     status: 'RASCUNHO',
     customer: { name: '', whatsapp: '', doc: '', notes: '' },
-    dates: { issueDate: new Date().toISOString().split('T')[0], validityDays: 3 },
+    dates: { issueDate: quoteIssueDate(), validityDays: 3 },
     items: [],
     tradeIn: { hasTradeIn: false, modelName: '', description: '', tradeInAmount: 0 },
     discount: { type: 'FIXED', value: 0 },
@@ -248,7 +253,7 @@ function populateBuilderModal() {
   if (inputName) inputName.value = currentBuilderData.customer.name || '';
   if (inputPhone) inputPhone.value = currentBuilderData.customer.whatsapp || '';
   if (inputDoc) inputDoc.value = currentBuilderData.customer.doc || '';
-  if (inputDate) inputDate.value = currentBuilderData.dates.issueDate || new Date().toISOString().split('T')[0];
+  if (inputDate) inputDate.value = currentBuilderData.dates.issueDate || quoteIssueDate();
   if (inputValidity) inputValidity.value = currentBuilderData.dates.validityDays || 3;
   if (inputStatus) inputStatus.value = currentBuilderData.status || 'RASCUNHO';
 
@@ -643,7 +648,7 @@ async function saveCurrentQuote() {
   const name = (document.getElementById('qbCustomerName')?.value || '').trim();
   const phone = (document.getElementById('qbCustomerPhone')?.value || '').trim();
   const doc = (document.getElementById('qbCustomerDoc')?.value || '').trim();
-  const issueDate = document.getElementById('qbIssueDate')?.value || new Date().toISOString().split('T')[0];
+  const issueDate = document.getElementById('qbIssueDate')?.value || quoteIssueDate();
   const validityDays = parseInt(document.getElementById('qbValidityDays')?.value) || 3;
   const status = document.getElementById('qbStatusSelect')?.value || 'RASCUNHO';
   const condNotes = (document.getElementById('qbCommercialConditions')?.value || '').trim();

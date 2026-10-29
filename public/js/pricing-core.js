@@ -235,7 +235,7 @@
     };
   }
 
-  function getProductMargin(rawModel, category, isSemi = false, marginsData = null) {
+  function getRawProductMargin(rawModel, category, isSemi = false, marginsData = null) {
     const margins = marginsData || getDefaultMargins();
     const nameUpper = (rawModel || '').trim().toUpperCase();
     const cleanNameUpper = cleanModelName(rawModel).toUpperCase();
@@ -309,6 +309,11 @@
     }
 
     return 500;
+  }
+
+  function getProductMargin(rawModel, category, isSemi = false, marginsData = null) {
+    const margin = Number(getRawProductMargin(rawModel, category, isSemi, marginsData));
+    return Number.isFinite(margin) && margin >= 0 ? margin : 0;
   }
 
   function calculateRetailPrice(rawCost, category, rawModel, isSemi = false, marginsData = null) {

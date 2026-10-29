@@ -4974,15 +4974,12 @@ window.triggerStorefrontSyncPrices = async function(btn) {
   icons.forEach(i => i.style.animation = 'spin 0.8s linear infinite');
 
   try {
-    const resp = await fetch('/api/products');
-    const data = await resp.json();
-
-    if (data && data.success && Array.isArray(data.data)) {
-      await loadProducts();
+    await loadProducts();
+    if (catalogStatus === 'ready') {
       spans.forEach(s => s.textContent = `✓ Atualizado (${allProducts.length.toLocaleString('pt-BR')})`);
       if (btn) btn.style.color = 'var(--accent-green)';
     } else {
-      spans.forEach(s => s.textContent = '✓ Catálogo Ativo');
+      spans.forEach(s => s.textContent = 'Erro ao atualizar');
     }
   } catch (err) {
     console.error('Erro ao atualizar preços:', err);
