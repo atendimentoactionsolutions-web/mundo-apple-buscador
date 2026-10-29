@@ -5215,29 +5215,6 @@ function ensureMobileDrawerMounted() {
   syncMobileDrawerActions();
 
   // Se o usuário já estiver logado, exibe os itens restritos na gaveta
-  if (currentUser) {
-    const pBtn = drawer.querySelector('#mobileDrawerPricesDayBtn');
-    const cBtn = drawer.querySelector('#mobileDrawerCalcBtn');
-    const eBtn = drawer.querySelector('#mobileDrawerExportBtn');
-    const lBtn = drawer.querySelector('#mobileDrawerLogoutBtn');
-    const aBtn = drawer.querySelector('#mobileDrawerAdminBtn');
-    const uBox = drawer.querySelector('#mobileDrawerUser');
-    const uBadge = drawer.querySelector('#mobileDrawerUserBadge');
-    const aLabel = drawer.querySelector('#mobileDrawerAdminLabel');
-    if (pBtn) pBtn.style.display = 'flex';
-    if (cBtn) cBtn.style.display = 'flex';
-    if (eBtn) eBtn.style.display = 'flex';
-    if (lBtn) lBtn.style.display = 'flex';
-    if (aBtn) aBtn.style.display = 'flex';
-    if (uBox && uBadge) {
-      uBox.style.display = 'none';
-      uBadge.style.display = 'none'; // REMOVIDO A PEDIDO DO USUARIO
-    }
-    if (aLabel) {
-      aLabel.textContent = currentUser.role === 'admin' ? '👑 Painel Administrador' : '⚙️ Configurar Margens e Loja';
-    }
-  }
-
   return { drawer, overlay };
 }
 
