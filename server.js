@@ -866,6 +866,11 @@ app.post('/api/admin/lojistas/:id/block', requireAdminApi, asyncHandler(async (r
 // =========================================================================
 
 // Listar orçamentos com filtros e dashboard
+function getUserCardRates(user) {
+  return user?.custom_card_rates && (user.role !== 'admin' || (user.username || '').toLowerCase() === 'cledson')
+    ? user.custom_card_rates : loadCardRates();
+}
+
 app.get('/api/quotes', requireAuthApi, (req, res) => {
   try {
     const filters = {
@@ -893,7 +898,7 @@ app.get('/api/quotes/:id', requireAuthApi, (req, res) => {
 // Criar novo orçamento
 app.post('/api/quotes', requireAuthApi, (req, res) => {
   try {
-    const quote = quotesManager.createQuote(req.body, req.user);
+    const quote = quotesManager.createQuote(req.body, req.user, getUserCardRates(req.user));
     res.json({ success: true, quote });
   } catch (err) {
     res.status(400).json({ error: 'Erro ao criar orçamento: ' + err.message });
@@ -903,7 +908,7 @@ app.post('/api/quotes', requireAuthApi, (req, res) => {
 // Atualizar orçamento existente
 app.put('/api/quotes/:id', requireAuthApi, (req, res) => {
   try {
-    const updated = quotesManager.updateQuote(req.params.id, req.body, req.user);
+    const updated = quotesManager.updateQuote(req.params.id, req.body, req.user, getUserCardRates(req.user));
     if (!updated) return res.status(404).json({ error: 'Orçamento não encontrado.' });
     res.json({ success: true, quote: updated });
   } catch (err) {
@@ -927,7 +932,7 @@ app.patch('/api/quotes/:id/status', requireAuthApi, (req, res) => {
 // Duplicar orçamento
 app.post('/api/quotes/:id/duplicate', requireAuthApi, (req, res) => {
   try {
-    const duplicated = quotesManager.duplicateQuote(req.params.id, req.user);
+    const duplicated = quotesManager.duplicateQuote(req.params.id, req.user, getUserCardRates(req.user));
     if (!duplicated) return res.status(404).json({ error: 'Orçamento não encontrado para duplicar.' });
     res.json({ success: true, quote: duplicated });
   } catch (err) {

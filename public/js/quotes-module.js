@@ -367,7 +367,7 @@ function onItemUnitPriceInput(index, input) {
   const item = currentBuilderData.items[index];
   if (!canEditQuoteItemPrices() || !item) return;
   const price = parseCurrencyInput(input.value);
-  if (!Number.isFinite(price) || price < 0 || /^\s*-/.test(input.value)) {
+  if (!Number.isFinite(price) || price < 0 || price > 1e10 || /^\s*-/.test(input.value)) {
     input.value = formatCurrencyInput(item.unitPrice || 0);
     return;
   }
@@ -384,7 +384,7 @@ function onItemUnitPriceInput(index, input) {
 function updateItemQuantity(index, delta) {
   if (!currentBuilderData.items[index]) return;
   const current = currentBuilderData.items[index].quantity || 1;
-  const next = Math.max(1, current + delta);
+  const next = Math.min(99, Math.max(1, current + delta));
   currentBuilderData.items[index].quantity = next;
   calculateSingleItemSubtotal(currentBuilderData.items[index]);
   renderBuilderItemsList();
@@ -393,7 +393,7 @@ function updateItemQuantity(index, delta) {
 
 function onItemQtyChange(index, val) {
   if (!currentBuilderData.items[index]) return;
-  currentBuilderData.items[index].quantity = Math.max(1, parseInt(val) || 1);
+  currentBuilderData.items[index].quantity = Math.min(99, Math.max(1, parseInt(val) || 1));
   calculateSingleItemSubtotal(currentBuilderData.items[index]);
   renderBuilderItemsList();
   recalculateQuoteTotals();
@@ -411,7 +411,8 @@ function onItemDiscountValChange(index, val) {
   if (!currentBuilderData.items[index]) return;
   currentBuilderData.items[index].discountValue = Math.max(0, parseFloat(val) || 0);
   calculateSingleItemSubtotal(currentBuilderData.items[index]);
-  renderBuilderItemsList();
+  const subtotal = document.getElementById(`qbItemSubtotal-${index}`);
+  if (subtotal) subtotal.textContent = formatMoneyBR(currentBuilderData.items[index].subtotal);
   recalculateQuoteTotals();
 }
 
@@ -422,6 +423,10 @@ function removeItemFromBuilder(index) {
 }
 
 function calculateSingleItemSubtotal(item) {
+  if (window.QuoteCore) {
+    item.subtotal = QuoteCore.itemSubtotal(item);
+    return item.subtotal;
+  }
   const qty = item.quantity || 1;
   const price = Number(item.unitPrice) || 0;
   const discVal = Number(item.discountValue) || 0;
@@ -586,6 +591,28 @@ function recalculateQuoteTotals() {
   const balanceToFinance = Math.max(0, netTotal - cashDown);
 
   // Atualiza totais salvos no builder
+  if (window.QuoteCore) {
+    const result = QuoteCore.totals(currentBuilderData.items || [], currentBuilderData.tradeIn, currentBuilderData.discount, currentBuilderData.paymentTerms);
+    currentBuilderData.totals = result.totals;
+    currentBuilderData.totalAmount = result.totals.netTotal;
+    currentBuilderData.paymentTerms.cashDownPayment = result.cashDownPayment;
+    currentBuilderData.paymentTerms.financedAmount = result.financedAmount;
+    const summary = {
+      qbSummaryGross: result.totals.grossTotal,
+      qbSummaryItemsDisc: -result.totals.itemsDiscountTotal,
+      qbSummaryTradeIn: -result.totals.tradeInDeduction,
+      qbSummaryGenDisc: -result.totals.generalDiscount,
+      qbSummaryNet: result.totals.netTotal,
+      qbSummaryBalanceCard: result.financedAmount
+    };
+    Object.entries(summary).forEach(([id, value]) => {
+      const element = document.getElementById(id);
+      if (element) element.textContent = formatMoneyBR(value);
+      if (element && (id === 'qbSummaryTradeIn' || id === 'qbSummaryGenDisc')) element.parentElement.style.display = value ? 'flex' : 'none';
+    });
+    renderQuoteCardInstallments(result.financedAmount);
+    return;
+  }
   currentBuilderData.totals = {
     grossTotal,
     itemsDiscountTotal,
@@ -718,6 +745,7 @@ async function saveCurrentQuote() {
     alert('Por favor, adicione pelo menos um produto à proposta.');
     return;
   }
+  recalculateQuoteTotals();
 
   currentBuilderData.customer.name = name;
   currentBuilderData.customer.whatsapp = phone;
