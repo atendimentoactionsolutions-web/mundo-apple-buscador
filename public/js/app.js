@@ -1404,6 +1404,7 @@ if (savedTheme !== 'dark') {
   document.body.classList.add('light-theme');
   updateThemeUI(true);
 } else {
+  document.body.classList.remove('light-theme');
   updateThemeUI(false);
 }
 
@@ -4783,44 +4784,7 @@ if (podCategoryNav) {
 }
 
 // StoreFront Event Listeners
-const sfSearchInput = document.getElementById('sfSearchInput');
-const sfSearchClearBtn = document.getElementById('sfSearchClearBtn');
 const sfCategoryNav = document.getElementById('sfCategoryNav');
-
-if (sfSearchInput) {
-  const debouncedSfSearch = debounce(() => {
-    renderStoreFront();
-  }, 120);
-
-  sfSearchInput.addEventListener('input', (e) => {
-    sfSearchQuery = e.target.value;
-    if (sfSearchClearBtn) sfSearchClearBtn.style.display = sfSearchQuery ? 'flex' : 'none';
-    // Ao buscar por texto na Loja Física, sincroniza o botão de categoria para TODOS
-    if (sfCategoryNav && sfSearchQuery.trim()) {
-      sfCategoryNav.querySelectorAll('.cat-pill, .pod-cat-pill').forEach(b => {
-        b.classList.toggle('active', b.dataset.sfCategory === 'ALL');
-      });
-      sfCurrentCategory = 'ALL';
-    }
-    debouncedSfSearch();
-  });
-
-  // Fecha o teclado virtual do celular quando o usuário aperta Enter ou Esc
-  sfSearchInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === 'Escape') {
-      sfSearchInput.blur();
-    }
-  });
-}
-
-if (sfSearchClearBtn) {
-  sfSearchClearBtn.addEventListener('click', () => {
-    if (sfSearchInput) sfSearchInput.value = '';
-    sfSearchQuery = '';
-    sfSearchClearBtn.style.display = 'none';
-    renderStoreFront();
-  });
-}
 
 if (sfCategoryNav) {
   sfCategoryNav.addEventListener('click', (e) => {
@@ -4830,11 +4794,7 @@ if (sfCategoryNav) {
     btn.classList.add('active');
     sfCurrentCategory = btn.dataset.sfCategory || 'ALL';
     // Se clicar em uma categoria específica e houver busca ativa, limpa a busca para navegar pela categoria
-    if (sfSearchInput && sfSearchQuery) {
-      sfSearchInput.value = '';
-      sfSearchQuery = '';
-      if (sfSearchClearBtn) sfSearchClearBtn.style.display = 'none';
-    }
+    sfSearchQuery = '';
     // Ao alternar categorias, reseta o filtro de cor para todas
     const colFilter = document.getElementById('sfColorFilter');
     if (colFilter) colFilter.value = 'ALL';
@@ -4869,43 +4829,6 @@ window.handleCustoFornecedorClick = function() {
 };
 
 // Event listeners para o input de busca MOBILE (dentro do card de categorias)
-const sfSearchInputMobile = document.getElementById('sfSearchInputMobile');
-const sfSearchClearBtnMobile = document.getElementById('sfSearchClearBtnMobile');
-
-if (sfSearchInputMobile) {
-  const debouncedSfMobileSearch = debounce(() => {
-    renderStoreFront();
-  }, 120);
-
-  sfSearchInputMobile.addEventListener('input', (e) => {
-    sfSearchQuery = e.target.value;
-    if (sfSearchInput) sfSearchInput.value = sfSearchQuery;
-    if (sfSearchClearBtnMobile) sfSearchClearBtnMobile.style.display = sfSearchQuery ? 'flex' : 'none';
-    if (sfCategoryNav && sfSearchQuery.trim()) {
-      sfCategoryNav.querySelectorAll('.pod-cat-pill').forEach(b => {
-        b.classList.toggle('active', b.dataset.sfCategory === 'ALL');
-      });
-      sfCurrentCategory = 'ALL';
-    }
-    debouncedSfMobileSearch();
-  });
-  sfSearchInputMobile.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === 'Escape') sfSearchInputMobile.blur();
-  });
-}
-
-if (sfSearchClearBtnMobile) {
-  sfSearchClearBtnMobile.addEventListener('click', () => {
-    if (sfSearchInputMobile) sfSearchInputMobile.value = '';
-    if (sfSearchInput) sfSearchInput.value = '';
-    sfSearchQuery = '';
-    sfSearchClearBtnMobile.style.display = 'none';
-    if (sfSearchClearBtn) sfSearchClearBtn.style.display = 'none';
-    renderStoreFront();
-  });
-}
-
-// Fechar dropdown de sugestões de modelo do Preços do Dia ao clicar fora
 document.addEventListener('click', (e) => {
   const podDropdown = document.getElementById('podAutocompleteDropdown');
   if (podDropdown && !e.target.closest('#viewPricesDay .pod-search-wrap')) {
@@ -5186,6 +5109,9 @@ function ensureMobileDrawerMounted() {
   drawer = document.createElement('aside');
   drawer.className = 'mobile-drawer';
   drawer.id = 'mobileDrawer';
+  drawer.setAttribute('role', 'dialog');
+  drawer.setAttribute('aria-modal', 'true');
+  drawer.setAttribute('aria-label', 'Menu de navegação');
   drawer.innerHTML = `
     <div class="mobile-drawer-header">
       <div style="display: flex; align-items: center; gap: 8px;">
@@ -5194,7 +5120,7 @@ function ensureMobileDrawerMounted() {
         </svg>
         <span style="font-weight: 800; font-size: 1rem;">Menu</span>
       </div>
-      <button class="mobile-drawer-close" onclick="closeMobileMenu()">✕</button>
+      <button type="button" class="mobile-drawer-close" onclick="closeMobileMenu()" aria-label="Fechar menu">✕</button>
     </div>
     <div class="mobile-drawer-body">
       <div class="mobile-drawer-user" id="mobileDrawerUser" style="display: none;">
@@ -5284,6 +5210,7 @@ function ensureMobileDrawerMounted() {
 
   document.body.appendChild(overlay);
   document.body.appendChild(drawer);
+  syncMobileDrawerActions();
 
   // Se o usuário já estiver logado, exibe os itens restritos na gaveta
   if (currentUser) {
@@ -5301,7 +5228,7 @@ function ensureMobileDrawerMounted() {
     if (lBtn) lBtn.style.display = 'flex';
     if (aBtn) aBtn.style.display = 'flex';
     if (uBox && uBadge) {
-      uBox.style.display = 'block';
+      uBox.style.display = 'none';
       uBadge.style.display = 'none'; // REMOVIDO A PEDIDO DO USUARIO
     }
     if (aLabel) {
@@ -5312,20 +5239,41 @@ function ensureMobileDrawerMounted() {
   return { drawer, overlay };
 }
 
+function syncMobileDrawerActions() {
+  const storeActions = ['mobileDrawerQuotesBtn', 'mobileDrawerPricesDayBtn', 'mobileDrawerExportBtn',
+    'mobileDrawerExportAllBtn', 'mobileDrawerCalcBtn'];
+  storeActions.forEach(id => {
+    const button = document.getElementById(id);
+    if (button) button.style.display = currentUser && !isClientMode ? 'flex' : 'none';
+  });
+  const logout = document.getElementById('mobileDrawerLogoutBtn');
+  if (logout) logout.style.display = currentUser ? 'flex' : 'none';
+  const userBox = document.getElementById('mobileDrawerUser');
+  if (userBox) userBox.style.display = 'none';
+}
+
+let mobileDrawerCloseTimer = null;
+
 // Funções para controle do Menu Hamburger Drawer no Mobile
 window.toggleMobileMenu = function() {
   if (window.innerWidth > 768) return; // NUNCA no desktop
   const mounted = ensureMobileDrawerMounted();
   if (!mounted) return;
   const { drawer, overlay } = mounted;
+  syncMobileDrawerActions();
+  if (mobileDrawerCloseTimer !== null) {
+    clearTimeout(mobileDrawerCloseTimer);
+    mobileDrawerCloseTimer = null;
+  }
   const willOpen = !drawer.classList.contains('open');
   if (willOpen) {
     drawer.style.setProperty('display', 'flex', 'important');
     overlay.style.setProperty('display', 'block', 'important');
-    setTimeout(() => {
-      drawer.classList.add('open');
-      overlay.classList.add('open');
-    }, 10);
+    drawer.classList.add('open');
+    overlay.classList.add('open');
+    document.getElementById('mobileMenuBtn')?.setAttribute('aria-expanded', 'true');
+    syncPageScrollLock();
+    drawer.querySelector('.mobile-drawer-close')?.focus();
   } else {
     window.closeMobileMenu();
   }
@@ -5337,9 +5285,14 @@ window.closeMobileMenu = function() {
   if (drawer && overlay) {
     drawer.classList.remove('open');
     overlay.classList.remove('open');
-    setTimeout(() => {
+    document.getElementById('mobileMenuBtn')?.setAttribute('aria-expanded', 'false');
+    syncPageScrollLock();
+    if (mobileDrawerCloseTimer !== null) clearTimeout(mobileDrawerCloseTimer);
+    mobileDrawerCloseTimer = setTimeout(() => {
+      if (drawer.classList.contains('open')) return;
       drawer.style.setProperty('display', 'none', 'important');
       overlay.style.setProperty('display', 'none', 'important');
+      mobileDrawerCloseTimer = null;
     }, 300);
   }
 };
@@ -5347,10 +5300,14 @@ window.closeMobileMenu = function() {
 // No desktop, DESTROI qualquer elemento de gaveta do DOM se existir
 function destroyDesktopDrawer() {
   if (window.innerWidth > 768) {
+    if (mobileDrawerCloseTimer !== null) clearTimeout(mobileDrawerCloseTimer);
+    mobileDrawerCloseTimer = null;
     const drawer = document.getElementById('mobileDrawer');
     const overlay = document.getElementById('mobileDrawerOverlay');
     if (drawer) drawer.remove();
     if (overlay) overlay.remove();
+    document.getElementById('mobileMenuBtn')?.setAttribute('aria-expanded', 'false');
+    syncPageScrollLock();
   }
 }
 window.addEventListener('resize', destroyDesktopDrawer);
@@ -5361,6 +5318,10 @@ window.toggleThemeFromDrawer = function() {
   const themeBtn = document.getElementById('themeBtn');
   if (themeBtn) {
     themeBtn.click();
+  } else {
+    const isLight = document.body.classList.toggle('light-theme');
+    localStorage.setItem('apple_pxt_theme', isLight ? 'light' : 'dark');
+    updateThemeUI(isLight);
   }
 };
 
@@ -5403,6 +5364,7 @@ function updateCatalogPresentation() {
   const customerView = !authenticated || isClientMode;
   document.body.classList.toggle('session-authenticated', authenticated);
   document.body.classList.toggle('client-mode-active', isClientMode);
+  syncMobileDrawerActions();
   const heading = document.getElementById('catalogHeading');
   const description = document.getElementById('catalogDescription');
   const label = document.getElementById('catalogModeLabel');
