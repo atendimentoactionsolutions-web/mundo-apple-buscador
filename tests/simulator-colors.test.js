@@ -22,8 +22,10 @@ function product(color, price, extra = {}) {
 
 function setup(products, user = { username: 'cledson' }) {
   const elements = new Map(['cardSimulatorModal', 'cardSimulatorBody', 'simInstallmentsGrid',
-    'simHeroCardVal', 'simCashInput', 'simColorDot'].map(id => [id, {
-    innerHTML: '', value: '', style: {}, classList: { add() {} }
+    'simHeroCardVal', 'simCashInput', 'simColorDot', 'simAdditionalItems', 'simBundleSummary', 'simBundleGross',
+    'simProductResults', 'simProductPicker', 'simProductSearch', 'simAddProductButton', 'simEntryInput', 'simTradeInValue',
+    'simAdditionalSubtotal-0'].map(id => [id, {
+    innerHTML: '', value: '', style: {}, hidden: true, focus() {}, setAttribute() {}, classList: { add() {} }
   }]));
   const context = vm.createContext({
     allProducts: products, currentUser: user, PricingCore, QuoteCore: require('../public/js/quote-core'),
@@ -120,4 +122,97 @@ test('free calculator has no product color selector', () => {
   app.context.openFreeCalculator();
   assert.equal(app.data().colorOptions.length, 0);
   assert.doesNotMatch(app.elements.get('cardSimulatorBody').innerHTML, /id="simColorSelect"/);
+});
+
+test('the picker adds another product with its catalog price and copies the combined quote', async () => {
+  const app = setup([
+    product('BLACK', 6000),
+    product('WHITE', 1200, { name: 'AIRPODS PRO', storage: '', category: 'PODS' }),
+    product('WHITE', 1000, { name: 'AIRPODS PRO', storage: '', category: 'PODS' })
+  ]);
+  app.open();
+  assert.match(app.elements.get('cardSimulatorBody').innerHTML, /Adicionar outro produto/);
+  app.context.toggleSimProductPicker();
+  assert.equal(app.elements.get('simProductPicker').hidden, false);
+  app.context.searchSimProducts('airpods white');
+  assert.match(app.elements.get('simProductResults').innerHTML, /AIRPODS PRO/);
+  const index = app.data().catalogOptions.findIndex(option => option.model === 'AIRPODS PRO');
+  assert.equal(app.data().catalogOptions.filter(option => option.model === 'AIRPODS PRO').length, 1);
+  app.context.addSimProduct(index);
+  const additional = app.data().additionalItems[0];
+  assert.equal(additional.unitPrice, 1400);
+  assert.equal(app.data().cashPrice, 8150);
+  assert.equal(app.elements.get('simBundleSummary').hidden, false);
+  app.context.handleSimDiscountValueInput({ value: '150' });
+  app.context.handleSimEntryInput({ value: '100000' });
+  assert.equal(app.data().cashPrice, 8000);
+  await app.context.copyCardSimulationToWhatsApp();
+  assert.match(app.context.copied, /PRODUTOS DA COTAÇÃO/);
+  assert.match(app.context.copied, /1\. IPHONE 17 PRO \(256GB\)/);
+  assert.match(app.context.copied, /2\. AIRPODS PRO/);
+  assert.match(app.context.copied, /8\.000,00/);
+  assert.match(app.context.copied, /7\.000,00/);
+  assert.match(app.context.copied, /18x de/);
+});
+
+test('additional quantities, editable prices, removal and reopening keep totals consistent', () => {
+  const app = setup([product('BLACK', 6000), product('WHITE', 1000, { name: 'AIRPODS PRO', category: 'PODS', storage: '' })]);
+  app.open();
+  const index = app.data().catalogOptions.findIndex(option => option.model === 'AIRPODS PRO');
+  app.context.addSimProduct(index);
+  app.context.addSimProduct(index);
+  assert.equal(app.data().additionalItems.length, 1);
+  assert.equal(app.data().additionalItems[0].quantity, 2);
+  const markup = app.elements.get('simAdditionalItems').innerHTML;
+  app.context.updateSimProductPrice(0, { value: '125055' });
+  assert.equal(app.data().additionalItems[0].unitPrice, 1250.55);
+  assert.equal(app.data().cashPrice, 9251.1);
+  assert.equal(app.elements.get('simAdditionalItems').innerHTML, markup, 'Typing does not recreate the active field');
+  app.context.updateSimProductQuantity(0, { value: '3' });
+  assert.equal(app.data().cashPrice, 10501.65);
+  app.context.handleSimEntryInput({ value: '900000' });
+  app.context.removeSimProduct(0);
+  assert.equal(app.data().additionalItems.length, 0);
+  assert.equal(app.data().cashPrice, 6750);
+  assert.equal(app.data().entryAmount, 6750);
+  assert.equal(app.elements.get('simBundleSummary').hidden, true);
+  app.context.addSimProduct(index);
+  app.open();
+  assert.equal(app.data().additionalItems.length, 0);
+  assert.equal(app.data().cashPrice, 6750);
+});
+
+test('adding the same primary variant increases its quantity instead of duplicating it', () => {
+  const app = setup([product('BLACK', 6000)]);
+  app.open();
+  app.context.addSimProduct(0);
+  assert.equal(app.data().quantity, 2);
+  assert.equal(app.data().additionalItems.length, 0);
+  assert.equal(app.data().cashPrice, 13500);
+});
+
+test('client mode can include additional retail products without editing their price', async () => {
+  const app = setup([product('WHITE', 1000, { name: 'AIRPODS PRO', category: 'PODS', storage: '' })], null);
+  app.context.IS_CATALOG_SHIELDED = true;
+  app.open();
+  app.context.addSimProduct(0);
+  assert.equal(app.data().additionalItems[0].unitPrice, 1000);
+  app.context.updateSimProductPrice(0, { value: '100' });
+  assert.equal(app.data().additionalItems[0].unitPrice, 1000);
+  assert.doesNotMatch(app.elements.get('simAdditionalItems').innerHTML, /updateSimProductPrice/);
+  await app.context.copyCardSimulationToWhatsApp();
+  assert.match(app.context.copied, /AIRPODS PRO/);
+  assert.match(app.context.copied, /7\.750,00/);
+});
+
+test('mixed new and seminovo items retain the chosen configuration in the copied quote', async () => {
+  const app = setup([product('BLUE', 4000, { name: 'IPHONE 16 PRO', isSeminovo: true, region: '' })]);
+  app.open();
+  app.context.addSimProduct(0);
+  await app.context.copyCardSimulationToWhatsApp();
+  assert.match(app.context.copied, /IPHONE 16 PRO \(Seminovo\) \(256GB\)/);
+  assert.match(app.context.copied, /Cor: BLUE/);
+  assert.match(app.context.copied, /90 dias da loja para seminovos/);
+  app.context.searchSimProducts('produto inexistente');
+  assert.match(app.elements.get('simProductResults').innerHTML, /Nenhum produto encontrado/);
 });
