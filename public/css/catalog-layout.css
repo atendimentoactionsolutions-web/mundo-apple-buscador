@@ -52,11 +52,7 @@
   margin-inline: auto !important;
   padding: 32px var(--catalog-gutter) 64px !important;
 }
-.catalog-intro { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 26px; }
-.catalog-intro-copy { min-width: 0; }
-.catalog-eyebrow { display: block; margin-bottom: 8px; font-size: 10px; font-weight: 800; letter-spacing: 1.8px; color: var(--accent-green); }
-.catalog-intro h1 { margin: 0; font-size: clamp(24px, 2.4vw, 34px); line-height: 1.2; letter-spacing: -1.2px; font-weight: 800; color: var(--text-primary); }
-.catalog-intro p { margin-top: 10px; color: var(--text-secondary); font-size: 13px; line-height: 1.65; }
+.catalog-intro { display: flex; align-items: center; justify-content: flex-end; margin-bottom: 20px; }
 .catalog-search {
   display: flex;
   align-items: center;
@@ -186,8 +182,6 @@
   .catalog-app #viewStoreFront,
   .catalog-app #viewPricesDay { padding-top: 24px !important; }
   .catalog-intro { flex-direction: column; gap: 18px; margin-bottom: 20px; }
-  .catalog-intro h1 { font-size: 26px; letter-spacing: -0.9px; }
-  .catalog-intro p { font-size: 12px; }
   .catalog-search { width: 100%; }
   .catalog-app #sfCategoryNav { overflow-x: auto; padding-bottom: 14px !important; }
   .catalog-app #sfCategoryNav .cat-pill { min-height: 40px !important; padding-inline: 15px !important; }
@@ -208,7 +202,6 @@
 }
 @media (max-width: 380px) {
   .catalog-app.session-authenticated .brand-wordmark { display: none; }
-  .catalog-app .catalog-intro h1 { font-size: 23px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .catalog-app .mock-card,
