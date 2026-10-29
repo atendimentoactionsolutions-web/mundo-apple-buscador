@@ -1574,47 +1574,35 @@ app.post('/api/admin/push-catalog', asyncHandler(async (req, res) => {
 
 // Local client socket connection com Anti-Pirataria e segregação de salas
 localIo.on('connection', async (clientSocket) => {
-  let isAuthed = false;
+  const token = auth.getSessionTokenFromRequest({ headers: clientSocket.handshake.headers });
+  async function authorizeSocket() {
+    const user = token ? await auth.findUserBySessionToken(token) : null;
+    if (!user) return false;
+    clientSocket.leave('public_visitors');
+    clientSocket.join('authed_users');
+    clientSocket.join(`user_${user.id}`);
+    clientSocket.join(`session_${token}`);
+    clientSocket.userId = user.id;
+    clientSocket.userRole = user.role;
+    return true;
+  }
   try {
-    const cookieHeader = clientSocket.handshake?.headers?.cookie;
-    if (cookieHeader) {
-      const match = cookieHeader.match(/fornecedor_session=([^;]+)/);
-      if (match && match[1]) {
-        const user = await auth.findUserBySessionToken(match[1]);
-        if (user && (user.role === 'admin' || user.status !== 'blocked')) {
-          isAuthed = true;
-          clientSocket.join('authed_users');
-          // Apenas lojistas comuns entram na sala de sessão única anti-pirataria. Admin tem acesso ilimitado multitelas.
-          if (user.role !== 'admin') {
-            clientSocket.join(`user_${user.id}`);
-          }
-          clientSocket.userId = user.id;
-          clientSocket.userRole = user.role;
-        }
-      }
-    }
-  } catch (e) {}
-
-  if (!isAuthed) {
+    if (!await authorizeSocket()) clientSocket.join('public_visitors');
+  } catch (error) {
     clientSocket.join('public_visitors');
   }
-
-  // O cliente registra seu token de sessão para receber avisos imediatos de sessão única
-  clientSocket.on('register_session', async (token) => {
-    if (token) {
-      const user = await auth.findUserBySessionToken(token);
-      if (user && (user.role === 'admin' || user.status !== 'blocked')) {
-        clientSocket.leave('public_visitors');
-        clientSocket.join('authed_users');
-        // Apenas lojistas comuns entram na sala de sessão única anti-pirataria
-        if (user.role !== 'admin') {
-          clientSocket.join(`user_${user.id}`);
-        }
-        clientSocket.userId = user.id;
-        clientSocket.userRole = user.role;
-      }
-    }
+  clientSocket.on('register_session', () => {
+    authorizeSocket().catch(() => clientSocket.disconnect(true));
   });
+  const sessionMonitor = setInterval(async () => {
+    if (!clientSocket.userId) return;
+    try {
+      if (await auth.findUserBySessionToken(token)) return;
+      clientSocket.emit('session_terminated', { reason: 'Sua sessão expirou. Faça login novamente.' });
+    } catch (error) {}
+    clientSocket.disconnect(true);
+  }, 60000);
+  clientSocket.on('disconnect', () => clearInterval(sessionMonitor));
 
   clientSocket.emit('init_stats', {
     total: productsMap.size,
