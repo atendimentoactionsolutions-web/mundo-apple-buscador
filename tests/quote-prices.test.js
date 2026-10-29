@@ -18,7 +18,7 @@ function setup(user = { role: 'admin' }) {
     innerHTML: '', textContent: '', value: id === 'qbCustomerName' ? 'Cliente Teste' : '',
     style: {}, classList: { add() {}, remove() {} }
   }]));
-  const context = vm.createContext({ currentUser: user, console, URLSearchParams,
+  const context = vm.createContext({ currentUser: user, console, URLSearchParams, QuoteCore: require('../public/js/quote-core'),
     cardRates: { baseRate: 0, installmentRates: { 1: 0 } },
     document: { getElementById: id => elements.get(id) || null, addEventListener() {} },
     alert() {},
@@ -92,7 +92,7 @@ test('saving and reopening retain negotiated prices, cents and the WhatsApp tota
     assert.ok(path.basename(tempRoot).startsWith('mundo-apple-quotes-test-'));
     fs.rmSync(tempRoot, { recursive: true, force: true });
   });
-  const managerContext = vm.createContext({ require, console, __dirname: tempRoot, module: { exports: {} } });
+  const managerContext = vm.createContext({ require: request => request === './public/js/quote-core' ? require('../public/js/quote-core') : require(request), console, __dirname: tempRoot, module: { exports: {} } });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../quotes.js'), 'utf8'), managerContext);
   const manager = managerContext.module.exports;
   const app = setup();
@@ -113,7 +113,7 @@ test('saving and reopening retain negotiated prices, cents and the WhatsApp tota
   assert.match(app.elements.get('qbItemsList').innerHTML, /value="1.200,55"/);
   app.context.shareQuoteWhatsApp(saved.id);
   assert.match(decodeURIComponent(app.context.openedUrl), /2\.310,99/);
-  const updated = manager.updateQuote(saved.id, { totalAmount: 0, totals: { netTotal: 0 } });
+  const updated = manager.updateQuote(saved.id, { items: saved.items.map(item => ({ ...item, unitPrice: 0 })), totalAmount: 0, totals: { netTotal: 0 } });
   assert.equal(updated.totalAmount, 0);
   assert.equal(manager.getQuoteById(saved.id).totalAmount, 0);
 });

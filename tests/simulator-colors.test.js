@@ -26,7 +26,7 @@ function setup(products, user = { username: 'cledson' }) {
     innerHTML: '', value: '', style: {}, classList: { add() {} }
   }]));
   const context = vm.createContext({
-    allProducts: products, currentUser: user, PricingCore,
+    allProducts: products, currentUser: user, PricingCore, QuoteCore: require('../public/js/quote-core'),
     IS_CATALOG_SHIELDED: false, DFU_ACTIVE: user?.username === 'admin',
     margins: { categories: { IPH: 750, SEMINOVOS: 600, MCB_AIR: 1000 }, products: {} },
     cardRates: { baseRate: 2.69, installmentRates: { 1: 3.05, 2: 1.5 } },
