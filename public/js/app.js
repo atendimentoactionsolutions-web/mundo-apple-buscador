@@ -1,5 +1,9 @@
 // MUNDO APPLE BUSCADOR - Frontend Engine (Tempo Real & Filtros Adaptativos)
 let allProducts = [];
+let currentUser = null;
+let authSessionChecked = false;
+let catalogStatus = 'loading';
+let catalogRequestId = 0;
 let currentCategory = 'ALL';
 let selectedModel = ''; // Isolated model filter (e.g. "IPHONE 17 PRO MAX")
 let searchQuery = '';
@@ -212,8 +216,7 @@ function openCatalogDb() {
 }
 
 function getCatalogCacheKey() {
-  const hasToken = document.cookie && document.cookie.includes('fornecedor_session=');
-  return hasToken ? 'authed_products' : 'shielded_products';
+  return currentUser ? `authed_products_${currentUser.id || currentUser.username}` : 'shielded_products';
 }
 
 async function getCachedCatalog() {
@@ -237,13 +240,12 @@ async function getCachedCatalog() {
   }
 }
 
-async function saveCachedCatalog(data) {
+async function saveCachedCatalog(data, key = getCatalogCacheKey()) {
   try {
     const db = await openCatalogDb();
     if (!db) return;
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
-    const key = data.isShielded ? 'shielded_products' : 'authed_products';
     store.put(data, key);
   } catch (e) {}
 }
@@ -259,7 +261,8 @@ async function clearCachedCatalog() {
 }
 
 // Inicializa cache em memória instantaneamente antes da rede
-getCachedCatalog().then((cached) => {
+async function restoreCachedCatalog() {
+  const cached = await getCachedCatalog();
   if (cached && allProducts.length === 0) {
     const list = Array.isArray(cached) ? cached : (cached.products || []);
     if (list.length > 0) {
@@ -267,6 +270,7 @@ getCachedCatalog().then((cached) => {
         window.IS_CATALOG_SHIELDED = !!cached.isShielded;
       }
       allProducts = list;
+      catalogStatus = 'ready';
       if (totalCountEl) totalCountEl.textContent = allProducts.length;
       updateDynamicFilters();
       if (typeof refreshCurrentView === 'function') {
@@ -274,22 +278,29 @@ getCachedCatalog().then((cached) => {
       }
     }
   }
-});
+}
 
 let selectedDateMode = 'today';
 
 // 1. Fetch initial dataset from backend API (suporta alternar entre Hoje e Ontem)
 async function loadProducts(dateParam) {
+  if (!authSessionChecked) return;
+  const requestId = ++catalogRequestId;
+  const cacheKey = getCatalogCacheKey();
   try {
     const target = dateParam || selectedDateMode || 'today';
     const res = await fetch(`/api/products?date=${target}`);
-    if (!res.ok) return;
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-    if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+    if (requestId !== catalogRequestId) return;
+    if (json.success && Array.isArray(json.data)) {
       window.IS_CATALOG_SHIELDED = !!json.isShielded;
       allProducts = json.data.filter(p => !isDisallowedProduct(p));
-      saveCachedCatalog({ isShielded: window.IS_CATALOG_SHIELDED, products: allProducts });
+      catalogStatus = 'ready';
+      lastColorCategory = '';
+      if (!json.isHistorical) saveCachedCatalog({ isShielded: window.IS_CATALOG_SHIELDED, products: allProducts }, cacheKey);
       if (totalCountEl) totalCountEl.textContent = allProducts.length;
+      if (json.dollarRate) updateHeaderDollarDisplay(json.dollarRate, json.dollarVariation);
 
       // Status Badge e indicador de data ativa
       const badgeText = document.getElementById('connectionText');
@@ -304,8 +315,11 @@ async function loadProducts(dateParam) {
 
       updateDynamicFilters();
       refreshCurrentView();
-    }
+    } else throw new Error('Resposta de catálogo inválida.');
   } catch (err) {
+    if (requestId !== catalogRequestId) return;
+    catalogStatus = 'error';
+    refreshCurrentView();
     console.error('Erro ao carregar produtos por data:', err);
   }
 }
@@ -1633,15 +1647,15 @@ async function loadCardRates() {
   }
 }
 
-socket.on('margins_updated', (newMargins) => {
-  margins = newMargins;
-  if (currentView === 'storefront') {
-    renderStoreFront();
-  }
+socket.on('margins_updated', async () => {
+  await loadMargins();
+  await loadProducts();
 });
 
-socket.on('card_rates_updated', (newRates) => {
-  cardRates = newRates;
+socket.on('card_rates_updated', async () => {
+  await loadCardRates();
+  if (document.getElementById('cardSimulatorModal')?.classList.contains('active')) recalculateSimulator();
+  if (document.getElementById('quoteBuilderModal')?.classList.contains('active')) recalculateQuoteTotals();
 });
 
 function getProductMargin(rawModel, category, isSemi = false) {
@@ -2012,7 +2026,7 @@ function renderStoreFront() {
   }
 
   if (cardsList.length === 0) {
-    if (allProducts.length === 0) {
+    if (allProducts.length === 0 && catalogStatus === 'loading') {
       container.innerHTML = `
         <div class="app-catalog-loader">
           <div class="app-spinner"></div>
@@ -2024,8 +2038,9 @@ function renderStoreFront() {
     }
     container.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
-        <h3 style="font-size: 1.25rem; color: var(--text-primary, #0f172a); margin-bottom: 8px;">Nenhum produto encontrado com estes filtros.</h3>
-        <p style="font-size: 0.9rem;">Tente ajustar a busca ou redefinir os filtros de capacidade e cor.</p>
+        <h3 style="font-size: 1.25rem; color: var(--text-primary, #0f172a); margin-bottom: 8px;">${catalogStatus === 'error' ? 'Não foi possível atualizar o catálogo.' : 'Nenhum produto encontrado.'}</h3>
+        <p style="font-size: 0.9rem;">${catalogStatus === 'error' ? 'Verifique sua conexão e tente novamente.' : 'Tente outra busca ou categoria. O catálogo pode estar sem produtos disponíveis.'}</p>
+        <button type="button" class="header-action-btn" onclick="loadProducts()" style="margin: 16px auto 0;">Atualizar catálogo</button>
       </div>
     `;
     return;
@@ -2880,7 +2895,7 @@ function renderPricesOfTheDay() {
   updatePricesDayCategoryCounts();
 
   if (sortedFamilies.length === 0) {
-    if (allProducts.length === 0) {
+    if (allProducts.length === 0 && catalogStatus === 'loading') {
       container.innerHTML = `
         <div class="app-catalog-loader">
           <div class="app-spinner"></div>
@@ -4762,11 +4777,13 @@ document.querySelectorAll('.pod-search-wrap').forEach(wrap => {
 });
 
 // Initial boot (Loja Física por padrão até verificar autenticação)
-switchView('storefront');
-loadProducts();
-loadMargins();
-loadCardRates();
-checkAuthSession();
+async function initializeApp() {
+  await checkAuthSession();
+  authSessionChecked = true;
+  await Promise.all([loadMargins(), loadCardRates()]);
+  await restoreCachedCatalog();
+  await loadProducts();
+}
 
 // Sincronizacao / Auto-refresh periodico a cada 1 minuto (60 segundos)
 setInterval(() => {
@@ -4776,8 +4793,6 @@ setInterval(() => {
 // =========================================================================
 // GESTÃO DE SESSÃO & PROTEÇÃO ANTI-PIRATARIA
 // =========================================================================
-let currentUser = null;
-
 async function checkAuthSession() {
   try {
     const res = await fetch('/api/auth/me');
@@ -4794,7 +4809,7 @@ async function checkAuthSession() {
     const mobileDrawerExportBtn = document.getElementById('mobileDrawerExportBtn');
     const mobileDrawerExportAllBtn = document.getElementById('mobileDrawerExportAllBtn');
 
-    if (res.status === 401) {
+    if (res.status === 401 || res.status === 403) {
       currentUser = null;
       updateCatalogPresentation();
       localStorage.removeItem('logged_username');
@@ -4842,6 +4857,7 @@ async function checkAuthSession() {
       return;
     }
 
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const user = await res.json();
     currentUser = user;
     updateCatalogPresentation();
@@ -4895,10 +4911,7 @@ async function checkAuthSession() {
     }
 
     // Registra sessão no WebSocket para controle anti-pirataria
-    const sessionToken = getCookie('fornecedor_session');
-    if (sessionToken) {
-      socket.emit('register_session', sessionToken);
-    }
+    socket.emit('register_session');
 
     // Esconde o botão público de login "Painel Admin" e exibe a barra do lojista logado
     if (publicAdminTopBtn) {
@@ -4987,10 +5000,7 @@ window.triggerStorefrontSyncPrices = async function(btn) {
     const data = await resp.json();
 
     if (data && data.success && Array.isArray(data.data)) {
-      allProducts = data.data;
-      if (data.dollarRate) dollarRate = data.dollarRate;
-      if (data.latestDate) latestDate = data.latestDate;
-      renderStoreFront();
+      await loadProducts();
       spans.forEach(s => s.textContent = `✓ Atualizado (${allProducts.length.toLocaleString('pt-BR')})`);
       if (btn) btn.style.color = 'var(--accent-green)';
     } else {
@@ -5300,3 +5310,5 @@ window.shareClientCatalogLink = async function() {
 };
 
 initClientModeCheck();
+switchView('storefront');
+initializeApp();
