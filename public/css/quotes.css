@@ -615,6 +615,8 @@
   color: var(--text-muted);
 }
 
+button.qb-dropdown-item { width: 100%; text-align: left; font-family: inherit; }
+
 .qb-item-unit-tag strong {
   color: var(--text-primary);
 }

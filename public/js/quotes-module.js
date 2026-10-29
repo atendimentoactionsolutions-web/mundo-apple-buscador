@@ -310,7 +310,7 @@ function renderBuilderItemsList() {
       <div class="qb-item-card" data-index="${index}">
         <div class="qb-item-main-info">
           <strong class="qb-item-title">${escapeHtml(item.name)}</strong>
-          <span class="qb-item-specs">${specs}</span>
+          <span class="qb-item-specs">${escapeHtml(specs)}</span>
           ${canEditQuoteItemPrices() ? '' : `<span class="qb-item-unit-tag">Preço Unitário: <strong>${unitPriceFmt}</strong></span>`}
         </div>
 
@@ -446,24 +446,26 @@ function onQuoteCatalogSearch(input) {
   
   // Buscar no catálogo de varejo (produtos com preços de venda da loja física)
   const matches = [];
-  const seenKeys = new Set();
+  const variants = new Map();
 
   for (const p of allProducts) {
     if (isDisallowedProduct(p)) continue;
-    const retailPrice = getProductRetailPrice(p);
-    if (!retailPrice || retailPrice <= 0) continue;
-
-    const searchable = `${p.name || ''} ${p.storage || ''} ${p.color || ''} ${p.category || ''} ${p.condition || ''}`.toLowerCase();
-    const allMatch = tokens.every(tok => searchable.includes(tok));
-
-    if (allMatch) {
-      const key = `${p.name}_${p.storage}_${p.ram || ''}_${p.color}_${p.condition}`;
-      if (!seenKeys.has(key)) {
-        seenKeys.add(key);
-        matches.push({ product: p, retailPrice });
-        if (matches.length >= 15) break;
-      }
-    }
+    if (!(Number(p.price) > 0)) continue;
+    const model = cleanModelName(p.name);
+    const ram = getMacBookRam(p);
+    const semi = isSeminovoProduct(p);
+    const key = [model, p.storage || '', ram, p.color || '', semi].join('__').toUpperCase().replace(/\s+/g, '');
+    if (!variants.has(key)) variants.set(key, { product: p, offers: [], model, ram, semi });
+    variants.get(key).offers.push(p);
+  }
+  for (const variant of variants.values()) {
+    const p = variant.product;
+    const searchable = `${p.name || ''} ${p.storage || ''} ${variant.ram} ${p.color || ''} ${p.category || ''} ${variant.semi ? 'seminovo' : 'novo'}`.toLowerCase();
+    if (!tokens.every(token => searchable.includes(token))) continue;
+    const reference = calculateSupplierReferencePrice(variant.offers, variant.semi);
+    const retailPrice = applyDFU(reference, p.category, variant.model) + getProductMargin(variant.model, p.category, variant.semi);
+    matches.push({ product: { ...p, ram: variant.ram, isSeminovo: variant.semi }, retailPrice });
+    if (matches.length >= 15) break;
   }
 
   if (matches.length === 0) {
@@ -478,13 +480,13 @@ function onQuoteCatalogSearch(input) {
     const specs = [p.storage, p.ram ? p.ram + ' RAM' : '', p.color, p.isSeminovo ? 'SEMINOVO' : 'NOVO'].filter(Boolean).join(' • ');
 
     return `
-      <div class="qb-dropdown-item" onclick="addItemFromCatalog('${p.id}', ${m.retailPrice})">
+      <button type="button" class="qb-dropdown-item" data-product-id="${escapeHtml(String(p.id))}" data-retail-price="${m.retailPrice}" onclick="addItemFromCatalog(this.dataset.productId, Number(this.dataset.retailPrice))">
         <div class="qb-dd-info">
           <strong class="qb-dd-name">${escapeHtml(p.name)}</strong>
-          <span class="qb-dd-specs">${specs}</span>
+          <span class="qb-dd-specs">${escapeHtml(specs)}</span>
         </div>
         <div class="qb-dd-price">${priceFmt}</div>
-      </div>
+      </button>
     `;
   }).join('');
 
@@ -492,7 +494,7 @@ function onQuoteCatalogSearch(input) {
 }
 
 function addItemFromCatalog(productId, retailPrice) {
-  const prod = allProducts.find(p => p.id === productId);
+  const prod = allProducts.find(p => String(p.id) === String(productId));
   if (!prod) return;
 
   const price = retailPrice || getProductRetailPrice(prod);
@@ -502,9 +504,9 @@ function addItemFromCatalog(productId, retailPrice) {
     name: prod.name,
     category: prod.category || 'IPH',
     storage: prod.storage || '',
-    ram: prod.ram || '',
+    ram: getMacBookRam(prod) || prod.ram || '',
     color: prod.color || '',
-    condition: prod.isSeminovo ? 'SEMINOVO' : 'NOVO',
+    condition: isSeminovoProduct(prod) ? 'SEMINOVO' : 'NOVO',
     quantity: 1,
     unitPrice: price,
     discountType: 'FIXED',

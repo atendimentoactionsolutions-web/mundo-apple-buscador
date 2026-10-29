@@ -3640,14 +3640,14 @@ window.handleSimUnitPriceInput = function(inp) {
 window.handleSimQtyStep = function(delta) {
   const qtyInp = document.getElementById('simQtyInput');
   const current = currentSimData.quantity || 1;
-  const next = Math.max(1, current + delta);
+  const next = Math.min(99, Math.max(1, current + delta));
   currentSimData.quantity = next;
   if (qtyInp) qtyInp.value = next;
   recalculateSimulator();
 };
 
 window.handleSimQtyInput = function(inp) {
-  const next = Math.max(1, parseInt(inp.value) || 1);
+  const next = Math.min(99, Math.max(1, parseInt(inp.value) || 1));
   inp.value = next;
   currentSimData.quantity = next;
   recalculateSimulator();

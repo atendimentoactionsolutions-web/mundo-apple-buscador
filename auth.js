@@ -176,7 +176,7 @@ async function loginUser(username, password, clientIp, ioInstance) {
   if (user.role !== 'admin' && user.expires_at) {
     const expireDate = new Date(user.expires_at);
     const now = new Date();
-    if (expireDate < now) {
+    if (!(expireDate.getTime() > now.getTime())) {
       const formattedDate = expireDate.toLocaleDateString('pt-BR');
       return { 
         success: false, 
