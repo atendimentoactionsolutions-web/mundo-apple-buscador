@@ -4,6 +4,8 @@ let currentUser = null;
 let authSessionChecked = false;
 let catalogStatus = 'loading';
 let catalogRequestId = 0;
+let pageScrollSnapshot = null;
+let dialogReturnFocus = null;
 let currentCategory = 'ALL';
 let selectedModel = ''; // Isolated model filter (e.g. "IPHONE 17 PRO MAX")
 let searchQuery = '';
@@ -5252,6 +5254,40 @@ function syncMobileDrawerActions() {
   if (userBox) userBox.style.display = 'none';
 }
 
+function syncPageScrollLock() {
+  const active = document.querySelector('.modal-overlay.active, .mobile-drawer.open');
+  if (Boolean(active) === Boolean(pageScrollSnapshot)) return;
+  if (active) {
+    const styles = {};
+    ['position', 'top', 'left', 'right', 'width', 'overflow'].forEach(property => { styles[property] = document.body.style[property] || ''; });
+    pageScrollSnapshot = { top: window.scrollY || 0, styles };
+    dialogReturnFocus = document.activeElement;
+    Object.assign(document.body.style, { position: 'fixed', top: `-${pageScrollSnapshot.top}px`, left: '0', right: '0', width: '100%', overflow: 'hidden' });
+    document.body.classList.add('page-scroll-locked');
+  } else {
+    const snapshot = pageScrollSnapshot;
+    pageScrollSnapshot = null;
+    Object.assign(document.body.style, snapshot.styles);
+    document.body.classList.remove('page-scroll-locked');
+    const htmlStyle = document.documentElement?.style;
+    const oldBehavior = htmlStyle?.scrollBehavior;
+    if (htmlStyle) htmlStyle.scrollBehavior = 'auto';
+    window.scrollTo?.(0, snapshot.top);
+    if (htmlStyle) htmlStyle.scrollBehavior = oldBehavior || '';
+    if (dialogReturnFocus?.isConnected) dialogReturnFocus.focus({ preventScroll: true });
+    dialogReturnFocus = null;
+  }
+}
+
+function syncMobileViewport() {
+  const style = document.documentElement?.style;
+  if (!style?.setProperty) return;
+  const viewport = window.visualViewport;
+  const height = viewport?.height || window.innerHeight;
+  if (height > 0) style.setProperty('--app-viewport-height', `${Math.round(height)}px`);
+  style.setProperty('--app-viewport-top', `${Math.max(0, Math.round(viewport?.offsetTop || 0))}px`);
+}
+
 let mobileDrawerCloseTimer = null;
 
 // Funções para controle do Menu Hamburger Drawer no Mobile
@@ -5313,6 +5349,39 @@ function destroyDesktopDrawer() {
 window.addEventListener('resize', destroyDesktopDrawer);
 document.addEventListener('DOMContentLoaded', destroyDesktopDrawer);
 destroyDesktopDrawer();
+
+syncMobileViewport();
+window.addEventListener('resize', syncMobileViewport);
+window.addEventListener('orientationchange', syncMobileViewport);
+window.visualViewport?.addEventListener('resize', syncMobileViewport);
+window.visualViewport?.addEventListener('scroll', syncMobileViewport);
+if (typeof MutationObserver === 'function') {
+  const dialogObserver = new MutationObserver(syncPageScrollLock);
+  dialogObserver.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
+}
+document.addEventListener('keydown', event => {
+  const dialogs = Array.from(document.querySelectorAll('.modal-overlay.active, .mobile-drawer.open'));
+  const dialog = dialogs[dialogs.length - 1];
+  if (!dialog) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    if (dialog.id === 'mobileDrawer') closeMobileMenu();
+    else {
+      const close = dialog.querySelector('.modal-close');
+      if (close) close.click();
+      else dialog.classList.remove('active');
+    }
+    return;
+  }
+  if (event.key !== 'Tab') return;
+  const controls = Array.from(dialog.querySelectorAll('button, a[href], input, select, textarea, [tabindex="0"]'))
+    .filter(control => !control.disabled && control.getClientRects().length);
+  if (!controls.length) return;
+  const first = controls[0];
+  const last = controls[controls.length - 1];
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
+});
 
 window.toggleThemeFromDrawer = function() {
   const themeBtn = document.getElementById('themeBtn');
