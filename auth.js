@@ -11,6 +11,16 @@ const path = require('path');
 const LOCAL_DATA_DIR = path.join(__dirname, 'data');
 const LOCAL_USERS_FILE = path.join(LOCAL_DATA_DIR, 'users.json');
 
+function bootstrapAdmin() {
+  const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+  if (typeof password !== 'string' || password.length < 12) throw new Error('Configure BOOTSTRAP_ADMIN_PASSWORD com pelo menos 12 caracteres para criar o primeiro administrador.');
+  return {
+    id: 'admin-001', store_name: 'Administração Fornecedor', owner_name: 'Admin', whatsapp: '',
+    username: 'admin', password_hash: hashPassword(password), role: 'admin', status: 'active', expires_at: null,
+    current_session_token: null, active_session_tokens: [], created_at: new Date().toISOString()
+  };
+}
+
 // Helper para hashing de senhas com Scrypt (padrão NIST - nativo do Node.js)
 function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
@@ -39,20 +49,7 @@ function getLocalUsers() {
       fs.mkdirSync(LOCAL_DATA_DIR, { recursive: true });
     }
     if (!fs.existsSync(LOCAL_USERS_FILE)) {
-      const defaultAdmin = [{
-        id: 'admin-001',
-        store_name: 'Administração Fornecedor',
-        owner_name: 'Admin',
-        whatsapp: '',
-        username: 'admin',
-        password_hash: hashPassword('fornecedor2026!'),
-        role: 'admin',
-        status: 'active',
-        expires_at: null,
-        current_session_token: null,
-        active_session_tokens: [],
-        created_at: new Date().toISOString()
-      }];
+      const defaultAdmin = [bootstrapAdmin()];
       fs.writeFileSync(LOCAL_USERS_FILE, JSON.stringify(defaultAdmin, null, 2));
       return defaultAdmin;
     }
@@ -88,22 +85,9 @@ async function initAuth() {
   const admin = users.find(u => u.username === 'admin');
   if (!admin) {
     console.log('[Auth] Criando usuário admin padrão local...');
-    users.unshift({
-      id: 'admin-001',
-      store_name: 'Administração Fornecedor',
-      owner_name: 'Admin',
-      whatsapp: '',
-      username: 'admin',
-      password_hash: hashPassword('fornecedor2026!'),
-      role: 'admin',
-      status: 'active',
-      expires_at: null,
-      current_session_token: null,
-      active_session_tokens: [],
-      created_at: new Date().toISOString()
-    });
+    users.unshift(bootstrapAdmin());
     saveLocalUsers(users);
-    console.log('[Auth] ✅ Admin padrão criado com sucesso localmente (admin / fornecedor2026!)');
+    console.log('[Auth] Administrador criado com a senha configurada no ambiente.');
   } else {
     // Garante propriedades vitais de acesso ilimitado para admin existente
     let updated = false;

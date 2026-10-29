@@ -1725,6 +1725,11 @@ async function start() {
       }
     } catch (err) {
       console.error('Falha na inicialização do serviço:', err.message);
+      if (!PAUSE_PXT_UPSTREAM) {
+        setInterval(() => {
+          if (!pxtSocket || !pxtSocket.connected) reconnectAndSync('startup_recovery');
+        }, 15000);
+      }
     }
   });
 }
