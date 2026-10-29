@@ -793,6 +793,12 @@ function generateQuotePDFDoc(quote) {
 
   // 2. Caixa de Dados do Cliente & Loja
   let currentY = 34;
+  function ensurePdfSpace(height) {
+    if (currentY + height > pageHeight - 24) {
+      doc.addPage();
+      currentY = 20;
+    }
+  }
 
   doc.setFillColor(...bgLight);
   doc.setDrawColor(...borderLight);
@@ -856,13 +862,14 @@ function generateQuotePDFDoc(quote) {
       4: { cellWidth: 22, halign: 'center' },
       5: { cellWidth: 30, halign: 'right', fontStyle: 'bold', textColor: brandGreen }
     },
-    margin: { left: 14, right: 14 }
+    margin: { left: 14, right: 14, bottom: 24 }
   });
 
   currentY = doc.lastAutoTable.finalY + 8;
 
   // 4. Se houver Aparelho na Troca (Trade-In)
   if (quote.tradeIn?.hasTradeIn && quote.tradeIn?.tradeInAmount > 0) {
+    ensurePdfSpace(19);
     doc.setFillColor(236, 253, 245);
     doc.setDrawColor(16, 185, 129);
     doc.roundedRect(14, currentY, pageWidth - 28, 14, 1.5, 1.5, 'FD');
@@ -886,6 +893,7 @@ function generateQuotePDFDoc(quote) {
   }
 
   // 5. Bloco de Totais e Resumo Financeiro (Alinhado à direita)
+  ensurePdfSpace(48);
   const summaryBoxWidth = 85;
   const summaryX = pageWidth - 14 - summaryBoxWidth;
 
@@ -963,6 +971,7 @@ function generateQuotePDFDoc(quote) {
   currentY += 42;
 
   // 6. Termos de Garantia e Rodapé Oficial
+  ensurePdfSpace(25);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(...textDark);
@@ -974,13 +983,17 @@ function generateQuotePDFDoc(quote) {
   const termsText = `${quote.warrantyNotes || '1 ano de garantia oficial Apple para produtos lacrados.'} Proposta válida por ${quote.dates?.validityDays || 3} dias a partir da data de emissão. Valores sujeitos à disponibilidade do estoque diário.`;
   doc.text(termsText, 14, currentY + 4, { maxWidth: pageWidth - 28 });
 
-  // Rodapé da Página
+  // Rodapé e paginação em todas as páginas, inclusive quando a tabela continua.
+  const pageCount = doc.getNumberOfPages();
+  for (let page = 1; page <= pageCount; page++) {
+  doc.setPage(page);
   doc.setDrawColor(...borderLight);
   doc.line(14, pageHeight - 12, pageWidth - 14, pageHeight - 12);
 
   doc.setFontSize(6.8);
   doc.text('Mundo Apple Delivery • São Paulo - SP • Documento gerado eletronicamente para fins de proposta comercial.', 14, pageHeight - 8);
-  doc.text(`Página 1 de 1 • Código: ${quote.code}`, pageWidth - 14, pageHeight - 8, { align: 'right' });
+  doc.text(`Página ${page} de ${pageCount} • Código: ${quote.code}`, pageWidth - 14, pageHeight - 8, { align: 'right' });
+  }
 
   return doc;
 }
