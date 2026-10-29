@@ -639,6 +639,41 @@
   text-transform: uppercase;
 }
 
+.qb-unit-price-field { width: 148px; }
+
+.qb-unit-price-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 9px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-card);
+}
+
+.qb-unit-price-wrap:focus-within {
+  border-color: var(--accent-green);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.12);
+}
+
+.qb-unit-price-wrap > span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.qb-unit-price-wrap input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  border: none;
+  background: transparent;
+}
+
 .qb-qty-stepper {
   display: flex;
   align-items: center;

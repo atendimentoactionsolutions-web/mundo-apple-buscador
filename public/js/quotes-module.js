@@ -311,10 +311,19 @@ function renderBuilderItemsList() {
         <div class="qb-item-main-info">
           <strong class="qb-item-title">${escapeHtml(item.name)}</strong>
           <span class="qb-item-specs">${specs}</span>
-          <span class="qb-item-unit-tag">Preço Unitário: <strong>${unitPriceFmt}</strong></span>
+          ${canEditQuoteItemPrices() ? '' : `<span class="qb-item-unit-tag">Preço Unitário: <strong>${unitPriceFmt}</strong></span>`}
         </div>
 
         <div class="qb-item-controls">
+          ${canEditQuoteItemPrices() ? `
+            <div class="qb-control-field qb-unit-price-field">
+              <label for="qbItemUnitPrice-${index}">Valor unitário</label>
+              <div class="qb-unit-price-wrap">
+                <span aria-hidden="true">R$</span>
+                <input type="text" inputmode="decimal" autocomplete="off" id="qbItemUnitPrice-${index}" value="${formatCurrencyInput(item.unitPrice || 0)}" placeholder="0,00" aria-label="Valor unitário de ${escapeHtml(item.name)}" onfocus="this.select()" oninput="onItemUnitPriceInput(${index}, this)">
+              </div>
+            </div>
+          ` : ''}
           <div class="qb-control-field qb-qty-field">
             <label>Qtd</label>
             <div class="qb-qty-stepper">
@@ -337,7 +346,7 @@ function renderBuilderItemsList() {
 
           <div class="qb-control-field qb-subtotal-field">
             <label>Subtotal</label>
-            <strong class="qb-item-subtotal-val">${subtotalFmt}</strong>
+            <strong class="qb-item-subtotal-val" id="qbItemSubtotal-${index}" aria-live="polite">${subtotalFmt}</strong>
           </div>
 
           <button type="button" class="qb-item-delete-btn" title="Remover item" onclick="removeItemFromBuilder(${index})">
@@ -350,6 +359,28 @@ function renderBuilderItemsList() {
 }
 
 // Manipulação de Itens
+function canEditQuoteItemPrices() {
+  return typeof currentUser !== 'undefined' && currentUser?.role === 'admin';
+}
+
+function onItemUnitPriceInput(index, input) {
+  const item = currentBuilderData.items[index];
+  if (!canEditQuoteItemPrices() || !item) return;
+  const price = parseCurrencyInput(input.value);
+  if (!Number.isFinite(price) || price < 0 || /^\s*-/.test(input.value)) {
+    input.value = formatCurrencyInput(item.unitPrice || 0);
+    return;
+  }
+
+  item.unitPrice = price;
+  input.value = formatCurrencyInput(price);
+  calculateSingleItemSubtotal(item);
+  // Atualiza o subtotal sem recriar o campo enquanto o administrador digita.
+  const subtotal = document.getElementById(`qbItemSubtotal-${index}`);
+  if (subtotal) subtotal.textContent = formatMoneyBR(item.subtotal);
+  recalculateQuoteTotals();
+}
+
 function updateItemQuantity(index, delta) {
   if (!currentBuilderData.items[index]) return;
   const current = currentBuilderData.items[index].quantity || 1;
@@ -403,7 +434,7 @@ function calculateSingleItemSubtotal(item) {
   }
 
   const finalUnit = Math.max(0, price - unitDiscount);
-  item.subtotal = Math.round(finalUnit * qty);
+  item.subtotal = Math.round((finalUnit * qty + Number.EPSILON) * 100) / 100;
   return item.subtotal;
 }
 
@@ -548,7 +579,7 @@ function recalculateQuoteTotals() {
   }
 
   // 4. Valor Final Líquido
-  const netTotal = Math.max(0, Math.round(afterTradeIn - generalDiscountAmount));
+  const netTotal = Math.max(0, Math.round((afterTradeIn - generalDiscountAmount + Number.EPSILON) * 100) / 100);
 
   // 5. Entrada PIX e Saldo no Cartão
   const cashDown = Math.min(netTotal, Number(currentBuilderData.paymentTerms.cashDownPayment) || 0);

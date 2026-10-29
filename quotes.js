@@ -206,7 +206,7 @@ function updateQuote(id, payload, user) {
       ...current.totals,
       ...(payload.totals || {})
     },
-    totalAmount: Number(payload.totals?.netTotal || payload.totalAmount || current.totalAmount) || 0
+    totalAmount: Number(payload.totals?.netTotal ?? payload.totalAmount ?? current.totalAmount) || 0
   };
 
   data.quotes[idx] = updated;
