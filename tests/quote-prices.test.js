@@ -18,7 +18,7 @@ function setup(user = { role: 'admin' }) {
     innerHTML: '', textContent: '', value: id === 'qbCustomerName' ? 'Cliente Teste' : '',
     style: {}, classList: { add() {}, remove() {} }
   }]));
-  const context = vm.createContext({ currentUser: user, console,
+  const context = vm.createContext({ currentUser: user, console, URLSearchParams,
     cardRates: { baseRate: 0, installmentRates: { 1: 0 } },
     document: { getElementById: id => elements.get(id) || null, addEventListener() {} },
     alert() {},
@@ -56,7 +56,7 @@ test('admin can edit each unit price without losing focus or other product setti
   assert.equal(app.data().items[0].color, 'BLUE');
   assert.equal(app.data().items[1].unitPrice, 500);
   assert.equal(app.data().totalAmount, 2310.99);
-  assert.equal(app.data().paymentTerms.installmentOptions[0].monthlyAmount, 2010.99);
+  assert.ok(Math.abs(app.data().paymentTerms.installmentOptions[0].monthlyAmount - 2010.99) < 1e-9);
   assert.equal(app.elements.get('qbItemSubtotal-0').textContent.replace(/\s/g, ''), 'R$2.160,99');
   assert.equal(app.elements.get('qbItemsList').innerHTML, initialMarkup);
   app.context.updateItemQuantity(0, 1);
