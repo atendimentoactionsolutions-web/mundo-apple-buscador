@@ -986,13 +986,13 @@ function generateQuotePDFDoc(quote) {
   // Rodapé e paginação em todas as páginas, inclusive quando a tabela continua.
   const pageCount = doc.getNumberOfPages();
   for (let page = 1; page <= pageCount; page++) {
-  doc.setPage(page);
-  doc.setDrawColor(...borderLight);
-  doc.line(14, pageHeight - 12, pageWidth - 14, pageHeight - 12);
+    doc.setPage(page);
+    doc.setDrawColor(...borderLight);
+    doc.line(14, pageHeight - 12, pageWidth - 14, pageHeight - 12);
 
-  doc.setFontSize(6.8);
-  doc.text('Mundo Apple Delivery • São Paulo - SP • Documento gerado eletronicamente para fins de proposta comercial.', 14, pageHeight - 8);
-  doc.text(`Página ${page} de ${pageCount} • Código: ${quote.code}`, pageWidth - 14, pageHeight - 8, { align: 'right' });
+    doc.setFontSize(6.8);
+    doc.text('Mundo Apple Delivery • São Paulo - SP • Documento gerado eletronicamente para fins de proposta comercial.', 14, pageHeight - 8);
+    doc.text(`Página ${page} de ${pageCount} • Código: ${quote.code}`, pageWidth - 14, pageHeight - 8, { align: 'right' });
   }
 
   return doc;

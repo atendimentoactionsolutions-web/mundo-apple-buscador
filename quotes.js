@@ -47,11 +47,9 @@ function readQuotesData() {
   try {
     const raw = fs.readFileSync(QUOTES_FILE, 'utf-8');
     const parsed = JSON.parse(raw);
-    if (!parsed.quotes || !Array.isArray(parsed.quotes)) {
-      parsed.quotes = [];
-    }
+    if (!parsed || !Array.isArray(parsed.quotes)) throw new Error('Formato inválido de quotes.json.');
     if (!parsed.nextNumber || typeof parsed.nextNumber !== 'number') {
-      parsed.nextNumber = parsed.quotes.length + 1;
+      parsed.nextNumber = Math.max(0, ...parsed.quotes.map(quote => Number(String(quote.code || '').split('-').pop()) || 0)) + 1;
     }
     return parsed;
   } catch (err) {
