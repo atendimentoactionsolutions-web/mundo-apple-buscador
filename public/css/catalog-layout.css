@@ -207,3 +207,48 @@
   .catalog-app .mock-card,
   .catalog-app .mock-card-sim-btn { transition: none !important; }
 }
+
+/* Produtos adicionais no simulador de cotação. */
+.sim-add-products { border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; background: var(--bg-card); }
+.sim-add-products-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.sim-add-products-heading > span { font-size: 0.85rem; font-weight: 800; color: var(--text-primary); }
+.sim-add-product-button { min-height: 40px; border: 1px solid #a7d9c8; background: #ecfdf5; color: #047857; border-radius: 8px; padding: 8px 12px; font-size: 0.8rem; font-weight: 800; cursor: pointer; }
+.sim-add-product-button:hover { background: #d1fae5; }
+.sim-product-picker { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-color); }
+.sim-product-picker[hidden], .sim-bundle-summary[hidden] { display: none; }
+.sim-product-picker > label { display: block; margin-bottom: 6px; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; }
+.sim-product-picker > input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); background: var(--bg-input); font-size: 0.85rem; }
+.sim-product-results { max-height: 250px; overflow-y: auto; margin-top: 8px; overscroll-behavior: contain; }
+.sim-product-result { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 12px 8px; text-align: left; border-bottom: 1px solid var(--border-subtle); cursor: pointer; color: var(--text-primary); }
+.sim-product-result:hover { background: var(--bg-subtle); }
+.sim-product-result > span:first-child { min-width: 0; }
+.sim-product-result strong { display: block; font-size: 0.82rem; overflow-wrap: anywhere; }
+.sim-product-result small { display: block; margin-top: 3px; color: var(--text-muted); font-size: 0.72rem; }
+.sim-product-result-price { white-space: nowrap; font-size: 0.82rem; font-weight: 800; color: var(--accent-green); }
+.sim-product-empty { padding: 12px 8px; color: var(--text-muted); font-size: 0.78rem; }
+.sim-additional-items { display: flex; flex-direction: column; gap: 10px; }
+.sim-added-product { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-top: 12px; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-subtle); }
+.sim-added-product-info { flex: 1 1 180px; min-width: 0; }
+.sim-added-product-info > strong { display: block; font-size: 0.85rem; color: var(--text-primary); overflow-wrap: anywhere; }
+.sim-added-product-info > span { display: block; margin-top: 4px; font-size: 0.74rem; color: var(--text-muted); }
+.sim-added-product-controls { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
+.sim-added-product-controls label, .sim-added-subtotal { display: flex; flex-direction: column; gap: 5px; font-size: 0.68rem; font-weight: 700; color: var(--text-muted); }
+.sim-added-product-controls label > strong { min-height: 36px; display: flex; align-items: center; color: var(--text-primary); font-size: 0.85rem; }
+.sim-added-product-controls input { min-height: 36px; width: 56px; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 7px; color: var(--text-primary); background: var(--bg-card); font-size: 0.85rem; font-weight: 800; }
+.sim-added-money { display: flex; align-items: center; gap: 5px; padding-left: 8px; border: 1px solid var(--border-color); border-radius: 7px; background: var(--bg-card); }
+.sim-added-money input { width: 108px; border: none; background: transparent; }
+.sim-added-subtotal strong { min-height: 36px; display: flex; align-items: center; font-size: 0.88rem; color: var(--accent-green); white-space: nowrap; }
+.sim-remove-product { width: 36px; height: 36px; border: 1px solid var(--border-color); border-radius: 7px; color: var(--text-muted); background: var(--bg-card); cursor: pointer; }
+.sim-remove-product:hover { color: #b91c1c; border-color: #fecaca; background: #fef2f2; }
+.sim-bundle-summary { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-color); }
+.sim-bundle-summary > span { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 0.8rem; color: var(--text-secondary); }
+.sim-bundle-summary strong { font-size: 1rem; color: var(--accent-green); }
+.sim-bundle-summary small { display: block; margin-top: 5px; color: var(--text-muted); font-size: 0.7rem; }
+@media (max-width: 520px) {
+  .sim-add-products-heading { align-items: stretch; flex-direction: column; }
+  .sim-add-product-button { width: 100%; }
+  .sim-added-product-controls { width: 100%; gap: 10px; }
+  .sim-added-subtotal { margin-left: auto; }
+  .sim-product-result { gap: 8px; }
+  .sim-product-result-price { font-size: 0.75rem; }
+}

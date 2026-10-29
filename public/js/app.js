@@ -3504,6 +3504,18 @@ window.removeSimProduct = function(index) {
   recalculateSimulator();
 };
 
+function getSimQuotationItems() {
+  const d = currentSimData;
+  const primary = {
+    model: d.model, storage: d.storage, ram: d.ram, color: d.color,
+    unitPrice: d.unitPrice ?? d.cashPrice ?? 0, quantity: d.quantity || 1,
+    isSemi: /\bSEMI[\s-]*NOVO\b/i.test(d.model || '')
+  };
+  const additional = d.additionalItems || [];
+  return d.model === 'Calculadora de Taxas' && primary.unitPrice === 0 && additional.length
+    ? additional : [primary, ...additional];
+}
+
 window.openCardSimulator = function(encodedModel, encodedStorage, encodedColor, cashPrice, encodedRam) {
   const model = decodeURIComponent(encodedModel || '');
   const storage = decodeURIComponent(encodedStorage || '');
@@ -3813,10 +3825,8 @@ window.recalculateSimulator = function() {
 
   if (!gridContainer) return;
 
-  // 1. Cálculo do valor total bruto com Quantidade
-  const unitPrice = currentSimData.unitPrice !== undefined ? currentSimData.unitPrice : (currentSimData.cashPrice || 0);
-  const qty = currentSimData.quantity || 1;
-  const grossTotal = unitPrice * qty;
+  // Soma o produto inicial e os itens adicionais da mesma cotação.
+  const grossTotal = QuoteCore.money(getSimQuotationItems().reduce((total, item) => total + item.unitPrice * item.quantity, 0));
 
   // 2. Aplicação do Desconto (R$ ou %)
   const discType = currentSimData.discountType || 'FIXED';
@@ -3827,16 +3837,34 @@ window.recalculateSimulator = function() {
   } else {
     discountAmount = Math.min(grossTotal, discVal);
   }
+  discountAmount = QuoteCore.money(discountAmount);
 
   // 3. Preço Total à vista com desconto aplicado
-  const cashVal = Math.max(0, Math.round(grossTotal - discountAmount));
+  const cashVal = Math.max(0, QuoteCore.money(grossTotal - discountAmount));
   currentSimData.cashPrice = cashVal;
   currentSimData.discountAmount = discountAmount;
+  currentSimData.grossTotal = grossTotal;
 
-  const entryVal = currentSimData.entryAmount || 0;
-  const tradeInVal = (currentSimData.tradeInActive ? currentSimData.tradeInAmount : 0) || 0;
+  const entryVal = Math.min(cashVal, currentSimData.entryAmount || 0);
+  const tradeInVal = currentSimData.tradeInActive ? Math.min(Math.max(0, cashVal - entryVal), currentSimData.tradeInAmount || 0) : 0;
+  if (currentSimData.entryAmount !== entryVal) {
+    currentSimData.entryAmount = entryVal;
+    const input = document.getElementById('simEntryInput');
+    if (input) input.value = formatCurrencyInput(entryVal);
+  }
+  if (currentSimData.tradeInActive && currentSimData.tradeInAmount !== tradeInVal) {
+    currentSimData.tradeInAmount = tradeInVal;
+    const input = document.getElementById('simTradeInValue');
+    if (input) input.value = formatCurrencyInput(tradeInVal);
+    const badge = document.getElementById('simTradeInBadge');
+    if (badge) { badge.textContent = `- ${formatBRL(tradeInVal)}`; badge.style.display = tradeInVal > 0 ? 'inline-block' : 'none'; }
+  }
   const totalDeductions = entryVal + tradeInVal;
-  const balance = Math.max(0, cashVal - totalDeductions);
+  const balance = Math.max(0, QuoteCore.money(cashVal - totalDeductions));
+  const summary = document.getElementById('simBundleSummary');
+  if (summary) summary.hidden = !(currentSimData.additionalItems || []).length;
+  const gross = document.getElementById('simBundleGross');
+  if (gross) gross.textContent = formatBRL(grossTotal);
 
   if (heroCardVal) {
     if (totalDeductions > 0) {
@@ -3870,6 +3898,7 @@ window.recalculateSimulator = function() {
 };
 
 window.copyCardSimulationToWhatsApp = async function(btn) {
+  recalculateSimulator();
   const d = currentSimData;
   const cashVal = d.cashPrice || 0;
   const entryVal = d.entryAmount || 0;
@@ -3879,11 +3908,24 @@ window.copyCardSimulationToWhatsApp = async function(btn) {
 
   let text = `SIMULAÇÃO DE PARCELAMENTO\n\n`;
   const qty = d.quantity || 1;
-  text += `Produto: ${d.model} ${d.storage ? `(${d.storage})` : ''}\n`;
-  text += `Quantidade: ${qty} unidade${qty > 1 ? 's' : ''}\n`;
-  if (d.ram) text += `RAM: ${d.ram}\n`;
-  if (d.color && d.color.toUpperCase() !== 'PADRÃO') text += `Cor: ${d.color}\n`;
-  if (qty > 1) text += `Preço Unitário: ${formatBRL(d.unitPrice || cashVal)}\n`;
+  const quotationItems = getSimQuotationItems();
+  if ((d.additionalItems || []).length) {
+    text += 'PRODUTOS DA COTAÇÃO:\n\n';
+    quotationItems.forEach((item, index) => {
+      text += `${index + 1}. ${item.model}${item.storage ? ` (${item.storage})` : ''}\n`;
+      text += `Quantidade: ${item.quantity} unidade${item.quantity > 1 ? 's' : ''}\n`;
+      if (item.ram) text += `RAM: ${item.ram}\n`;
+      if (item.color && item.color.toUpperCase() !== 'PADRÃO') text += `Cor: ${item.color}\n`;
+      text += `Preço unitário: ${formatBRL(item.unitPrice)}\n`;
+      text += `Subtotal: ${formatBRL(item.unitPrice * item.quantity)}\n\n`;
+    });
+  } else {
+    text += `Produto: ${d.model} ${d.storage ? `(${d.storage})` : ''}\n`;
+    text += `Quantidade: ${qty} unidade${qty > 1 ? 's' : ''}\n`;
+    if (d.ram) text += `RAM: ${d.ram}\n`;
+    if (d.color && d.color.toUpperCase() !== 'PADRÃO') text += `Cor: ${d.color}\n`;
+    if (qty > 1) text += `Preço Unitário: ${formatBRL(d.unitPrice || cashVal)}\n`;
+  }
   if (d.discountAmount > 0) {
     const discLabel = d.discountType === 'PERCENT' ? `${d.discountValue}%` : formatBRL(d.discountAmount);
     text += `Desconto: - ${formatBRL(d.discountAmount)}${d.discountType === 'PERCENT' ? ` (${discLabel})` : ''}\n`;
@@ -3916,8 +3958,10 @@ window.copyCardSimulationToWhatsApp = async function(btn) {
 
   text += installmentRows.join('\n');
 
-  const isSemi = (d.model || '').toUpperCase().includes('SEMINOVO') || (d.model || '').toUpperCase().includes('SEMI NOVO');
-  if (!isSemi) {
+  const isSemi = quotationItems.some(item => item.isSemi);
+  if ((d.additionalItems || []).length && isSemi) {
+    text += '\n\nGarantia: 1 ano Apple para produtos novos lacrados e 90 dias da loja para seminovos.\nEmitimos nota fiscal.';
+  } else if (!isSemi) {
     text += `\n\nProduto novo lacrado com 1 ano de garantia Apple.\nEmitimos nota fiscal.`;
   }
 
