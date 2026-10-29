@@ -1,0 +1,193 @@
+/* Regras finais para celular: sobrescrevem os estilos legados conflitantes. */
+.catalog-app #viewStoreFront :is(.catalog-intro, .catalog-search, .main-search-wrapper, .main-search-input-box, .sf-search-desktop-only, .sf-search-mobile-only, #sfSearchInput, #sfSearchInputMobile) {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .catalog-app { --catalog-gutter: 14px; }
+  .catalog-app .top-header .header-inner { min-height: 48px !important; gap: 8px !important; }
+  .catalog-app .header-left-group { flex: 0 0 auto; }
+  .catalog-app .brand-logo-btn,
+  .catalog-app .mobile-menu-btn { width: 44px; min-width: 44px; height: 44px; }
+  .catalog-app:not(.light-theme) .brand-logo-btn { background: #fff; }
+  .catalog-app #btnClientMode { min-height: 44px; padding-inline: 10px; font-size: 12px; }
+  .catalog-app #viewStoreFront,
+  .catalog-app #viewPricesDay { padding-top: 16px !important; padding-bottom: max(32px, env(safe-area-inset-bottom)) !important; }
+  .catalog-app #sfCategoryNav,
+  .catalog-app #podCategoryNav {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px !important;
+    width: 100% !important;
+    min-width: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  .catalog-app #sfCategoryNav { margin-bottom: 16px !important; }
+  .catalog-app #podCategoryNav { margin-bottom: 16px !important; }
+  .catalog-app #sfCategoryNav .cat-pill,
+  .catalog-app #podCategoryNav .pod-cat-pill {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 0 !important;
+    min-height: 44px !important;
+    padding: 7px 4px !important;
+    gap: 4px;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    text-align: center;
+    line-height: 1.3;
+    font-size: 12px !important;
+    border-radius: 10px;
+  }
+  .catalog-app #podCategoryNav .pod-cat-count,
+  .catalog-app #podCategoryNav .cat-icon-svg { display: none !important; }
+  .catalog-app #storefrontGrid,
+  .catalog-app #podMatrixGrid { gap: 20px !important; }
+  .catalog-app .model-family-row { gap: 12px !important; }
+  .catalog-app .mock-card-header,
+  .catalog-app .matrix-card-header { min-height: auto !important; padding: 14px !important; gap: 10px !important; }
+  .catalog-app .mock-card-title,
+  .catalog-app .matrix-card-title { font-size: 15px !important; max-height: none !important; }
+  .catalog-app .mock-card-ver-btn,
+  .catalog-app .matrix-card-all-btn { min-height: 40px !important; padding: 8px !important; font-size: 12px !important; }
+  .catalog-app .mock-color-row { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; padding: 12px 14px !important; gap: 10px; }
+  .catalog-app .mock-color-name,
+  .catalog-app .matrix-color-name { overflow: visible !important; white-space: normal !important; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.35 !important; }
+  .catalog-app .mock-card-sim-btn,
+  .catalog-app .matrix-wa-btn { min-width: 40px !important; width: 40px !important; height: 44px !important; flex-basis: 40px !important; }
+  .catalog-app .mobile-drawer {
+    top: var(--app-viewport-top, 0) !important;
+    bottom: auto !important;
+    height: 100vh;
+    height: var(--app-viewport-height, 100dvh);
+    max-height: var(--app-viewport-height, 100dvh);
+    width: min(88vw, 340px);
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    overscroll-behavior: contain;
+  }
+  .catalog-app .mobile-drawer-header { flex-shrink: 0; }
+  .catalog-app .mobile-drawer-body { min-height: 0; overflow-y: auto; }
+  .catalog-app .mobile-drawer-item { min-height: 48px; text-align: left; white-space: normal; }
+  .catalog-app .mobile-drawer-item svg { flex-shrink: 0; }
+  .catalog-app .mobile-drawer-close { width: 44px; height: 44px; }
+  .catalog-app .mobile-drawer-overlay { touch-action: none; }
+
+  .catalog-app .modal-overlay,
+  .catalog-app #clientShowcaseModal.modal-overlay {
+    top: var(--app-viewport-top, 0) !important;
+    bottom: auto !important;
+    height: 100vh;
+    height: var(--app-viewport-height, 100dvh);
+    align-items: flex-end !important;
+    padding: 8px 0 0 !important;
+    overflow: hidden;
+  }
+  .catalog-app .modal-overlay .modal-content {
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: calc(100vh - 8px) !important;
+    max-height: calc(var(--app-viewport-height, 100dvh) - 8px) !important;
+    margin: 0 !important;
+    padding: 16px 14px max(14px, env(safe-area-inset-bottom)) !important;
+    border-radius: 16px 16px 0 0 !important;
+    overflow: hidden !important;
+  }
+  .catalog-app .modal-header { flex: 0 0 auto; min-width: 0; gap: 10px; padding: 0 0 12px !important; }
+  .catalog-app .modal-title-group { flex: 1; min-width: 0; gap: 8px; }
+  .catalog-app .modal-title-group > svg { flex-shrink: 0; }
+  .catalog-app .modal-title-group h3 { white-space: normal; overflow-wrap: anywhere; font-size: 17px !important; line-height: 1.35; }
+  .catalog-app .modal-close { flex: 0 0 44px; width: 44px; height: 44px; }
+  .catalog-app #cardSimulatorBody,
+  .catalog-app #allOffersModalBody,
+  .catalog-app #clientShowcaseBody,
+  .catalog-app #pdfSelectionListBody,
+  .catalog-app .qb-layout-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 0 !important;
+  }
+  .catalog-app .modal-content input:not([type="checkbox"]):not([type="radio"]),
+  .catalog-app .modal-content select,
+  .catalog-app .modal-content textarea,
+  .catalog-app .quotes-filter-toolbar input,
+  .catalog-app .quotes-filter-toolbar select { min-width: 0; min-height: 44px; font-size: 16px !important; }
+  .catalog-app .sim-exec-controls { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; padding: 12px !important; }
+  .catalog-app .sim-exec-controls > .sim-exec-field:last-child { grid-column: 1 / -1; }
+  .catalog-app .sim-exec-field,
+  .catalog-app .sim-exec-input-wrap { min-width: 0; }
+  .catalog-app .sim-exec-input-wrap { min-height: 46px; }
+  .catalog-app .sim-exec-input-wrap input { min-width: 0 !important; }
+  .catalog-app .sim-exec-input-wrap button { min-width: 34px; min-height: 44px; }
+  .catalog-app .sim-exec-title { font-size: 18px; overflow-wrap: anywhere; }
+  .catalog-app .sim-exec-meta { gap: 8px; }
+  .catalog-app .sim-exec-meta-item { max-width: 100%; }
+  .catalog-app .sim-color-select { max-width: 100%; flex: 1; }
+  .catalog-app .sim-tradein-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .catalog-app .sim-tradein-header { flex-wrap: wrap; gap: 10px; }
+  .catalog-app .sim-tradein-toggle-label { min-width: 0; min-height: 44px; }
+  .catalog-app .sim-tradein-heading { min-width: 0; white-space: normal; }
+  .catalog-app .sim-tradein-heading svg { flex-shrink: 0; }
+  .catalog-app .sim-added-product-controls { display: grid; grid-template-columns: minmax(0, 1fr) 64px 44px; align-items: end; width: 100%; gap: 10px; }
+  .catalog-app .sim-added-product-controls label:first-child { grid-column: 1; grid-row: 1; min-width: 0; }
+  .catalog-app .sim-added-product-controls label:nth-child(2) { grid-column: 2; grid-row: 1; }
+  .catalog-app .sim-added-money { min-width: 0; }
+  .catalog-app .sim-added-money input { width: 100%; }
+  .catalog-app .sim-added-product-controls .sim-remove-product { grid-column: 3; grid-row: 1; width: 44px; height: 44px; }
+  .catalog-app .sim-added-subtotal { grid-column: 1 / -1; grid-row: 2; margin: 0; }
+  .catalog-app .sim-added-subtotal strong { min-height: auto; }
+  .catalog-app .sim-product-results { max-height: min(240px, 40dvh); }
+  .catalog-app .sim-product-result { min-height: 52px; }
+  .catalog-app .sim-btn-copy-wa { min-height: 48px; }
+
+  .catalog-app #viewQuotes { width: 100%; padding: 16px var(--catalog-gutter) 32px; }
+  .catalog-app .quotes-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .catalog-app .stat-card-quote { min-width: 0; gap: 8px; padding: 12px; flex-wrap: wrap; }
+  .catalog-app .stat-info-wrap { min-width: 0; }
+  .catalog-app .stat-label { font-size: 11px; }
+  .catalog-app .stat-number { font-size: 18px; overflow-wrap: anywhere; }
+  .catalog-app .quotes-search-box { min-width: 0; width: 100%; flex-basis: 100%; }
+  .catalog-app .quotes-search-box input { width: 100%; min-width: 0; }
+  .catalog-app .quotes-filter-select { width: 100%; }
+  .catalog-app .qb-form-grid { grid-template-columns: minmax(0, 1fr); }
+  .catalog-app .qb-form-grid > .qb-field { grid-column: auto !important; min-width: 0; }
+  .catalog-app .qb-search-input-box { min-width: 0; padding-inline: 10px; }
+  .catalog-app .qb-search-input-box svg { flex-shrink: 0; }
+  .catalog-app .qb-dropdown-results { position: static; max-height: min(260px, 40dvh); box-shadow: none; }
+  .catalog-app .qb-dropdown-item { min-height: 52px; gap: 10px; }
+  .catalog-app .qb-dd-info { min-width: 0; }
+  .catalog-app .qb-dd-name { overflow-wrap: anywhere; }
+  .catalog-app .qb-item-main-info { min-width: 0; width: 100%; }
+  .catalog-app .qb-item-title,
+  .catalog-app .qb-item-specs { overflow-wrap: anywhere; }
+  .catalog-app .qb-item-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: 12px; }
+  .catalog-app .qb-unit-price-field { width: auto; min-width: 0; }
+  .catalog-app .qb-unit-price-wrap { min-width: 0; }
+  .catalog-app .qb-control-field { min-width: 0; }
+  .catalog-app .qb-qty-stepper { width: 100%; justify-content: space-between; }
+  .catalog-app .qty-btn { min-width: 32px; height: 44px; }
+  .catalog-app .qty-input { width: 36px; }
+  .catalog-app .qb-disc-group { min-width: 0; }
+  .catalog-app .qb-disc-type-select { max-width: 64px; padding-inline: 5px; }
+  .catalog-app .qb-disc-val-input { width: 100%; min-width: 0; }
+  .catalog-app .qb-item-delete-btn { width: 44px; height: 44px; }
+  .catalog-app .qb-modal-footer { flex-shrink: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; padding: 12px 0 0; }
+  .catalog-app .qb-modal-footer button { min-height: 48px; padding-inline: 12px; }
+}
+
+@media (max-width: 360px) {
+  .catalog-app .sim-exec-controls { grid-template-columns: minmax(0, 1fr) !important; }
+  .catalog-app .modal-title-group h3 { font-size: 16px !important; }
+}
