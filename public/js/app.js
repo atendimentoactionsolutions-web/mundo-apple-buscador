@@ -5090,7 +5090,7 @@ async function checkAuthSession() {
     const brandLogoLink = document.getElementById('brandLogoLink');
     if (brandLogoLink) {
       brandLogoLink.href = '/';
-      brandLogoLink.title = 'Mundo Apple - Início';
+      brandLogoLink.title = 'Início';
     }
 
     // Atualiza drawer mobile logado

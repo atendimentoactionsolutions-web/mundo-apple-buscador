@@ -16,14 +16,13 @@
 }
 .catalog-app .header-left-group { display: flex; gap: 24px; min-width: 0; }
 .catalog-app .brand-logo-btn {
-  width: auto;
+  width: 44px;
   height: 44px;
   gap: 10px;
   flex-shrink: 0;
   color: var(--text-primary);
 }
-.catalog-app .brand-logo-btn > svg { width: 25px; height: 25px; color: var(--accent-green); }
-.brand-wordmark { font-size: 17px; font-weight: 800; letter-spacing: -0.7px; white-space: nowrap; }
+.catalog-app .brand-logo-btn > svg { width: 25px; height: 25px; color: #000000; }
 .catalog-app .view-switch-segmented { border-radius: 12px; padding: 4px; flex-shrink: 0; }
 .catalog-app .segmented-tab-btn { min-height: 36px; border-radius: 9px; font-size: 12px; padding: 8px 12px; }
 .catalog-app .segmented-tab-btn.active { box-shadow: 0 2px 5px #0f172a1a !important; }
@@ -165,8 +164,7 @@
   .catalog-app .top-header { padding-block: max(10px, var(--safe-top)) 10px !important; }
   .catalog-app .header-left-group { display: flex; }
   .catalog-app .top-header .header-inner { flex-wrap: nowrap !important; gap: 12px !important; }
-  .catalog-app .brand-logo-btn { width: auto; height: 40px; gap: 8px; }
-  .brand-wordmark { font-size: 15px; }
+  .catalog-app .brand-logo-btn { width: 40px; height: 40px; }
   .catalog-app .header-right-group { width: auto; gap: 6px; margin-left: auto; }
   .catalog-app .header-dollar-badge { display: none !important; }
   .catalog-app.session-authenticated:not(.client-mode-active) .header-dollar-badge { display: none !important; }
@@ -187,9 +185,6 @@
   .catalog-app .mock-price-val { font-size: 18px !important; }
   .catalog-app .mock-color-row { min-height: 70px !important; }
   .catalog-app .mock-card-sim-btn { width: 38px !important; height: 38px !important; flex-basis: 38px !important; }
-}
-@media (max-width: 380px) {
-  .catalog-app.session-authenticated .brand-wordmark { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .catalog-app .mock-card,
