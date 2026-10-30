@@ -1,10 +1,11 @@
 /* Catálogo: apresentação compartilhada pela loja e pelo cliente. */
 .catalog-app {
-  --catalog-width: 1440px;
-  --catalog-gutter: clamp(16px, 3vw, 40px);
+  --catalog-width: 100%;
+  --catalog-gutter: clamp(14px, 2vw, 48px);
 }
 
 .catalog-app.light-theme { background-image: none; }
+.catalog-app #viewQuotes { width: 100%; max-width: var(--catalog-width); padding-inline: var(--catalog-gutter); }
 .catalog-app .top-header { padding-block: max(14px, var(--safe-top)) 14px; }
 .catalog-app .top-header .header-inner {
   display: flex !important;

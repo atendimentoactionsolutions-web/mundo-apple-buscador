@@ -220,3 +220,31 @@
 @media (max-width: 768px) {
   .catalog-app #btnDfuToggle { display: none !important; }
 }
+
+/* A largura acompanha a tela; os campos n?o disparam zoom ao receber foco. */
+@media (max-width: 768px) {
+  .catalog-app { width: 100%; min-width: 0; }
+  .catalog-app :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]) {
+    font-size: 16px !important;
+    min-height: 44px;
+    max-width: 100%;
+  }
+  .catalog-app :is(#sfCategoryNav .cat-pill, #podCategoryNav .pod-cat-pill) { font-size: 14px !important; }
+  .catalog-app :is(.mock-color-name, .matrix-color-name) { font-size: 14px !important; line-height: 1.4; }
+  .catalog-app :is(.mock-price-val, .matrix-cost-val) { font-size: 20px !important; }
+  .catalog-app .mock-price-label { font-size: 10px !important; }
+  .catalog-app :is(.mock-card-title, .matrix-card-title) { font-size: 16px !important; }
+  .catalog-app :is(.mock-color-right, .matrix-color-right) { min-width: 0; }
+  .catalog-app .qb-disc-type-select { max-width: none; }
+  .catalog-app .qb-disc-group { flex-wrap: wrap; }
+  .catalog-app :is(.mock-card-ver-btn, .matrix-card-all-btn) { min-height: 44px !important; }
+}
+@media (max-width: 479px) {
+  .catalog-app #sfCategoryNav,
+  .catalog-app #podCategoryNav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 769px) {
+  .catalog-app :is(.mock-card-title, .matrix-card-title) { font-size: clamp(14px, 0.85vw, 18px) !important; }
+  .catalog-app :is(.mock-color-name, .matrix-color-name) { font-size: clamp(12px, 0.75vw, 16px) !important; }
+  .catalog-app :is(.mock-price-val, .matrix-cost-val) { font-size: clamp(17px, 1vw, 22px) !important; }
+}
