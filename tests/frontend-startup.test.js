@@ -94,3 +94,37 @@ test('an empty response replaces the old products instead of keeping stale offer
   assert.equal(app.read('allProducts.length'), 0);
   assert.match(app.elements.get('storefrontGrid').innerHTML, /Nenhum produto encontrado/);
 });
+
+
+test('Cledson can toggle DFU without the session refresh resetting the choice', async () => {
+  const app = await setup({ id: 'cledson', username: 'cledson', role: 'lojista' });
+  const button = element();
+  app.elements.set('btnDfuToggle', button);
+  const price = category => app.read(`applyDFU(1000, '${category}', '')`);
+  assert.equal(price('IPH'), 1000);
+  app.context.toggleCledsonDfu();
+  for (const [category, expected] of [['IPH', 1100], ['MCB', 1200], ['RLG', 1100], ['IPAD', 1050], ['PODS', 1000]]) {
+    assert.equal(price(category), expected);
+  }
+  assert.equal(button.textContent, 'DFU: ativado');
+  await app.context.checkAuthSession();
+  assert.equal(price('IPH'), 1100);
+  app.context.toggleCledsonDfu();
+  assert.equal(price('IPH'), 1000);
+  assert.equal(button.textContent, 'DFU: desativado');
+  assert.equal(app.errors.length, 0);
+});
+
+test('DFU toggle is hidden and ignored for visitors, admin and other users', async () => {
+  for (const username of [null, 'admin', 'other']) {
+    const app = await setup(username ? { id: username, username, role: 'lojista' } : null);
+    const button = element();
+    app.elements.set('btnDfuToggle', button);
+    app.context.syncDfuButtons();
+    assert.equal(button.style.display, 'none');
+    const before = app.read('window.DFU_ACTIVE');
+    app.context.toggleCledsonDfu();
+    assert.equal(app.read('window.DFU_ACTIVE'), before);
+    assert.equal(app.errors.length, 0);
+  }
+});
