@@ -23,6 +23,8 @@ async function setup(user = null, products = [], failure = false) {
   const errors = [];
   const events = new Map();
   const requests = [];
+  let adminDfuActive = true;
+  let pricingVersion = 1;
   const context = vm.createContext({
     URLSearchParams, QuoteCore: require('../public/js/quote-core'), PricingCore: require('../public/js/pricing-core'),
     document: { getElementById: id => elements.get(id) || null, querySelectorAll: () => [], querySelector: () => null,
@@ -32,10 +34,15 @@ async function setup(user = null, products = [], failure = false) {
     location: { pathname: '/', search: '', origin: 'http://localhost' }, navigator: {}, innerWidth: 1440,
     addEventListener() {}, setInterval() {}, setTimeout: () => 1, requestAnimationFrame: fn => { queueMicrotask(fn); return 1; },
     console: { log() {}, warn() {}, error: (...args) => errors.push(args) },
-    fetch: async url => {
+    fetch: async (url, options) => {
+      if (url === '/api/pricing/admin-dfu') {
+        adminDfuActive = JSON.parse(options.body).active;
+        pricingVersion++;
+        return { ok: true, json: async () => ({ dfuActive: false, adminDfuActive, pricingVersion }) };
+      }
       requests.push(url);
       if (url.startsWith('/api/products') && failure) throw new Error('Offline');
-      const data = url === '/api/auth/me' ? user : url === '/api/margins'
+      const data = url === '/api/auth/me' ? (user && { ...user, dfuActive: user.username === 'admin' && adminDfuActive, adminDfuActive, pricingVersion }) : url === '/api/margins'
         ? { success: true, margins: { categories: { IPH: 400 }, products: {} } }
         : url === '/api/card-rates' ? { success: true, rates: { baseRate: 0, installmentRates: {} } }
         : { success: true, data: products, isShielded: !user };
@@ -96,22 +103,22 @@ test('an empty response replaces the old products instead of keeping stale offer
 });
 
 
-test('Cledson can toggle DFU without the session refresh resetting the choice', async () => {
+test('Cledson controls admin DFU while his own prices always remain unadjusted', async () => {
   const app = await setup({ id: 'cledson', username: 'cledson', role: 'lojista' });
   const button = element();
   app.elements.set('btnDfuToggle', button);
   const price = category => app.read(`applyDFU(1000, '${category}', '')`);
   assert.equal(price('IPH'), 1000);
-  app.context.toggleCledsonDfu();
-  for (const [category, expected] of [['IPH', 1100], ['MCB', 1200], ['RLG', 1100], ['IPAD', 1050], ['PODS', 1000]]) {
+  await app.context.toggleCledsonDfu();
+  for (const [category, expected] of [['IPH', 1000], ['MCB', 1000], ['RLG', 1000], ['IPAD', 1000], ['PODS', 1000]]) {
     assert.equal(price(category), expected);
   }
-  assert.equal(button.textContent, 'DFU: ativado');
+  assert.equal(button.textContent, 'DFU admin: desativado');
   await app.context.checkAuthSession();
-  assert.equal(price('IPH'), 1100);
-  app.context.toggleCledsonDfu();
   assert.equal(price('IPH'), 1000);
-  assert.equal(button.textContent, 'DFU: desativado');
+  await app.context.toggleCledsonDfu();
+  assert.equal(price('IPH'), 1000);
+  assert.equal(button.textContent, 'DFU admin: ativado');
   assert.equal(app.errors.length, 0);
 });
 
@@ -123,17 +130,18 @@ test('DFU toggle is hidden and ignored for visitors, admin and other users', asy
     app.context.syncDfuButtons();
     assert.equal(button.style.display, 'none');
     const before = app.read('window.DFU_ACTIVE');
-    app.context.toggleCledsonDfu();
+    await app.context.toggleCledsonDfu();
     assert.equal(app.read('window.DFU_ACTIVE'), before);
     assert.equal(app.errors.length, 0);
   }
 });
 
 
-test('DFU updates both rendered catalogs and an open simulator synchronously, without accumulating', async () => {
-  const app = await setup({ id: 'cledson', username: 'cledson', role: 'lojista' }, [
+test('admin receives DFU changes in both catalogs and open simulator without accumulating', async () => {
+  const app = await setup({ id: 'admin', username: 'admin', role: 'admin' }, [
     { id: 1, name: 'IPHONE 17 PRO', category: 'IPH', color: 'BLACK', storage: '256GB', price: 6000 }
   ]);
+  app.events.get('pricing_updated')({ dfuActive: false, pricingVersion: 2 });
   const modal = element();
   modal.classList.add('active');
   app.elements.set('cardSimulatorModal', modal);
@@ -145,7 +153,7 @@ test('DFU updates both rendered catalogs and an open simulator synchronously, wi
     additionalItems: [{key: getSimProductKey('IPHONE 17 PRO', '256GB', '', 'BLACK'), unitPrice: 6350, quantity: 1}]
   }`);
   for (let cycle = 0; cycle < 3; cycle++) {
-    app.context.toggleCledsonDfu();
+    app.events.get('pricing_updated')({ dfuActive: true, pricingVersion: 3 + cycle * 2 });
     assert.match(app.elements.get('storefrontGrid').innerHTML, /data-price="6500"/);
     assert.match(app.elements.get('podMatrixGrid').innerHTML, /6[.,]100/);
     assert.equal(app.read('currentSimData.unitPrice'), 6500);
@@ -155,7 +163,7 @@ test('DFU updates both rendered catalogs and an open simulator synchronously, wi
     assert.equal(app.read('currentSimData.entryAmount'), 100);
     await app.context.checkAuthSession();
     assert.equal(app.read('currentSimData.unitPrice'), 6500);
-    app.context.toggleCledsonDfu();
+    app.events.get('pricing_updated')({ dfuActive: false, pricingVersion: 4 + cycle * 2 });
     assert.match(app.elements.get('storefrontGrid').innerHTML, /data-price="6400"/);
     assert.equal(app.read('currentSimData.unitPrice'), 6400);
     assert.equal(app.read('currentSimData.additionalItems[0].unitPrice'), 6350);

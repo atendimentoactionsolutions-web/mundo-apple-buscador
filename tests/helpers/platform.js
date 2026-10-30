@@ -45,6 +45,7 @@ function seed(root) {
   const rates = { baseRate: 0, installmentRates: Object.fromEntries(Array.from({ length: 18 }, (_, i) => [String(i + 1), 0])) };
   const users = [
     { id: 'admin-001', username: 'admin', role: 'admin', current_session_token: 'test-admin', active_session_tokens: ['test-admin'] },
+    { id: 'cledson', username: 'cledson', role: 'lojista', current_session_token: 'test-cledson' },
     { id: 'store-a', username: 'store-a', role: 'lojista', current_session_token: 'test-a', custom_margins: { categories: { IPH: 400 }, products: {} }, custom_card_rates: rates },
     { id: 'store-b', username: 'store-b', role: 'lojista', current_session_token: 'test-b' },
     { id: 'expired', username: 'expired', role: 'lojista', current_session_token: 'test-expired', expires_at: '2000-01-01T00:00:00.000Z' },
