@@ -2,6 +2,8 @@
 let allProducts = [];
 let currentUser = null;
 let cledsonDfuEnabled = false;
+let lastShowcaseArgs = null;
+let lastAllOffersArgs = null;
 let authSessionChecked = false;
 let catalogStatus = 'loading';
 let catalogRequestId = 0;
@@ -2149,6 +2151,7 @@ function formatModelTitleForCopy(model, storage, ram) {
 
 // Modal de Vitrine Limpa para Apresentar ao Cliente
 window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSeminovo, encColorsJson) {
+  lastShowcaseArgs = [firstArg, encStorage, encRam, isSeminovo, encColorsJson];
   const modal = document.getElementById('clientShowcaseModal');
   const titleEl = document.getElementById('showcaseModelTitle');
   const subEl = document.getElementById('showcaseModelSubtitle');
@@ -3032,6 +3035,7 @@ function renderPricesOfTheDay() {
 
 // 16. Open Modal with All Offers for a Specific Model + Storage + RAM
 window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor, encodedRam, isSeminovo = false, cardKey = null) {
+  lastAllOffersArgs = [encodedModel, encodedStorage, encodedColor, encodedRam, isSeminovo, cardKey];
   const model = decodeURIComponent(encodedModel || '');
   const storage = decodeURIComponent(encodedStorage || '');
   const selectedColor = encodedColor ? decodeURIComponent(encodedColor) : '';
@@ -5232,6 +5236,8 @@ window.toggleCledsonDfu = function() {
   renderStoreFront();
   renderPricesOfTheDay();
   refreshSimulatorDfuPrices(previousPrices);
+  if (lastShowcaseArgs && document.getElementById('clientShowcaseModal')?.classList.contains('active')) openClientShowcaseModal(...lastShowcaseArgs);
+  if (lastAllOffersArgs && document.getElementById('allOffersModal')?.classList.contains('active')) openAllOffersModal(...lastAllOffersArgs);
   const quoteSearch = document.getElementById('qbCatalogSearchInput');
   if (quoteSearch?.value && typeof onQuoteCatalogSearch === 'function') onQuoteCatalogSearch(quoteSearch);
   if (document.getElementById('pdfSelectionModal')?.classList.contains('active')) {

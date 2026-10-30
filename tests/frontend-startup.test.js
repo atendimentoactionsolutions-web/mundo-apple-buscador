@@ -128,3 +128,38 @@ test('DFU toggle is hidden and ignored for visitors, admin and other users', asy
     assert.equal(app.errors.length, 0);
   }
 });
+
+
+test('DFU updates both rendered catalogs and an open simulator synchronously, without accumulating', async () => {
+  const app = await setup({ id: 'cledson', username: 'cledson', role: 'lojista' }, [
+    { id: 1, name: 'IPHONE 17 PRO', category: 'IPH', color: 'BLACK', storage: '256GB', price: 6000 }
+  ]);
+  const modal = element();
+  modal.classList.add('active');
+  app.elements.set('cardSimulatorModal', modal);
+  for (const id of ['simInstallmentsGrid', 'simHeroCardVal', 'simCashInput']) app.elements.set(id, element());
+  app.read(`currentSimData = {
+    model: 'IPHONE 17 PRO', storage: '256GB', ram: '', color: 'BLACK', unitPrice: 6400,
+    quantity: 2, discountType: 'FIXED', discountValue: 50, entryAmount: 100,
+    colorOptions: [{color: 'BLACK', price: 6400}],
+    additionalItems: [{key: getSimProductKey('IPHONE 17 PRO', '256GB', '', 'BLACK'), unitPrice: 6350, quantity: 1}]
+  }`);
+  for (let cycle = 0; cycle < 3; cycle++) {
+    app.context.toggleCledsonDfu();
+    assert.match(app.elements.get('storefrontGrid').innerHTML, /data-price="6500"/);
+    assert.match(app.elements.get('podMatrixGrid').innerHTML, /6[.,]100/);
+    assert.equal(app.read('currentSimData.unitPrice'), 6500);
+    assert.equal(app.read('currentSimData.colorOptions[0].price'), 6500);
+    assert.equal(app.read('currentSimData.additionalItems[0].unitPrice'), 6450);
+    assert.equal(app.read('currentSimData.cashPrice'), 19400);
+    assert.equal(app.read('currentSimData.entryAmount'), 100);
+    await app.context.checkAuthSession();
+    assert.equal(app.read('currentSimData.unitPrice'), 6500);
+    app.context.toggleCledsonDfu();
+    assert.match(app.elements.get('storefrontGrid').innerHTML, /data-price="6400"/);
+    assert.equal(app.read('currentSimData.unitPrice'), 6400);
+    assert.equal(app.read('currentSimData.additionalItems[0].unitPrice'), 6350);
+    assert.equal(app.read('currentSimData.cashPrice'), 19100);
+  }
+  assert.equal(app.errors.length, 0);
+});
