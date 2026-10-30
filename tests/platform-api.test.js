@@ -99,3 +99,53 @@ test('a failed initial upstream connection keeps the cached catalog and schedule
   assert.equal(catalog.body.data.length, 1);
   assert.ok(app.intervals.includes(15000));
 });
+
+
+test('only Cledson controls persisted admin pricing and updates reach authenticated sessions', async t => {
+  const app = await platform(t);
+  const connect = async token => {
+    const socket = io(app.origin, { transports: ['websocket'], reconnection: false,
+      ...(token ? { extraHeaders: { cookie: `fornecedor_session=${token}` } } : {}) });
+    t.after(() => socket.disconnect());
+    await once(socket, 'init_stats');
+    return socket;
+  };
+  const admin = await connect('test-admin');
+  const controller = await connect('test-cledson');
+  const visitor = await connect('');
+  let publicEvents = 0;
+  visitor.on('pricing_updated', () => publicEvents++);
+  for (const token of ['', 'invalid', 'test-admin', 'test-a', 'test-blocked']) {
+    const denied = await app.request('/api/pricing/admin-dfu', token, 'POST', { active: false });
+    assert.ok([401, 403].includes(denied.status));
+  }
+  assert.equal((await app.request('/api/pricing/admin-dfu', 'test-cledson', 'POST', { active: 'false' })).status, 400);
+  for (const active of [false, true, false]) {
+    const adminEvent = once(admin, 'pricing_updated');
+    const controllerEvent = once(controller, 'pricing_updated');
+    const result = await app.request('/api/pricing/admin-dfu', 'test-cledson', 'POST', { active });
+    assert.equal(result.status, 200);
+    assert.equal(result.body.dfuActive, false);
+    assert.equal(result.body.adminDfuActive, active);
+    const [adminState] = await adminEvent;
+    const [controllerState] = await controllerEvent;
+    assert.equal(adminState.dfuActive, active);
+    assert.equal(adminState.adminDfuActive, undefined);
+    assert.equal(controllerState.dfuActive, false);
+    assert.equal(controllerState.adminDfuActive, active);
+    assert.equal((await app.request('/api/auth/me', 'test-admin')).body.dfuActive, active);
+    assert.equal((await app.request('/api/auth/me', 'test-cledson')).body.dfuActive, false);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(app.root, 'data/admin-pricing.json'))).active, active);
+    assert.equal((await app.request('/api/products', 'test-cledson')).body.data[0].price, 6000);
+  }
+  assert.equal(publicEvents, 0);
+  const restarted = isolatedModules(app.root);
+  const server = restarted.load('server.js');
+  await server.start();
+  if (!server.server.listening) await once(server.server, 'listening');
+  t.after(async () => { restarted.close(); await new Promise(resolve => server.localIo.close(resolve)); });
+  const response = await fetch(`http://127.0.0.1:${server.server.address().port}/api/auth/me`, {
+    headers: { cookie: 'fornecedor_session=test-admin' }
+  });
+  assert.equal((await response.json()).dfuActive, false);
+});
