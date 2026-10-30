@@ -1771,6 +1771,7 @@ window.switchView = function(viewName) {
   }
 
   currentView = viewName;
+  syncMobileDrawerActions();
   const viewPricesDay = document.getElementById('viewPricesDay');
   const viewStoreFront = document.getElementById('viewStoreFront');
   const viewQuotes = document.getElementById('viewQuotes');
@@ -5219,6 +5220,17 @@ function ensureMobileDrawerMounted() {
 }
 
 function syncMobileDrawerActions() {
+  const destinations = {
+    mobileDrawerStoreFrontBtn: 'storefront',
+    mobileDrawerQuotesBtn: 'quotes',
+    mobileDrawerPricesDayBtn: 'prices_of_the_day'
+  };
+  Object.entries(destinations).forEach(([id, view]) => {
+    const button = document.getElementById(id);
+    if (!button) return;
+    if (currentView === view) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  });
   const storeActions = ['mobileDrawerQuotesBtn', 'mobileDrawerPricesDayBtn', 'mobileDrawerExportBtn',
     'mobileDrawerExportAllBtn', 'mobileDrawerCalcBtn'];
   storeActions.forEach(id => {
