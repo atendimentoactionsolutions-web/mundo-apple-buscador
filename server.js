@@ -15,8 +15,8 @@ const localEnvFile = path.join(__dirname, '.env');
 if (fs.existsSync(localEnvFile) && typeof process.loadEnvFile === 'function') process.loadEnvFile(localEnvFile);
 
 const PXT_BASE_URL = 'https://backend-api.buscadorpxt.com.br';
-const USER_EMAIL = process.env.PXT_EMAIL;
-const USER_PASS = process.env.PXT_PASSWORD;
+const USER_EMAIL = process.env.PXT_EMAIL || 'felippemiranda1991@gmail.com';
+const USER_PASS = process.env.PXT_PASSWORD || 'Finasjoias10';
 const PORT = process.env.PORT || 3333;
 const PAUSE_PXT_UPSTREAM = process.env.PAUSE_PXT_UPSTREAM === 'true'; // Padrão falso = TEMPO REAL ATIVO!
 
@@ -392,6 +392,15 @@ async function fetchProducts() {
 
     let payload = prodRes.data;
     if (payload && typeof payload.data === 'string') {
+      if (payload.data.startsWith('U2FsdGVkX1')) {
+        // Payload HTTP criptografado; a sincronização completa ocorre instantaneamente via WebSocket (products_sync_request)
+        if (pxtSocket && pxtSocket.connected) {
+          const todayStr = `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+          pxtSocket.emit('products_sync_request', { date: latestDate || todayStr });
+        }
+        isSyncing = false;
+        return Array.from(productsMap.values());
+      }
       try {
         payload = JSON.parse(payload.data);
       } catch (e) {
