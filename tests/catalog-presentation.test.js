@@ -15,6 +15,7 @@ function setup(user, pathname = '/') {
   }]));
   const context = vm.createContext({ currentUser: user,
     syncDfuButtons() {},
+    syncMobileDrawerActions() {},
     location: { pathname, search: '' },
     document: {
       body: { classList: { toggle(name, value) { value ? classes.add(name) : classes.delete(name); } } },
