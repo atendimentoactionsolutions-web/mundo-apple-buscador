@@ -14,6 +14,7 @@ function setup(user, pathname = '/') {
     setAttribute(name, value) { this.attributes[name] = value; }
   }]));
   const context = vm.createContext({ currentUser: user,
+    syncDfuButtons() {},
     location: { pathname, search: '' },
     document: {
       body: { classList: { toggle(name, value) { value ? classes.add(name) : classes.delete(name); } } },
