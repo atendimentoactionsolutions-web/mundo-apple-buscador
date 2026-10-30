@@ -1,7 +1,9 @@
 // MUNDO APPLE BUSCADOR - Frontend Engine (Tempo Real & Filtros Adaptativos)
 let allProducts = [];
 let currentUser = null;
-let cledsonDfuEnabled = false;
+let adminDfuEnabled = true;
+let pricingVersion = 0;
+let dfuRequestPending = false;
 let lastShowcaseArgs = null;
 let lastAllOffersArgs = null;
 let authSessionChecked = false;
@@ -38,14 +40,14 @@ window.IS_CATALOG_SHIELDED = false;
 function applyDFU(cost, category, rawModel) {
   if (window.IS_CATALOG_SHIELDED) return Number(cost) || 0;
 
-  // Cledson usa custo real enquanto o DFU estiver desligado.
+  // Cledson sempre usa o custo real; o controle altera apenas o admin.
   const activeUser = ((currentUser && currentUser.username) || localStorage.getItem('logged_username') || '').toLowerCase();
-  if (activeUser === 'cledson' && !window.DFU_ACTIVE) {
+  if (activeUser === 'cledson') {
     return Number(cost) || 0;
   }
 
   // Somente o usuário 'admin' tem o DFU ativo
-  if (activeUser && activeUser !== 'admin' && activeUser !== 'cledson') {
+  if (activeUser && activeUser !== 'admin') {
     return Number(cost) || 0;
   }
 
@@ -4896,7 +4898,7 @@ async function checkAuthSession() {
         window.IS_CATALOG_SHIELDED = true;
       }
       currentUser = null;
-      cledsonDfuEnabled = false;
+      pricingVersion = 0;
       syncDfuButtons();
       updateCatalogPresentation();
       localStorage.removeItem('logged_username');
@@ -4951,9 +4953,7 @@ async function checkAuthSession() {
     const username = (user.username || '').toLowerCase();
     localStorage.setItem('logged_username', username);
 
-    window.DFU_ACTIVE = username === 'admin' || (username === 'cledson' && cledsonDfuEnabled);
-    window.PricingCore?.setDfuActive(window.DFU_ACTIVE);
-    syncDfuButtons();
+    applyRemotePricingState(user);
     scheduleUiRefresh();
 
     const viewSwitchNav = document.getElementById('viewSwitchNav');
@@ -5220,18 +5220,47 @@ function syncDfuButtons() {
     const button = document.getElementById(id);
     if (!button) return;
     button.style.display = visible ? 'inline-flex' : 'none';
-    button.textContent = cledsonDfuEnabled ? 'DFU: ativado' : 'DFU: desativado';
-    button.setAttribute('aria-pressed', String(cledsonDfuEnabled));
+    button.textContent = adminDfuEnabled ? 'DFU admin: ativado' : 'DFU admin: desativado';
+    button.setAttribute('aria-pressed', String(adminDfuEnabled));
+    button.disabled = dfuRequestPending;
   });
 }
 
-window.toggleCledsonDfu = function() {
-  if (currentUser?.username?.toLowerCase() !== 'cledson' || isClientMode) return;
-  const previousPrices = new Map(getSimCatalogOptions().map(item => [item.key, item.unitPrice]));
-  cledsonDfuEnabled = !cledsonDfuEnabled;
-  window.DFU_ACTIVE = cledsonDfuEnabled;
-  window.PricingCore?.setDfuActive(cledsonDfuEnabled);
+window.toggleCledsonDfu = async function() {
+  if (currentUser?.username?.toLowerCase() !== 'cledson' || isClientMode || dfuRequestPending) return;
+  dfuRequestPending = true;
   syncDfuButtons();
+  try {
+    const response = await fetch('/api/pricing/admin-dfu', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: !adminDfuEnabled })
+    });
+    if (!response.ok) throw new Error('N?o foi poss?vel atualizar o DFU do admin. Tente novamente.');
+    applyRemotePricingState(await response.json());
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    dfuRequestPending = false;
+    syncDfuButtons();
+  }
+};
+
+socket.on('pricing_updated', state => applyRemotePricingState(state));
+socket.on('connect', () => { if (authSessionChecked) checkAuthSession(); });
+
+function applyRemotePricingState(state) {
+  if (!currentUser || !state) return;
+  const version = Number(state.pricingVersion) || 0;
+  if (version < pricingVersion) return;
+  pricingVersion = version;
+  if (typeof state.adminDfuActive === 'boolean' && currentUser.username.toLowerCase() === 'cledson') adminDfuEnabled = state.adminDfuActive;
+  const active = currentUser.username.toLowerCase() === 'admin' && state.dfuActive === true;
+  const changed = window.DFU_ACTIVE !== active;
+  const previousPrices = changed ? new Map(getSimCatalogOptions().map(item => [item.key, item.unitPrice])) : null;
+  window.DFU_ACTIVE = active;
+  window.PricingCore?.setDfuActive(active);
+  syncDfuButtons();
+  if (!changed) return;
   // Atualiza os valores agora, inclusive as telas que estavam ocultas.
   renderStoreFront();
   renderPricesOfTheDay();
@@ -5243,7 +5272,7 @@ window.toggleCledsonDfu = function() {
   if (document.getElementById('pdfSelectionModal')?.classList.contains('active')) {
     openExportSelectionModal(currentExportScope, exportModalIsAllScope);
   }
-};
+}
 
 function refreshSimulatorDfuPrices(previousPrices) {
   const options = getSimCatalogOptions();

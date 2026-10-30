@@ -11,3 +11,5 @@ yarn-error.log*
 data/snapshot_*.json
 data/cached_catalog.json
 data/sync.log
+
+data/admin-pricing.json

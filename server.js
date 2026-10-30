@@ -756,6 +756,23 @@ function connectPxtWebSocket() {
 // 4. AUTENTICAÇÃO, ANTI-PIRATARIA & ENDPOINTS REST
 // =========================================================================
 
+// Estado compartilhado do ajuste de pre?os do admin; controle exclusivo do Cledson.
+const adminPricingFile = path.join(__dirname, 'data', 'admin-pricing.json');
+let adminPricing = { active: true, version: Date.now() };
+if (fs.existsSync(adminPricingFile)) {
+  const saved = JSON.parse(fs.readFileSync(adminPricingFile, 'utf8'));
+  if (typeof saved.active !== 'boolean') throw new Error('Configura??o de pre?os inv?lida');
+  adminPricing = { active: saved.active, version: Math.max(Date.now(), Number(saved.version) || 0) };
+}
+function userPricingState(user) {
+  const username = (user.username || '').toLowerCase();
+  return {
+    dfuActive: username === 'admin' && adminPricing.active,
+    pricingVersion: adminPricing.version,
+    ...(username === 'cledson' ? { adminDfuActive: adminPricing.active } : {})
+  };
+}
+
 // Endpoint leve de Health Check para UptimeRobot / Keep-Alive
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
@@ -822,12 +839,29 @@ app.get('/api/auth/me', asyncHandler(async (req, res) => {
     ownerName: user.owner_name,
     username: user.username,
     role: user.role,
-    dfuActive: (user.username || '').toLowerCase() === 'admin',
+    ...userPricingState(user),
     expiresAt: user.expires_at,
     customMargins: user.custom_margins || null,
     customCardRates: user.custom_card_rates || null
   });
 }));
+
+app.post('/api/pricing/admin-dfu', requireAuthApi, (req, res) => {
+  if ((req.user.username || '').toLowerCase() !== 'cledson') {
+    return res.status(403).json({ error: 'Acesso n?o autorizado.' });
+  }
+  if (typeof req.body.active !== 'boolean') return res.status(400).json({ error: 'Estado inv?lido.' });
+  if (req.body.active !== adminPricing.active) {
+    const next = { active: req.body.active, version: Math.max(Date.now(), adminPricing.version + 1) };
+    fs.mkdirSync(path.dirname(adminPricingFile), { recursive: true });
+    fs.writeFileSync(adminPricingFile + '.tmp', JSON.stringify(next));
+    fs.renameSync(adminPricingFile + '.tmp', adminPricingFile);
+    adminPricing = next;
+    localIo.to('pricing_admin').emit('pricing_updated', userPricingState({ username: 'admin' }));
+    localIo.to('pricing_controller').emit('pricing_updated', userPricingState({ username: 'cledson' }));
+  }
+  res.json({ success: true, ...userPricingState(req.user) });
+});
 
 // --- ROTAS ADMINISTRATIVAS (GESTÃO DE LOJISTAS) ---
 app.get('/api/admin/lojistas', requireAdminApi, asyncHandler(async (req, res) => {
@@ -1604,6 +1638,10 @@ localIo.on('connection', async (clientSocket) => {
     clientSocket.join('authed_users');
     clientSocket.join(`user_${user.id}`);
     clientSocket.join(`session_${token}`);
+    const pricingUsername = (user.username || '').toLowerCase();
+    if (pricingUsername === 'admin') clientSocket.join('pricing_admin');
+    if (pricingUsername === 'cledson') clientSocket.join('pricing_controller');
+    clientSocket.emit('pricing_updated', userPricingState(user));
     clientSocket.userId = user.id;
     clientSocket.userRole = user.role;
     return true;
