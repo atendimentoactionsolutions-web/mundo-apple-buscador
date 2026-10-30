@@ -212,3 +212,11 @@
   .catalog-app .sim-exec-controls { grid-template-columns: minmax(0, 1fr) !important; }
   .catalog-app .modal-title-group h3 { font-size: 16px !important; }
 }
+
+.catalog-app :is(#btnDfuToggle, #mobileDrawerDfuBtn)[aria-pressed="true"] {
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+@media (max-width: 768px) {
+  .catalog-app #btnDfuToggle { display: none !important; }
+}

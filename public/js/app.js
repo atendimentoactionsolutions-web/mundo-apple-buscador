@@ -1,6 +1,7 @@
 // MUNDO APPLE BUSCADOR - Frontend Engine (Tempo Real & Filtros Adaptativos)
 let allProducts = [];
 let currentUser = null;
+let cledsonDfuEnabled = false;
 let authSessionChecked = false;
 let catalogStatus = 'loading';
 let catalogRequestId = 0;
@@ -35,14 +36,14 @@ window.IS_CATALOG_SHIELDED = false;
 function applyDFU(cost, category, rawModel) {
   if (window.IS_CATALOG_SHIELDED) return Number(cost) || 0;
 
-  // Regra estrita: Cledson nunca entra no DFU (sempre custo real)
+  // Cledson usa custo real enquanto o DFU estiver desligado.
   const activeUser = ((currentUser && currentUser.username) || localStorage.getItem('logged_username') || '').toLowerCase();
-  if (activeUser === 'cledson') {
+  if (activeUser === 'cledson' && !window.DFU_ACTIVE) {
     return Number(cost) || 0;
   }
 
   // Somente o usuário 'admin' tem o DFU ativo
-  if (activeUser && activeUser !== 'admin') {
+  if (activeUser && activeUser !== 'admin' && activeUser !== 'cledson') {
     return Number(cost) || 0;
   }
 
@@ -1805,6 +1806,7 @@ window.switchView = function(viewName) {
 };
 
 function refreshCurrentView() {
+  if (currentView === 'quotes') return;
   if (currentView === 'storefront') {
     renderStoreFront();
   } else {
@@ -4890,6 +4892,8 @@ async function checkAuthSession() {
         window.IS_CATALOG_SHIELDED = true;
       }
       currentUser = null;
+      cledsonDfuEnabled = false;
+      syncDfuButtons();
       updateCatalogPresentation();
       localStorage.removeItem('logged_username');
       window.DFU_ACTIVE = false;
@@ -4943,23 +4947,9 @@ async function checkAuthSession() {
     const username = (user.username || '').toLowerCase();
     localStorage.setItem('logged_username', username);
 
-    // Regra estrita: Cledson nunca entra no DFU. Somente Admin tem DFU (+100).
-    if (username === 'cledson') {
-      window.DFU_ACTIVE = false;
-      if (window.PricingCore && typeof window.PricingCore.setDfuActive === 'function') {
-        window.PricingCore.setDfuActive(false);
-      }
-    } else if (username === 'admin') {
-      window.DFU_ACTIVE = true;
-      if (window.PricingCore && typeof window.PricingCore.setDfuActive === 'function') {
-        window.PricingCore.setDfuActive(true);
-      }
-    } else {
-      window.DFU_ACTIVE = false;
-      if (window.PricingCore && typeof window.PricingCore.setDfuActive === 'function') {
-        window.PricingCore.setDfuActive(false);
-      }
-    }
+    window.DFU_ACTIVE = username === 'admin' || (username === 'cledson' && cledsonDfuEnabled);
+    window.PricingCore?.setDfuActive(window.DFU_ACTIVE);
+    syncDfuButtons();
     scheduleUiRefresh();
 
     const viewSwitchNav = document.getElementById('viewSwitchNav');
@@ -5130,6 +5120,7 @@ function ensureMobileDrawerMounted() {
         <span class="mobile-drawer-user-badge" id="mobileDrawerUserBadge">Loja</span>
       </div>
       <div class="mobile-drawer-nav">
+        <button type="button" class="mobile-drawer-item" id="mobileDrawerDfuBtn" onclick="toggleCledsonDfu()" aria-pressed="false" style="display: none;">DFU: desativado</button>
         <button class="mobile-drawer-item" id="mobileDrawerStoreFrontBtn" onclick="closeMobileMenu(); switchView('storefront');">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -5219,7 +5210,29 @@ function ensureMobileDrawerMounted() {
   return { drawer, overlay };
 }
 
+function syncDfuButtons() {
+  const visible = currentUser?.username?.toLowerCase() === 'cledson' && !isClientMode;
+  ['btnDfuToggle', 'mobileDrawerDfuBtn'].forEach(id => {
+    const button = document.getElementById(id);
+    if (!button) return;
+    button.style.display = visible ? 'inline-flex' : 'none';
+    button.textContent = cledsonDfuEnabled ? 'DFU: ativado' : 'DFU: desativado';
+    button.setAttribute('aria-pressed', String(cledsonDfuEnabled));
+  });
+}
+
+window.toggleCledsonDfu = function() {
+  if (currentUser?.username?.toLowerCase() !== 'cledson' || isClientMode) return;
+  cledsonDfuEnabled = !cledsonDfuEnabled;
+  window.DFU_ACTIVE = cledsonDfuEnabled;
+  window.PricingCore?.setDfuActive(cledsonDfuEnabled);
+  syncDfuButtons();
+  scheduleUiRefresh();
+  if (document.getElementById('cardSimulatorModal')?.classList.contains('active')) recalculateSimulator();
+};
+
 function syncMobileDrawerActions() {
+  syncDfuButtons();
   const destinations = {
     mobileDrawerStoreFrontBtn: 'storefront',
     mobileDrawerQuotesBtn: 'quotes',
@@ -5418,6 +5431,7 @@ socket.on('session_terminated', async (data) => {
 let isClientMode = window.location.pathname.includes('/catalogo') || window.location.search.includes('mode=cliente');
 
 function updateCatalogPresentation() {
+  syncDfuButtons();
   const authenticated = Boolean(currentUser);
   const customerView = !authenticated || isClientMode;
   document.body.classList.toggle('session-authenticated', authenticated);
