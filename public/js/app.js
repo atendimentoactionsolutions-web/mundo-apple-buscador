@@ -5223,13 +5223,46 @@ function syncDfuButtons() {
 
 window.toggleCledsonDfu = function() {
   if (currentUser?.username?.toLowerCase() !== 'cledson' || isClientMode) return;
+  const previousPrices = new Map(getSimCatalogOptions().map(item => [item.key, item.unitPrice]));
   cledsonDfuEnabled = !cledsonDfuEnabled;
   window.DFU_ACTIVE = cledsonDfuEnabled;
   window.PricingCore?.setDfuActive(cledsonDfuEnabled);
   syncDfuButtons();
-  scheduleUiRefresh();
-  if (document.getElementById('cardSimulatorModal')?.classList.contains('active')) recalculateSimulator();
+  // Atualiza os valores agora, inclusive as telas que estavam ocultas.
+  renderStoreFront();
+  renderPricesOfTheDay();
+  refreshSimulatorDfuPrices(previousPrices);
+  const quoteSearch = document.getElementById('qbCatalogSearchInput');
+  if (quoteSearch?.value && typeof onQuoteCatalogSearch === 'function') onQuoteCatalogSearch(quoteSearch);
+  if (document.getElementById('pdfSelectionModal')?.classList.contains('active')) {
+    openExportSelectionModal(currentExportScope, exportModalIsAllScope);
+  }
 };
+
+function refreshSimulatorDfuPrices(previousPrices) {
+  const options = getSimCatalogOptions();
+  const prices = new Map(options.map(item => [item.key, item.unitPrice]));
+  const delta = key => prices.has(key) && previousPrices.has(key)
+    ? prices.get(key) - previousPrices.get(key) : 0;
+  const data = currentSimData;
+  const key = getSimProductKey(data.model, data.storage, data.ram, data.color);
+  if (Number.isFinite(data.unitPrice)) data.unitPrice = QuoteCore.money(data.unitPrice + delta(key));
+  (data.colorOptions || []).forEach(option => {
+    const colorKey = getSimProductKey(data.model, data.storage, data.ram, option.color);
+    option.price = QuoteCore.money(option.price + delta(colorKey));
+  });
+  (data.additionalItems || []).forEach(item => {
+    item.unitPrice = QuoteCore.money(item.unitPrice + delta(item.key));
+  });
+  data.catalogOptions = options;
+  if (!document.getElementById('cardSimulatorModal')?.classList.contains('active')) return;
+  const input = document.getElementById('simCashInput');
+  if (input) input.value = formatCurrencyInput(data.unitPrice);
+  renderSimAdditionalItems();
+  const search = document.getElementById('simProductSearch');
+  if (search?.value) searchSimProducts(search.value);
+  recalculateSimulator();
+}
 
 function syncMobileDrawerActions() {
   syncDfuButtons();
