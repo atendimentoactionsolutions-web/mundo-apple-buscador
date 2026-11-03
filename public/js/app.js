@@ -1467,8 +1467,13 @@ function cleanModelName(name) {
 // Categorização de Seções para Exportação WhatsApp e Listas
 function getProductSectionInfo(p) {
   const isSemi = isSeminovoProduct(p);
+  const isActivated = !isSemi && isActivatedProduct(p);
   const cat = (p.category || '').toUpperCase().trim();
   const name = (p.name || '').toUpperCase();
+
+  if (isActivated) {
+    return { key: 'PRODUTOS_ATIVADOS', title: 'PRODUTOS ATIVADOS', order: 15 };
+  }
 
   if (isSemi) {
     if (cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD')) {
@@ -4152,10 +4157,13 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
       const isSemi = isSeminovoProduct(p);
 
       if (!exportModalIsAllScope && searchTokens.length === 0 && sfCurrentCategory !== 'ALL') {
-        if (sfCurrentCategory === 'SEMI') {
+        const isActivated = !isSemi && isActivatedProduct(p);
+        if (sfCurrentCategory === 'ACTIVATED') {
+          if (!isActivated) return false;
+        } else if (sfCurrentCategory === 'SEMI') {
           if (!isSemi) return false;
         } else {
-          if (isSemi) return false;
+          if (isSemi || isActivated) return false;
           const cat = (p.category || '').toUpperCase().trim();
           const name = (p.name || '').toUpperCase();
           if (sfCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
