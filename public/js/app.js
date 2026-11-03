@@ -1563,6 +1563,15 @@ function isSeminovoProduct(p) {
   );
 }
 
+function isActivatedProduct(p) {
+  if (!p) return false;
+  const activationStatus = `${p.condition || ''} ${p.status || ''}`.toUpperCase();
+  const name = (p.name || '').toUpperCase();
+  return p.isActivated === true || p.activated === true ||
+    /\b(ATIVAD[OA]|ACTIVATED)\b/.test(activationStatus) ||
+    /\b(ATIVAD[OA]|ACTIVATED)\b/.test(name);
+}
+
 // Calculates reference supplier price
 // For Seminovos:
 // 1 offer: price of the offer
@@ -1908,13 +1917,16 @@ function renderStoreFront() {
     if (!p.price || p.price <= 0) return false;
 
     const isSemi = isSeminovoProduct(p);
+    const isActivated = !isSemi && isActivatedProduct(p);
 
     // Filtro de Categoria (se houver busca por texto, busca em todo o catálogo)
     if (searchTokens.length === 0 && sfCurrentCategory !== 'ALL') {
-      if (sfCurrentCategory === 'SEMI') {
+      if (sfCurrentCategory === 'ACTIVATED') {
+        if (!isActivated) return false;
+      } else if (sfCurrentCategory === 'SEMI') {
         if (!isSemi) return false;
       } else {
-        if (isSemi) return false; // Separa novos de seminovos
+        if (isSemi || isActivated) return false; // Mantém novos, ativados e seminovos separados
         const cat = (p.category || '').toUpperCase().trim();
         const name = (p.name || '').toUpperCase();
         if (sfCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
@@ -1956,11 +1968,14 @@ function renderStoreFront() {
 
   filtered.forEach(p => {
     const isSemi = isSeminovoProduct(p);
-    const baseModelName = cleanModelName(p.name);
-    const displayName = isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
+    const isActivated = !isSemi && isActivatedProduct(p);
+    const baseModelName = cleanModelName((p.name || '').replace(/\b(ATIVAD[OA]|ACTIVATED)\b/gi, ''));
+    const displayName = isSemi ? `${baseModelName} (Seminovo)` :
+      isActivated ? `${baseModelName} (Ativado)` : baseModelName;
     const ram = getMacBookRam(p);
     const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
-    const cardUniqueKey = `${baseModelName.toUpperCase()}__${isSemi ? 'SEMI' : 'NEW'}__${storageKey}__${ram || ''}`;
+    const conditionKey = isSemi ? 'SEMI' : isActivated ? 'ACTIVATED' : 'NEW';
+    const cardUniqueKey = `${baseModelName.toUpperCase()}__${conditionKey}__${storageKey}__${ram || ''}`;
 
     if (!cardsMap.has(cardUniqueKey)) {
       cardsMap.set(cardUniqueKey, {
@@ -1971,6 +1986,7 @@ function renderStoreFront() {
         storage: (p.storage || '').trim(),
         ram: ram,
         isSeminovo: isSemi,
+        isActivated,
         colorsMap: new Map()
       });
     }
@@ -2024,7 +2040,8 @@ function renderStoreFront() {
     const rankA = getModelOrderRank(a.rawModelName || a.displayName, a.category);
     const rankB = getModelOrderRank(b.rawModelName || b.displayName, b.category);
     if (rankA !== rankB) return rankA - rankB;
-    if (a.isSeminovo !== b.isSeminovo) return a.isSeminovo ? 1 : -1;
+    const conditionOrder = card => card.isSeminovo ? 2 : card.isActivated ? 1 : 0;
+    if (conditionOrder(a) !== conditionOrder(b)) return conditionOrder(a) - conditionOrder(b);
     const sDiff = getStorageRank(a.storage) - getStorageRank(b.storage);
     if (sDiff !== 0) return sDiff;
     return (parseInt(a.ram) || 0) - (parseInt(b.ram) || 0);
@@ -2054,7 +2071,8 @@ function renderStoreFront() {
   window.storefrontCardMap = new Map();
   const cardsByModel = new Map();
   cardsList.forEach(card => {
-    const familyKey = `${(card.rawModelName || card.displayName).toUpperCase()}__${card.category || ''}__${card.isSeminovo ? 'SEMI' : 'NEW'}`;
+    const conditionKey = card.isSeminovo ? 'SEMI' : card.isActivated ? 'ACTIVATED' : 'NEW';
+    const familyKey = `${(card.rawModelName || card.displayName).toUpperCase()}__${card.category || ''}__${conditionKey}`;
     if (!cardsByModel.has(familyKey)) cardsByModel.set(familyKey, []);
     cardsByModel.get(familyKey).push(card);
   });
@@ -2074,6 +2092,7 @@ function renderStoreFront() {
       storage: card.storage,
       ram: card.ram,
       isSeminovo: card.isSeminovo,
+      isActivated: card.isActivated,
       colors: card.colorsArr.map(c => ({ color: c.color, price: c.retailPrice }))
     });
 
@@ -2118,6 +2137,7 @@ function renderStoreFront() {
           <div class="mock-card-badges-row">
             ${card.storage ? `<span class="mock-storage-badge">${formatStorageBadge(card.storage)}</span>` : ''}
             ${card.isSeminovo ? `<span class="mock-seminovo-badge">Seminovo</span>` : ''}
+            ${card.isActivated ? `<span class="mock-activated-badge">Ativado</span>` : ''}
             ${card.ram ? `<span class="mock-ram-badge">${card.ram} RAM</span>` : ''}
           </div>
         </div>
@@ -2160,7 +2180,7 @@ window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSemino
   const bodyEl = document.getElementById('clientShowcaseBody');
   if (!modal || !bodyEl) return;
 
-  let model = '', storage = '', ram = '', isSemi = false, colors = [];
+  let model = '', storage = '', ram = '', isSemi = false, isActivated = false, colors = [];
 
   if (typeof firstArg === 'string' && window.storefrontCardMap && window.storefrontCardMap.has(firstArg)) {
     const data = window.storefrontCardMap.get(firstArg);
@@ -2168,6 +2188,7 @@ window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSemino
     storage = data.storage;
     ram = data.ram;
     isSemi = Boolean(data.isSeminovo);
+    isActivated = Boolean(data.isActivated);
     colors = data.colors || [];
   } else {
     model = decodeURIComponent(firstArg || '');
@@ -2184,7 +2205,8 @@ window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSemino
   const titleFormatted = formatModelTitleForCopy(model, storage, ram);
   if (titleEl) titleEl.textContent = titleFormatted;
   if (subEl) {
-    subEl.textContent = `${isSemi ? 'Seminovo Selecionado' : 'Produto Novo Lacrado'} • Preços válidos à vista e simulação no cartão`;
+    const productType = isSemi ? 'Seminovo Selecionado' : isActivated ? 'Produto Ativado' : 'Produto Novo Lacrado';
+    subEl.textContent = `${productType} • Preços válidos à vista e simulação no cartão`;
   }
 
   // Gera lista espaçosa de cores

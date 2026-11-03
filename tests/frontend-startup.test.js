@@ -92,6 +92,22 @@ test('store prices, quote search and numeric product IDs stay consistent', async
   assert.match(app.elements.get('storefrontGrid').innerHTML, /data-price="6400"/);
 });
 
+test('activated products stay out of new products and have a dedicated storefront category', async () => {
+  const products = [
+    { id: 1, name: 'IPHONE 17 PRO', category: 'IPH', color: 'BLACK', storage: '256GB', price: 6000 },
+    { id: 2, name: 'IPHONE 17 PRO ATIVADO', category: 'IPH', color: 'WHITE', storage: '256GB', price: 5000 }
+  ];
+  const app = await setup(null, products);
+  const grid = app.elements.get('storefrontGrid');
+  assert.match(grid.innerHTML, /IPHONE 17 PRO/);
+  assert.doesNotMatch(grid.innerHTML, /Ativado|IPHONE 17 PRO ATIVADO/);
+
+  app.read("sfCurrentCategory = 'ACTIVATED'; renderStoreFront();");
+  assert.match(grid.innerHTML, /IPHONE 17 PRO \(Ativado\)/);
+  assert.match(grid.innerHTML, /mock-activated-badge/);
+  assert.doesNotMatch(grid.innerHTML, /Novo Lacrado/);
+});
+
 test('an empty response replaces the old products instead of keeping stale offers', async () => {
   const products = [{ id: 1, name: 'IPHONE 17', category: 'IPH', color: 'BLACK', price: 6000 }];
   const app = await setup(null, products);
