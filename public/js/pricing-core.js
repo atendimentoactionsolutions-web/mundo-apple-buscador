@@ -12,7 +12,8 @@
 })(typeof self !== 'undefined' ? self : this, function () {
 
   const DFU_CONFIG = {
-    active: true, // DFU ATIVO (iPhones: +100, MacBooks: +200, Apple Watch: +100, iPads: +50)
+    active: false, // DFU DESATIVADO PARA TODOS (09-11). Valores mantidos caso queira reativar.
+    locked: true, // Trava: impede que o toggle de admin religue o DFU
     iphoneValue: 100,
     macValue: 200,
     watchValue: 100,
@@ -21,7 +22,7 @@
   };
 
   function setDfuActive(active) {
-    DFU_CONFIG.active = !!active;
+    DFU_CONFIG.active = DFU_CONFIG.locked ? false : !!active;
   }
 
   function applyDFU(cost, category, rawModel, options = {}) {

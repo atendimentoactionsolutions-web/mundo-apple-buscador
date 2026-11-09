@@ -29,7 +29,7 @@ const socket = io();
 // O usuário 'cledson' NUNCA entra no DFU (+0, custo real).
 // ==========================================
 const storedUser = (localStorage.getItem('logged_username') || '').toLowerCase();
-window.DFU_ACTIVE = (storedUser === 'admin');
+window.DFU_ACTIVE = false; // DFU desativado para todos
 window.DFU_IPHONE_VALUE = 100;
 window.DFU_MAC_VALUE = 200;
 window.DFU_WATCH_VALUE = 100;
