@@ -54,24 +54,32 @@ function applyDFU(cost, category, rawModel) {
   if (numCost <= 0) return 0;
   const cat = (category || '').toUpperCase().trim();
   const model = (rawModel || '').toUpperCase();
-  const isIphone = cat === 'IPH' || model.includes('IPHONE');
-  const isMac = cat === 'MCB' || model.includes('MAC') || model.includes('MACBOOK');
-  const isWatch = cat === 'RLG' || model.includes('WATCH');
-  const isIpad = cat === 'IPAD' || cat === 'IPD' || model.includes('IPAD');
-  if (isIphone) {
+
+  // Acessórios Apple NUNCA recebem DFU de aparelho
+  const isAcessorio = cat === 'ACSS' || cat === 'ACESSORIOS' || cat === 'ACCESSORIES' || cat === 'PODS' ||
+    model.includes('CABO') || model.includes('FONTE') || model.includes('CARREGADOR') ||
+    model.includes('PENCIL') || model.includes('KEYBOARD') || model.includes('MOUSE') ||
+    model.includes('TRACKPAD') || model.includes('FOLIO') || model.includes('CASE') ||
+    model.includes('CAPA') || model.includes('PELICULA') || model.includes('PULSEIRA') ||
+    model.includes('STRAP') || model.includes('AIRTAG') || model.includes('ADAPTADOR') ||
+    model.includes('AIRPODS') || model.includes('EARPODS') || model.includes('BEATS');
+  if (isAcessorio) return numCost;
+
+  if (cat === 'IPAD' || cat === 'IPD' || model.includes('IPAD')) {
+    return numCost + (window.DFU_IPAD_VALUE || 50);
+  }
+  if (cat === 'IPH' || model.includes('IPHONE') || model.includes('IPH ')) {
     return numCost + (window.DFU_IPHONE_VALUE || 100);
   }
-  if (isMac) {
+  if (cat === 'MCB' || cat === 'IMAC' || cat === 'MNTR' || model.includes('MACBOOK') || model.includes('IMAC') || model.includes('MAC MINI') || model.includes('MAC STUDIO') || model.includes('MAC PRO') || /\bMAC\b/.test(model)) {
     return numCost + (window.DFU_MAC_VALUE || 200);
   }
-  if (isWatch) {
+  if (cat === 'RLG' || cat === 'WATCH' || model.includes('WATCH')) {
     return numCost + (window.DFU_WATCH_VALUE || 100);
-  }
-  if (isIpad) {
-    return numCost + (window.DFU_IPAD_VALUE || 50);
   }
   return numCost;
 }
+window.applyDFU = applyDFU;
 // ==========================================
 
 // DOM elements
@@ -2971,6 +2979,7 @@ function renderPricesOfTheDay() {
         return {
           color: colObj.color,
           displayPrice: refPrice,
+          rawPrice: repOffer.price || rawRefPrice,
           isSeminovo: isSemi,
           bestSupplier: repOffer.supplier?.name || 'Fornecedor',
           whatsappNumber: repOffer.supplier?.whatsappNumber || '',
@@ -2996,7 +3005,7 @@ function renderPricesOfTheDay() {
       const colorRowsHtml = colorsArr.map(col => {
         const hex = getAppleColorHex(col.color);
         const rawPhone = (col.whatsappNumber || '').replace(/\D/g, '');
-        const orderMsg = buildSupplierWhatsAppMessage(grp.rawModel + (grp.isSeminovo ? ' (Seminovo)' : ''), grp.storage, col.color, col.displayPrice, grp.ram);
+        const orderMsg = buildSupplierWhatsAppMessage(grp.rawModel + (grp.isSeminovo ? ' (Seminovo)' : ''), grp.storage, col.color, col.rawPrice || col.displayPrice, grp.ram);
         const waLink = rawPhone ? `https://wa.me/${rawPhone}?text=${encodeURIComponent(orderMsg)}` : '#';
 
         return `
@@ -3145,7 +3154,8 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
 
     const displayPrice = applyDFU(p.price, '', model);
 
-    const orderMsg = buildSupplierWhatsAppMessage(cleanModelName(p.name) + (isSeminovo ? ' (Seminovo)' : ''), p.storage, p.color, displayPrice, ram);
+    // Mensagem enviada para o fornecedor utiliza o custo real anunciado por ele
+    const orderMsg = buildSupplierWhatsAppMessage(cleanModelName(p.name) + (isSeminovo ? ' (Seminovo)' : ''), p.storage, p.color, p.price, ram);
     const waLink = whatsapp ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(orderMsg)}` : '#';
 
     return `
@@ -5281,7 +5291,7 @@ function applyRemotePricingState(state) {
     adminDfuEnabled = state.dfuActive;
   }
   const isEligible = uname === 'admin' || uname === 'cledson';
-  const active = isEligible && (state.dfuActive === true || (uname === 'cledson' && adminDfuEnabled));
+  const active = isEligible && adminDfuEnabled;
   const changed = window.DFU_ACTIVE !== active;
   const previousPrices = changed ? new Map(getSimCatalogOptions().map(item => [item.key, item.unitPrice])) : null;
   window.DFU_ACTIVE = active;
