@@ -66,3 +66,35 @@ test('the shared catalog opens in customer mode, including with an existing logi
   assert.equal(app.classes.has('session-authenticated'), false);
   assert.equal(app.elements.get('btnClientMode').style.display, 'none');
 });
+
+test('activated products and models are strictly blocked from the search engine and catalog', () => {
+  const PricingCore = require('../public/js/pricing-core.js');
+
+  const blockedSamples = [
+    { name: 'IPHONE 16 PRO MAX 256GB ATIVADO', category: 'IPH', price: 6500 },
+    { name: 'IPHONE 15 128GB BLACK (ATIVADO)', category: 'IPH', price: 4200 },
+    { name: 'IPHONE 14 128GB ESTELAR ATIV.', category: 'IPH', price: 3400 },
+    { name: 'IPHONE 13 128GB ATV', category: 'IPH', price: 2900 },
+    { name: 'IPHONE 15 PRO JÁ ATIVADO', category: 'IPH', price: 5000 },
+    { name: 'IPHONE 16 DESLACRADO ATIVADO', category: 'IPH', price: 5100 },
+    { name: 'IPHONE 16 PRO 128GB', category: 'ATIVADO', price: 5500 },
+    { name: 'IPHONE 15 PRO', category: 'ATV', price: 4800 },
+    { name: 'IPHONE 14 PRO', category: 'IPH', condition: 'ATIVADO', price: 4100 },
+    { name: 'IPHONE 15', category: 'IPH', description: 'Aparelho novo ativado no exterior', price: 4000 }
+  ];
+
+  for (const sample of blockedSamples) {
+    assert.equal(PricingCore.isAtivadoProduct(sample), true, `Deveria detectar como ativado: ${sample.name}`);
+    assert.equal(PricingCore.isDisallowedProduct(sample), true, `Deveria bloquear do catálogo: ${sample.name}`);
+  }
+
+  // Garantir que Apple TV legítima NÃO é bloqueada indevidamente
+  const allowedAppleTv = { name: 'APPLE TV 4K 64GB WI-FI', category: 'ACSS', price: 1200 };
+  assert.equal(PricingCore.isAtivadoProduct(allowedAppleTv), false);
+  assert.equal(PricingCore.isDisallowedProduct(allowedAppleTv), false);
+
+  // Garantir que iPhone novo lacrado é permitido
+  const allowedIphone = { name: 'IPHONE 16 PRO 128GB TITÂNIO NATURAL', category: 'IPH', price: 6800 };
+  assert.equal(PricingCore.isAtivadoProduct(allowedIphone), false);
+  assert.equal(PricingCore.isDisallowedProduct(allowedIphone), false);
+});

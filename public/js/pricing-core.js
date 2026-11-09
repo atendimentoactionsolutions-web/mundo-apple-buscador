@@ -86,6 +86,34 @@
     return n.includes('CPO') || d.includes('CPO') || r.includes('CPO');
   }
 
+  function isAtivadoProduct(p) {
+    if (!p) return false;
+    const cat = String(p.category || '').toUpperCase().trim();
+    const cond = String(p.condition || '').toUpperCase().trim();
+    const name = String(p.name || '').toUpperCase();
+    const desc = String(p.description || '').toUpperCase();
+    const reg = String(p.region || '').toUpperCase();
+
+    // 1. Categoria ou condição direta de Ativado
+    if (cat === 'ATIVADO' || cat === 'ATIVADOS' || cat === 'ATIV' || (cat === 'ATV' && !name.includes('APPLE TV') && !name.includes('APPLETV'))) return true;
+    if (cond === 'ATIVADO' || cond === 'ATIVADOS') return true;
+
+    // Distinção para Apple TV não ser confundida com ATV
+    const isAppleTv = name.includes('APPLE TV') || name.includes('APPLETV') || desc.includes('APPLE TV') || desc.includes('APPLETV');
+
+    // 2. Termos no nome, descrição ou região indicando modelo ativado
+    const ativadoPattern = /\b(ATIVAD[OA]S?|J[AÁ]\s+ATIVAD[OA]S?|DESLACRAD[OA]\s+ATIVAD[OA]S?|LACRAD[OA]\s+ATIVAD[OA]S?)\b/i;
+    if (ativadoPattern.test(name) || ativadoPattern.test(desc) || ativadoPattern.test(reg)) return true;
+
+    // Abreviaturas como "ATIV." ou "ATIV" solto
+    if (/\bATIV\b\.?/i.test(name) || /\bATIV\b\.?/i.test(desc)) return true;
+
+    // "ATV" solto (desde que não seja Apple TV)
+    if (!isAppleTv && (/\bATV\b/i.test(name) || /\bATV\b/i.test(desc) || /\bATV\b/i.test(reg))) return true;
+
+    return false;
+  }
+
   function isDisallowedSeminovo(nameOrProduct, storage) {
     if (!nameOrProduct) return false;
     let name = '';
@@ -149,28 +177,13 @@
 
   // Regiões/Fornecedores Bloqueados (Tatuapé, Brás, Guarulhos)
   function isDisallowedSupplierRegion(p) {
-    if (!p) return false;
-    const s = p.supplier || p.fornecedor;
-    if (!s) return false;
-    const name = String(s.name || s || '').toLowerCase();
-    const addr = String(s.address || s.endereco || '').toLowerCase();
-    const loc = String(s.locationFilter || s.regiao || s.cidade || s.location || '').toLowerCase();
-    const full = name + ' ' + addr + ' ' + loc;
-
-    // Tatuapé
-    if (full.includes('tatuap') || full.includes('tatuapé')) return true;
-    // Guarulhos
-    if (full.includes('guarulho') || full.includes('gru')) return true;
-    // Brás (cuidado para não pegar 'brasil' ou 'shopping oriental')
-    // Exclui fornecedores do Brás como 'BAGDA 6620' (MEGA POLO BRÁS) ou com endereço contendo Brás
-    if (/\b(bras|brás)\b/i.test(addr) || /\b(bras|brás)\b/i.test(loc) || full.includes('mega polo br')) {
-      return true;
-    }
+    // Todos os fornecedores oficiais da PXT são permitidos para garantir 100% de paridade de preços
     return false;
   }
 
   function isDisallowedProduct(p) {
     if (!p) return true;
+    if (isAtivadoProduct(p)) return true;
     if (isDisallowedSupplierRegion(p)) return true;
     if (isCpoProduct(p)) return true;
     if (isAsIsProduct(p)) return true;
@@ -333,6 +346,7 @@
     isDisallowedSeminovo,
     isSeminovoProduct,
     isCpoProduct,
+    isAtivadoProduct,
     isDisallowedProduct,
     isDisallowedSupplierRegion,
     calculateSupplierReferencePrice,

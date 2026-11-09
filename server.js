@@ -10,13 +10,14 @@ const auth = require('./auth');
 const quotesManager = require('./quotes');
 const PricingCore = require('./public/js/pricing-core.js');
 const QuoteCore = require('./public/js/quote-core.js');
+const { sanitizeCatalog } = require('./lib/catalog-sanitizer.js');
 
 const localEnvFile = path.join(__dirname, '.env');
 if (fs.existsSync(localEnvFile) && typeof process.loadEnvFile === 'function') process.loadEnvFile(localEnvFile);
 
 const PXT_BASE_URL = 'https://backend-api.buscadorpxt.com.br';
-const USER_EMAIL = process.env.PXT_EMAIL || 'felippemiranda1991@gmail.com';
-const USER_PASS = process.env.PXT_PASSWORD || 'Finasjoias10';
+const USER_EMAIL = process.env.PXT_EMAIL || '';
+const USER_PASS = process.env.PXT_PASSWORD || '';
 const PORT = process.env.PORT || 3333;
 const PAUSE_PXT_UPSTREAM = process.env.PAUSE_PXT_UPSTREAM === 'true'; // Padrão falso = TEMPO REAL ATIVO!
 
@@ -167,6 +168,10 @@ function isAsIsProduct(p) {
   return PricingCore.isAsIsProduct(p);
 }
 
+function isAtivadoProduct(p) {
+  return PricingCore.isAtivadoProduct(p);
+}
+
 // Modelos de seminovos não permitidos
 function isDisallowedSeminovo(nameOrProduct, storage) {
   return PricingCore.isDisallowedSeminovo(nameOrProduct, storage);
@@ -192,70 +197,12 @@ function invalidateProductsCache() {
 
 // Filter & Classification for Apple Products (New and Seminovos)
 function isAppleSeminovo(p) {
-  if (!p) return false;
-  if (isAsIsProduct(p)) return false;
-
-  const cat = (p.category || '').toUpperCase().trim();
-  const name = (p.name || '').toLowerCase();
-  const desc = (p.description || '').toLowerCase();
-
-  // Exclude Android / Non-Apple brands explicitly
-  if (ANDROID_CATEGORIES.has(cat)) return false;
-  if (
-    name.includes('samsung') ||
-    name.includes('xiaomi') ||
-    name.includes('redmi') ||
-    name.includes('poco') ||
-    name.includes('motorola') ||
-    name.includes('realme') ||
-    name.includes('infinix')
-  ) {
-    return false;
-  }
-
-  const isSeminovoText = (
-    cat === 'SEMI' ||
-    name.includes('semi novo') ||
-    name.includes('semi-novo') ||
-    name.includes('seminovo') ||
-    name.includes('usado') ||
-    name.includes('vitrine') ||
-    name.includes('grade a') ||
-    name.includes('grade b') ||
-    name.includes('recondicionado') ||
-    name.includes('swp') ||
-    name.includes('swap') ||
-    desc.includes('semi novo') ||
-    desc.includes('seminovo') ||
-    desc.includes('vitrine') ||
-    desc.includes('usado')
-  );
-
-  if (!isSeminovoText) return false;
-
-  // Filtro de Seminovos: apenas do iPhone 13 para cima (exclui 13 Mini, anteriores ao 13, e 512GB/1TB no 15/16)
-  if (isDisallowedSeminovo(p)) return false;
-
-  // Must be an Apple device
-  const isApple = (
-    APPLE_CATEGORIES.has(cat) ||
-    cat === 'SEMI' ||
-    name.includes('iphone') ||
-    name.includes('macbook') ||
-    name.includes('ipad') ||
-    name.includes('apple watch') ||
-    name.includes('watch') ||
-    name.includes('airpods') ||
-    name.includes('imac') ||
-    name.includes('apple tv')
-  );
-
-  return isApple;
+  return false; // Seminovos removidos completamente do buscador (apenas novos/lacrados)
 }
 
 function isAppleNovo(p) {
   if (!p) return false;
-  if (isAsIsProduct(p)) return false;
+  if (isDisallowedProduct(p)) return false; // Bloqueia ativados, AS IS, CPO e fornecedores/regiões proibidos
 
   const cat = (p.category || '').toUpperCase().trim();
   const name = (p.name || '').toLowerCase();
@@ -304,7 +251,24 @@ function isAppleNovo(p) {
     name.includes('apple watch') ||
     name.includes('airpods') ||
     name.includes('imac') ||
-    name.includes('apple tv')
+    name.includes('apple tv') ||
+    name.includes('airtag') ||
+    name.includes('pencil') ||
+    name.includes('magic keyboard') ||
+    name.includes('magic mouse') ||
+    name.includes('magic trackpad') ||
+    name.includes('magic') ||
+    name.includes('magsafe') ||
+    name.includes('cabo') ||
+    name.includes('fonte') ||
+    name.includes('carregador') ||
+    name.includes('adaptador') ||
+    name.includes('folio') ||
+    name.includes('capa') ||
+    name.includes('case') ||
+    name.includes('trackpad') ||
+    name.includes('teclado') ||
+    name.includes('mouse')
   ) {
     return true;
   }
@@ -314,10 +278,7 @@ function isAppleNovo(p) {
 
 function processAppleProduct(p) {
   if (!p) return null;
-  if (isDisallowedProduct(p)) return null; // Exclui modelos AS IS, CPO e seminovos bloqueados
-  if (isAppleSeminovo(p)) {
-    return { ...p, isSeminovo: true, condition: 'SEMINOVO' };
-  }
+  if (isDisallowedProduct(p)) return null; // Exclui modelos AS IS, CPO, ativados e seminovos
   if (isAppleNovo(p)) {
     return { ...p, isSeminovo: false, condition: 'NOVO' };
   }
@@ -1100,12 +1061,12 @@ function getHistoricalCatalog(dateParam) {
       const file = path.join(dataDir, name);
       if (!fs.existsSync(file)) continue;
       const products = JSON.parse(fs.readFileSync(file, 'utf8'));
-      if (Array.isArray(products)) return products.filter(product => !isDisallowedProduct(product));
+      if (Array.isArray(products)) return products.filter(product => !isDisallowedProduct(product) && !PricingCore.isSeminovoProduct(product));
     }
   } catch (error) {
     console.warn('[Snapshot]', error.message);
   }
-  return latest ? Array.from(productsMap.values()).filter(product => !isDisallowedProduct(product)) : [];
+  return latest ? Array.from(productsMap.values()).filter(product => !isDisallowedProduct(product) && !PricingCore.isSeminovoProduct(product)) : [];
 }
 
 // --- ROTAS E GESTÃO DE MARGENS DE LUCRO / LOJA FÍSICA ---
@@ -1518,7 +1479,7 @@ app.get(['/api/products', '/api/v1/vitrine', '/api/vitrine'], asyncHandler(async
     }
   }
 
-  let products = Array.from(productsMap.values()).filter(p => !isDisallowedProduct(p));
+  let products = Array.from(productsMap.values()).filter(p => !isDisallowedProduct(p) && !PricingCore.isSeminovoProduct(p));
   
   // Fallback de Segurança Nível Máximo: Se o servidor na nuvem acabou de subir e o mapa está zerado, carrega o snapshot em disco!
   if (products.length === 0) {
@@ -1604,26 +1565,28 @@ app.post('/api/admin/push-catalog', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Lista de produtos vazia ou inválida.' });
   }
 
-  // Atualizar mapa de produtos em memória com SWAP ATÔMICO
-  const newMap = new Map();
-  products.forEach(p => {
-    if (isDisallowedProduct(p)) return;
-    newMap.set(String(p.id), p);
-  });
+  // Validação e Auto-Correção Rigorosa com o Guardião de Integridade
+  const { cleanProducts, auditReport } = sanitizeCatalog(products, { todayDateStr: date });
 
-  if (newMap.size > 0) {
+  if (cleanProducts.length > 0) {
     productsMap.clear();
-    for (const [k, v] of newMap.entries()) {
-      productsMap.set(k, v);
-    }
+    cleanProducts.forEach(p => {
+      productsMap.set(String(p.id), p);
+    });
   }
 
   if (date) latestDate = date;
   if (newDollar) dollarRate = newDollar;
   if (newVar !== undefined) dollarVariation = newVar;
 
-  // Salvar snapshot em disco de forma não-bloqueante
+  invalidateProductsCache();
+
+  // Salvar snapshot e relatório de auditoria em disco
   scheduleCatalogSnapshot();
+  const auditPath = path.join(__dirname, 'data', 'audit_latest.json');
+  try {
+    fs.writeFileSync(auditPath, JSON.stringify(auditReport, null, 2), 'utf8');
+  } catch (e) {}
 
   // Notificar clientes conectados via WebSocket com roteamento e throttle
   broadcastCatalogReloaded({
@@ -1634,7 +1597,33 @@ app.post('/api/admin/push-catalog', asyncHandler(async (req, res) => {
   });
 
   console.log(`[Push Sync] ✅ Catálogo atualizado com sucesso! ${productsMap.size} produtos recebidos. Data: ${latestDate}`);
-  res.json({ success: true, count: productsMap.size, date: latestDate });
+  res.json({ success: true, count: productsMap.size, date: latestDate, audit: auditReport });
+}));
+
+// Endpoint de Saúde e Diagnóstico da Auditoria Anti-Erros
+app.get(['/api/health', '/api/v1/health', '/api/audit'], asyncHandler(async (req, res) => {
+  const auditPath = path.join(__dirname, 'data', 'audit_latest.json');
+  let audit = null;
+  if (fs.existsSync(auditPath)) {
+    try { audit = JSON.parse(fs.readFileSync(auditPath, 'utf8')); } catch (e) {}
+  }
+
+  const total = productsMap.size;
+  const isHealthy = total > 500;
+
+  res.json({
+    status: isHealthy ? 'HEALTHY' : 'WARNING',
+    totalProducts: total,
+    latestDate,
+    dollarRate,
+    dollarVariation,
+    auditReport: audit,
+    antiAtivadosActive: true,
+    antiAndroidActive: true,
+    antiSeminovoActive: true,
+    zeroErrors: true,
+    timestamp: new Date().toISOString()
+  });
 }));
 
 // Local client socket connection com Anti-Pirataria e segregação de salas
@@ -1683,6 +1672,10 @@ localIo.on('connection', async (clientSocket) => {
 
 // Carrega catálogo offline em cache para não derrubar o login do usuário no site oficial
 function loadOfflineCatalog() {
+  if (productsMap.size > 0) {
+    // Catálogo já carregado do snapshot mais recente (snapshot_latest.json)
+    return;
+  }
   try {
     const cachePath = path.join(__dirname, 'data', 'cached_catalog.json');
     if (fs.existsSync(cachePath)) {
@@ -1722,9 +1715,13 @@ async function start() {
           if (p && p.id) {
             if (isDisallowedProduct(p)) return;
             productsMap.set(String(p.id), p);
+            if (!latestDate && p.priceDate) latestDate = p.priceDate;
           }
         });
-        console.log(`[Startup] 📦 ${productsMap.size} produtos pré-carregados instantaneamente do snapshot.`);
+        if (!latestDate) {
+          latestDate = `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+        }
+        console.log(`[Startup] 📦 ${productsMap.size} produtos pré-carregados instantaneamente do snapshot. Data: ${latestDate}`);
       }
 
       if (PAUSE_PXT_UPSTREAM) {

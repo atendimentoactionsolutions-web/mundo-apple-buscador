@@ -1,7 +1,7 @@
 node_modules/
 .npm-cache/
-data/pxt_token.txt
-data/*.tmp
+*.log
+*.pid
 .DS_Store
 .env
 .env.local
@@ -11,5 +11,7 @@ yarn-error.log*
 data/snapshot_*.json
 data/cached_catalog.json
 data/sync.log
-
+data/pxt_token.txt
+data/*.tmp
 data/admin-pricing.json
+data/audit_latest.json

@@ -150,11 +150,35 @@ function isAsIsProduct(p) {
   );
 }
 
+function isAtivadoProduct(p) {
+  if (window.PricingCore && typeof window.PricingCore.isAtivadoProduct === 'function') {
+    return window.PricingCore.isAtivadoProduct(p);
+  }
+  if (!p) return false;
+  const cat = String(p.category || '').toUpperCase().trim();
+  const cond = String(p.condition || '').toUpperCase().trim();
+  const name = String(p.name || '').toUpperCase();
+  const desc = String(p.description || '').toUpperCase();
+  const reg = String(p.region || '').toUpperCase();
+
+  if (cat === 'ATIVADO' || cat === 'ATIVADOS' || cat === 'ATIV' || (cat === 'ATV' && !name.includes('APPLE TV') && !name.includes('APPLETV'))) return true;
+  if (cond === 'ATIVADO' || cond === 'ATIVADOS') return true;
+
+  const isAppleTv = name.includes('APPLE TV') || name.includes('APPLETV') || desc.includes('APPLE TV') || desc.includes('APPLETV');
+  const ativadoPattern = /\b(ATIVAD[OA]S?|J[AÁ]\s+ATIVAD[OA]S?|DESLACRAD[OA]\s+ATIVAD[OA]S?|LACRAD[OA]\s+ATIVAD[OA]S?)\b/i;
+  if (ativadoPattern.test(name) || ativadoPattern.test(desc) || ativadoPattern.test(reg)) return true;
+  if (/\bATIV\b\.?/i.test(name) || /\bATIV\b\.?/i.test(desc)) return true;
+  if (!isAppleTv && (/\bATV\b/i.test(name) || /\bATV\b/i.test(desc) || /\bATV\b/i.test(reg))) return true;
+
+  return false;
+}
+
 function isDisallowedProduct(p) {
   if (window.PricingCore && typeof window.PricingCore.isDisallowedProduct === 'function') {
     return window.PricingCore.isDisallowedProduct(p);
   }
   if (!p) return true;
+  if (isAtivadoProduct(p)) return true;
   if (isCpoProduct(p)) return true;
   if (isAsIsProduct(p)) return true;
   const cat = (p.category || '').toUpperCase().trim();
@@ -303,7 +327,7 @@ async function loadProducts(dateParam) {
     if (requestId !== catalogRequestId) return;
     if (json.success && Array.isArray(json.data)) {
       window.IS_CATALOG_SHIELDED = !!json.isShielded;
-      allProducts = json.data.filter(p => !isDisallowedProduct(p));
+      allProducts = json.data.filter(p => !isDisallowedProduct(p) && !isSeminovoProduct(p));
       catalogStatus = 'ready';
       lastColorCategory = '';
       if (!json.isHistorical) saveCachedCatalog({ isShielded: window.IS_CATALOG_SHIELDED, products: allProducts }, cacheKey);
@@ -1467,13 +1491,8 @@ function cleanModelName(name) {
 // Categorização de Seções para Exportação WhatsApp e Listas
 function getProductSectionInfo(p) {
   const isSemi = isSeminovoProduct(p);
-  const isActivated = !isSemi && isActivatedProduct(p);
   const cat = (p.category || '').toUpperCase().trim();
   const name = (p.name || '').toUpperCase();
-
-  if (isActivated) {
-    return { key: 'PRODUTOS_ATIVADOS', title: 'PRODUTOS ATIVADOS', order: 15 };
-  }
 
   if (isSemi) {
     if (cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD')) {
@@ -1566,15 +1585,6 @@ function isSeminovoProduct(p) {
     desc.includes('vitrine') ||
     desc.includes('usado')
   );
-}
-
-function isActivatedProduct(p) {
-  if (!p) return false;
-  const activationStatus = `${p.condition || ''} ${p.status || ''}`.toUpperCase();
-  const name = (p.name || '').toUpperCase();
-  return p.isActivated === true || p.activated === true ||
-    /\b(ATIVAD[OA]|ACTIVATED)\b/.test(activationStatus) ||
-    /\b(ATIVAD[OA]|ACTIVATED)\b/.test(name);
 }
 
 // Calculates reference supplier price
@@ -1922,16 +1932,13 @@ function renderStoreFront() {
     if (!p.price || p.price <= 0) return false;
 
     const isSemi = isSeminovoProduct(p);
-    const isActivated = !isSemi && isActivatedProduct(p);
 
     // Filtro de Categoria (se houver busca por texto, busca em todo o catálogo)
     if (searchTokens.length === 0 && sfCurrentCategory !== 'ALL') {
-      if (sfCurrentCategory === 'ACTIVATED') {
-        if (!isActivated) return false;
-      } else if (sfCurrentCategory === 'SEMI') {
+      if (sfCurrentCategory === 'SEMI') {
         if (!isSemi) return false;
       } else {
-        if (isSemi || isActivated) return false; // Mantém novos, ativados e seminovos separados
+        if (isSemi) return false; // Separa novos de seminovos
         const cat = (p.category || '').toUpperCase().trim();
         const name = (p.name || '').toUpperCase();
         if (sfCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
@@ -1939,7 +1946,7 @@ function renderStoreFront() {
         if (sfCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
         if (sfCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
         if (sfCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
-        if (sfCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR'))) return false;
+        if (sfCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR') || name.includes('AIRTAG') || name.includes('TRACKPAD') || name.includes('MAGSAFE') || name.includes('ADAPTADOR') || name.includes('FOLIO') || name.includes('CAPA') || name.includes('CASE'))) return false;
         if (sfCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
       }
     }
@@ -1973,14 +1980,11 @@ function renderStoreFront() {
 
   filtered.forEach(p => {
     const isSemi = isSeminovoProduct(p);
-    const isActivated = !isSemi && isActivatedProduct(p);
-    const baseModelName = cleanModelName((p.name || '').replace(/\b(ATIVAD[OA]|ACTIVATED)\b/gi, ''));
-    const displayName = isSemi ? `${baseModelName} (Seminovo)` :
-      isActivated ? `${baseModelName} (Ativado)` : baseModelName;
+    const baseModelName = cleanModelName(p.name);
+    const displayName = isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
     const ram = getMacBookRam(p);
     const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
-    const conditionKey = isSemi ? 'SEMI' : isActivated ? 'ACTIVATED' : 'NEW';
-    const cardUniqueKey = `${baseModelName.toUpperCase()}__${conditionKey}__${storageKey}__${ram || ''}`;
+    const cardUniqueKey = `${baseModelName.toUpperCase()}__${isSemi ? 'SEMI' : 'NEW'}__${storageKey}__${ram || ''}`;
 
     if (!cardsMap.has(cardUniqueKey)) {
       cardsMap.set(cardUniqueKey, {
@@ -1991,7 +1995,6 @@ function renderStoreFront() {
         storage: (p.storage || '').trim(),
         ram: ram,
         isSeminovo: isSemi,
-        isActivated,
         colorsMap: new Map()
       });
     }
@@ -2045,8 +2048,7 @@ function renderStoreFront() {
     const rankA = getModelOrderRank(a.rawModelName || a.displayName, a.category);
     const rankB = getModelOrderRank(b.rawModelName || b.displayName, b.category);
     if (rankA !== rankB) return rankA - rankB;
-    const conditionOrder = card => card.isSeminovo ? 2 : card.isActivated ? 1 : 0;
-    if (conditionOrder(a) !== conditionOrder(b)) return conditionOrder(a) - conditionOrder(b);
+    if (a.isSeminovo !== b.isSeminovo) return a.isSeminovo ? 1 : -1;
     const sDiff = getStorageRank(a.storage) - getStorageRank(b.storage);
     if (sDiff !== 0) return sDiff;
     return (parseInt(a.ram) || 0) - (parseInt(b.ram) || 0);
@@ -2076,8 +2078,7 @@ function renderStoreFront() {
   window.storefrontCardMap = new Map();
   const cardsByModel = new Map();
   cardsList.forEach(card => {
-    const conditionKey = card.isSeminovo ? 'SEMI' : card.isActivated ? 'ACTIVATED' : 'NEW';
-    const familyKey = `${(card.rawModelName || card.displayName).toUpperCase()}__${card.category || ''}__${conditionKey}`;
+    const familyKey = `${(card.rawModelName || card.displayName).toUpperCase()}__${card.category || ''}__${card.isSeminovo ? 'SEMI' : 'NEW'}`;
     if (!cardsByModel.has(familyKey)) cardsByModel.set(familyKey, []);
     cardsByModel.get(familyKey).push(card);
   });
@@ -2097,7 +2098,6 @@ function renderStoreFront() {
       storage: card.storage,
       ram: card.ram,
       isSeminovo: card.isSeminovo,
-      isActivated: card.isActivated,
       colors: card.colorsArr.map(c => ({ color: c.color, price: c.retailPrice }))
     });
 
@@ -2142,7 +2142,6 @@ function renderStoreFront() {
           <div class="mock-card-badges-row">
             ${card.storage ? `<span class="mock-storage-badge">${formatStorageBadge(card.storage)}</span>` : ''}
             ${card.isSeminovo ? `<span class="mock-seminovo-badge">Seminovo</span>` : ''}
-            ${card.isActivated ? `<span class="mock-activated-badge">Ativado</span>` : ''}
             ${card.ram ? `<span class="mock-ram-badge">${card.ram} RAM</span>` : ''}
           </div>
         </div>
@@ -2185,7 +2184,7 @@ window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSemino
   const bodyEl = document.getElementById('clientShowcaseBody');
   if (!modal || !bodyEl) return;
 
-  let model = '', storage = '', ram = '', isSemi = false, isActivated = false, colors = [];
+  let model = '', storage = '', ram = '', isSemi = false, colors = [];
 
   if (typeof firstArg === 'string' && window.storefrontCardMap && window.storefrontCardMap.has(firstArg)) {
     const data = window.storefrontCardMap.get(firstArg);
@@ -2193,7 +2192,6 @@ window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSemino
     storage = data.storage;
     ram = data.ram;
     isSemi = Boolean(data.isSeminovo);
-    isActivated = Boolean(data.isActivated);
     colors = data.colors || [];
   } else {
     model = decodeURIComponent(firstArg || '');
@@ -2210,8 +2208,7 @@ window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSemino
   const titleFormatted = formatModelTitleForCopy(model, storage, ram);
   if (titleEl) titleEl.textContent = titleFormatted;
   if (subEl) {
-    const productType = isSemi ? 'Seminovo Selecionado' : isActivated ? 'Produto Ativado' : 'Produto Novo Lacrado';
-    subEl.textContent = `${productType} • Preços válidos à vista e simulação no cartão`;
+    subEl.textContent = `${isSemi ? 'Seminovo Selecionado' : 'Produto Novo Lacrado'} • Preços válidos à vista e simulação no cartão`;
   }
 
   // Gera lista espaçosa de cores
@@ -2452,7 +2449,7 @@ function updatePricesDayCategoryCounts() {
       else if (cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD')) cIPAD++;
       else if (cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA')) cRLG++;
       else if (cat === 'PODS' || name.includes('AIRPOD')) cPODS++;
-      else if (cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR')) cACSS++;
+      else if (cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR') || name.includes('AIRTAG') || name.includes('TRACKPAD') || name.includes('MAGSAFE') || name.includes('ADAPTADOR') || name.includes('FOLIO') || name.includes('CAPA') || name.includes('CASE')) cACSS++;
       else if (cat === 'IMAC' || name.includes('IMAC')) cIMAC++;
     }
   });
@@ -2821,7 +2818,7 @@ function renderPricesOfTheDay() {
         if (podCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
         if (podCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
         if (podCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
-        if (podCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR'))) return false;
+        if (podCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR') || name.includes('AIRTAG') || name.includes('TRACKPAD') || name.includes('MAGSAFE') || name.includes('ADAPTADOR') || name.includes('FOLIO') || name.includes('CAPA') || name.includes('CASE'))) return false;
         if (podCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
       }
     }
@@ -4072,7 +4069,7 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
 
   if (titleEl) {
     if (scope === 'POD') {
-      titleEl.textContent = 'Exportar Preços do Dia (Fornecedores)';
+      titleEl.textContent = 'Exportar Preços do Dia';
     } else {
       titleEl.textContent = exportModalIsAllScope
         ? 'Exportar Catálogo Completo para o WhatsApp'
@@ -4118,7 +4115,7 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
           if (podCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
           if (podCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
           if (podCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
-          if (podCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR'))) return false;
+          if (podCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR') || name.includes('AIRTAG') || name.includes('TRACKPAD') || name.includes('MAGSAFE') || name.includes('ADAPTADOR') || name.includes('FOLIO') || name.includes('CAPA') || name.includes('CASE'))) return false;
           if (podCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
         }
       }
@@ -4157,13 +4154,10 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
       const isSemi = isSeminovoProduct(p);
 
       if (!exportModalIsAllScope && searchTokens.length === 0 && sfCurrentCategory !== 'ALL') {
-        const isActivated = !isSemi && isActivatedProduct(p);
-        if (sfCurrentCategory === 'ACTIVATED') {
-          if (!isActivated) return false;
-        } else if (sfCurrentCategory === 'SEMI') {
+        if (sfCurrentCategory === 'SEMI') {
           if (!isSemi) return false;
         } else {
-          if (isSemi || isActivated) return false;
+          if (isSemi) return false;
           const cat = (p.category || '').toUpperCase().trim();
           const name = (p.name || '').toUpperCase();
           if (sfCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
@@ -4171,7 +4165,7 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
           if (sfCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
           if (sfCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
           if (sfCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
-          if (sfCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR'))) return false;
+          if (sfCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR') || name.includes('AIRTAG') || name.includes('TRACKPAD') || name.includes('MAGSAFE') || name.includes('ADAPTADOR') || name.includes('FOLIO') || name.includes('CAPA') || name.includes('CASE'))) return false;
           if (sfCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
         }
       }
@@ -5181,7 +5175,7 @@ function ensureMobileDrawerMounted() {
             <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
             <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
           </svg>
-          <span>Preços do dia (Custo Fornecedor)</span>
+          <span>Preços do dia</span>
         </button>
         <button class="mobile-drawer-item" id="mobileDrawerExportBtn" onclick="closeMobileMenu(); openStorefrontExportModal();" style="display: none; color: var(--accent-green);">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -5519,7 +5513,7 @@ socket.on('session_terminated', async (data) => {
   if (typeof clearCachedCatalog === 'function') {
     await clearCachedCatalog();
   }
-  alert('⚠️ Acesso Concorrente Detectado:\n\n' + (data.reason || 'Sua conta foi conectada em outro dispositivo ou navegador. O Fornecedor permite apenas 1 tela ativa por assinatura.'));
+  alert('⚠️ Acesso Concorrente Detectado:\n\n' + (data.reason || 'Sua conta foi conectada em outro dispositivo ou navegador. O sistema permite apenas 1 tela ativa por assinatura.'));
   window.location.href = '/login.html';
 });
 
@@ -5589,6 +5583,24 @@ window.shareClientCatalogLink = async function() {
   } catch (err) {
     prompt('Copie o link do catálogo para enviar ao cliente:', catalogUrl);
   }
+};
+
+window.openAuditHealthModal = function() {
+  const modal = document.getElementById('auditHealthModal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  fetch('/api/health')
+    .then(r => r.json())
+    .then(data => {
+      const el = document.getElementById('auditTotalProducts');
+      if (el && data.totalProducts) el.textContent = data.totalProducts.toLocaleString('pt-BR');
+    })
+    .catch(() => {});
+};
+
+window.closeAuditHealthModal = function() {
+  const modal = document.getElementById('auditHealthModal');
+  if (modal) modal.style.display = 'none';
 };
 
 initClientModeCheck();

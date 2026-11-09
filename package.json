@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "audit": "node scripts/daily-audit.js"
   },
   "overrides": {
     "qs": "^6.16.2"
