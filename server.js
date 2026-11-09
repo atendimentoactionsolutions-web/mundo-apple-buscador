@@ -731,9 +731,10 @@ const adminPricingFile = path.join(__dirname, 'data', 'admin-pricing.json');
 let adminPricing = { active: true, version: Date.now() };
 if (fs.existsSync(adminPricingFile)) {
   const saved = JSON.parse(fs.readFileSync(adminPricingFile, 'utf8'));
-  if (typeof saved.active !== 'boolean') throw new Error('Configura??o de pre?os inv?lida');
+  if (typeof saved.active !== 'boolean') throw new Error('Configuração de preços inválida');
   adminPricing = { active: saved.active, version: Math.max(Date.now(), Number(saved.version) || 0) };
 }
+PricingCore.setDfuActive(adminPricing.active);
 function userPricingState(user) {
   const username = (user.username || '').toLowerCase();
   const isDfuUser = username === 'admin' || username === 'cledson';
@@ -829,6 +830,8 @@ app.post('/api/pricing/admin-dfu', requireAuthApi, (req, res) => {
     fs.writeFileSync(adminPricingFile + '.tmp', JSON.stringify(next));
     fs.renameSync(adminPricingFile + '.tmp', adminPricingFile);
     adminPricing = next;
+    PricingCore.setDfuActive(adminPricing.active);
+    invalidateProductsCache();
     localIo.to('pricing_admin').emit('pricing_updated', userPricingState({ username: 'admin' }));
     localIo.to('pricing_controller').emit('pricing_updated', userPricingState({ username: 'cledson' }));
   }
