@@ -29,7 +29,7 @@ const socket = io();
 // O usuário 'cledson' NUNCA entra no DFU (+0, custo real).
 // ==========================================
 const storedUser = (localStorage.getItem('logged_username') || '').toLowerCase();
-window.DFU_ACTIVE = (storedUser === 'admin');
+window.DFU_ACTIVE = (storedUser === 'admin' || storedUser === 'cledson');
 window.DFU_IPHONE_VALUE = 100;
 window.DFU_MAC_VALUE = 200;
 window.DFU_WATCH_VALUE = 100;
@@ -40,14 +40,9 @@ window.IS_CATALOG_SHIELDED = false;
 function applyDFU(cost, category, rawModel) {
   if (window.IS_CATALOG_SHIELDED) return Number(cost) || 0;
 
-  // Cledson sempre usa o custo real; o controle altera apenas o admin.
   const activeUser = ((currentUser && currentUser.username) || localStorage.getItem('logged_username') || '').toLowerCase();
-  if (activeUser === 'cledson') {
-    return Number(cost) || 0;
-  }
-
-  // Somente o usuário 'admin' tem o DFU ativo
-  if (activeUser && activeUser !== 'admin') {
+  // Somente os usuários 'admin' e 'cledson' utilizam o DFU configurável
+  if (activeUser && activeUser !== 'admin' && activeUser !== 'cledson') {
     return Number(cost) || 0;
   }
 
@@ -5239,19 +5234,21 @@ function ensureMobileDrawerMounted() {
 }
 
 function syncDfuButtons() {
-  const visible = currentUser?.username?.toLowerCase() === 'cledson' && !isClientMode;
+  const uname = currentUser?.username?.toLowerCase();
+  const visible = (uname === 'cledson' || uname === 'admin') && !isClientMode;
   ['btnDfuToggle', 'mobileDrawerDfuBtn'].forEach(id => {
     const button = document.getElementById(id);
     if (!button) return;
     button.style.display = visible ? 'inline-flex' : 'none';
-    button.textContent = adminDfuEnabled ? 'DFU admin: ativado' : 'DFU admin: desativado';
+    button.textContent = adminDfuEnabled ? 'DFU: ativado' : 'DFU: desativado';
     button.setAttribute('aria-pressed', String(adminDfuEnabled));
     button.disabled = dfuRequestPending;
   });
 }
 
 window.toggleCledsonDfu = async function() {
-  if (currentUser?.username?.toLowerCase() !== 'cledson' || isClientMode || dfuRequestPending) return;
+  const uname = currentUser?.username?.toLowerCase();
+  if ((uname !== 'cledson' && uname !== 'admin') || isClientMode || dfuRequestPending) return;
   dfuRequestPending = true;
   syncDfuButtons();
   try {
@@ -5277,8 +5274,14 @@ function applyRemotePricingState(state) {
   const version = Number(state.pricingVersion) || 0;
   if (version < pricingVersion) return;
   pricingVersion = version;
-  if (typeof state.adminDfuActive === 'boolean' && currentUser.username.toLowerCase() === 'cledson') adminDfuEnabled = state.adminDfuActive;
-  const active = currentUser.username.toLowerCase() === 'admin' && state.dfuActive === true;
+  const uname = currentUser.username.toLowerCase();
+  if (typeof state.adminDfuActive === 'boolean') {
+    adminDfuEnabled = state.adminDfuActive;
+  } else if (typeof state.dfuActive === 'boolean') {
+    adminDfuEnabled = state.dfuActive;
+  }
+  const isEligible = uname === 'admin' || uname === 'cledson';
+  const active = isEligible && (state.dfuActive === true || (uname === 'cledson' && adminDfuEnabled));
   const changed = window.DFU_ACTIVE !== active;
   const previousPrices = changed ? new Map(getSimCatalogOptions().map(item => [item.key, item.unitPrice])) : null;
   window.DFU_ACTIVE = active;
