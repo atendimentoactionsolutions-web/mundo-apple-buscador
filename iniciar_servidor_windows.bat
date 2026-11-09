@@ -33,6 +33,14 @@ if not exist "node_modules\" (
     )
 )
 
+:: 3. Verificar arquivo .env
+if not exist ".env" (
+    if exist ".env.example" (
+        echo [INFO] Configurando arquivo .env automaticamente...
+        copy .env.example .env >nul
+    )
+)
+
 echo [OK] Node.js detectado!
 echo [OK] Iniciando Guardião Auto-Healer e Servidor Local...
 echo.
