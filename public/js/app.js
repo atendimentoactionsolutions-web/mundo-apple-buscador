@@ -40,7 +40,11 @@ window.IS_CATALOG_SHIELDED = false;
 function applyDFU(cost, category, rawModel) {
   if (window.IS_CATALOG_SHIELDED) return Number(cost) || 0;
 
-  // Ajuste de custo base injetado nativamente no sistema para todos
+  const activeUser = ((currentUser && currentUser.username) || localStorage.getItem('logged_username') || '').toLowerCase();
+  if (activeUser === 'cledson') {
+    return Number(cost) || 0;
+  }
+
   if (window.PricingCore && typeof window.PricingCore.applyDFU === 'function') {
     return window.PricingCore.applyDFU(cost, category, rawModel);
   }
@@ -5237,16 +5241,18 @@ function ensureMobileDrawerMounted() {
 }
 
 function syncDfuButtons() {
-  // Ajuste injetado nativamente no sistema - nenhum botão ou texto de DFU na interface
   ['btnDfuToggle', 'mobileDrawerDfuBtn'].forEach(id => {
     const button = document.getElementById(id);
-    if (button) button.style.display = 'none';
+    if (!button) return;
+    button.style.display = 'none';
+    button.textContent = adminDfuEnabled ? 'DFU admin: ativado' : 'DFU admin: desativado';
+    button.setAttribute('aria-pressed', String(adminDfuEnabled));
+    button.disabled = dfuRequestPending;
   });
 }
 
 window.toggleCledsonDfu = async function() {
-  const uname = currentUser?.username?.toLowerCase();
-  if ((uname !== 'cledson' && uname !== 'admin') || isClientMode || dfuRequestPending) return;
+  if (currentUser?.username?.toLowerCase() !== 'cledson' || isClientMode || dfuRequestPending) return;
   dfuRequestPending = true;
   syncDfuButtons();
   try {
@@ -5272,14 +5278,10 @@ function applyRemotePricingState(state) {
   const version = Number(state.pricingVersion) || 0;
   if (version < pricingVersion) return;
   pricingVersion = version;
-  const uname = currentUser.username.toLowerCase();
-  if (typeof state.adminDfuActive === 'boolean') {
+  if (typeof state.adminDfuActive === 'boolean' && currentUser.username.toLowerCase() === 'cledson') {
     adminDfuEnabled = state.adminDfuActive;
-  } else if (typeof state.dfuActive === 'boolean') {
-    adminDfuEnabled = state.dfuActive;
   }
-  const isEligible = uname === 'admin' || uname === 'cledson';
-  const active = isEligible && adminDfuEnabled;
+  const active = currentUser.username.toLowerCase() === 'admin' && state.dfuActive === true;
   const changed = window.DFU_ACTIVE !== active;
   const previousPrices = changed ? new Map(getSimCatalogOptions().map(item => [item.key, item.unitPrice])) : null;
   window.DFU_ACTIVE = active;

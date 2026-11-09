@@ -737,11 +737,10 @@ if (fs.existsSync(adminPricingFile)) {
 PricingCore.setDfuActive(adminPricing.active);
 function userPricingState(user) {
   const username = (user.username || '').toLowerCase();
-  const isDfuUser = username === 'admin' || username === 'cledson';
   return {
-    dfuActive: isDfuUser && adminPricing.active,
+    dfuActive: username === 'admin' && adminPricing.active,
     pricingVersion: adminPricing.version,
-    ...(isDfuUser ? { adminDfuActive: adminPricing.active } : {})
+    ...(username === 'cledson' ? { adminDfuActive: adminPricing.active } : {})
   };
 }
 
@@ -820,7 +819,7 @@ app.get('/api/auth/me', asyncHandler(async (req, res) => {
 
 app.post('/api/pricing/admin-dfu', requireAuthApi, (req, res) => {
   const username = (req.user.username || '').toLowerCase();
-  if (username !== 'cledson' && username !== 'admin') {
+  if (username !== 'cledson') {
     return res.status(403).json({ error: 'Acesso n?o autorizado.' });
   }
   if (typeof req.body.active !== 'boolean') return res.status(400).json({ error: 'Estado inv?lido.' });
