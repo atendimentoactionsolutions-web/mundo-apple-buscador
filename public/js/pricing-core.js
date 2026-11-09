@@ -30,22 +30,43 @@
     if (numCost <= 0) return 0;
     const cat = (category || '').toUpperCase().trim();
     const model = (rawModel || '').toUpperCase();
-    const isIphone = cat === 'IPH' || model.includes('IPHONE');
-    const isMac = cat === 'MCB' || model.includes('MAC') || model.includes('MACBOOK');
-    const isWatch = cat === 'RLG' || model.includes('WATCH');
-    const isIpad = cat === 'IPAD' || cat === 'IPD' || model.includes('IPAD');
-    if (isIphone) {
-      return numCost + (DFU_CONFIG.iphoneValue || 100);
-    }
-    if (isMac) {
-      return numCost + (DFU_CONFIG.macValue || 200);
-    }
-    if (isWatch) {
-      return numCost + (DFU_CONFIG.watchValue || 100);
-    }
+
+    // 1. Acessórios Apple NUNCA recebem DFU de aparelho (iPhones/Macs/iPads/Watches)
+    const isAcessorio = cat === 'ACSS' || cat === 'ACESSORIOS' || cat === 'ACCESSORIES' || cat === 'PODS' ||
+      model.includes('CABO') || model.includes('FONTE') || model.includes('CARREGADOR') ||
+      model.includes('PENCIL') || model.includes('KEYBOARD') || model.includes('MOUSE') ||
+      model.includes('TRACKPAD') || model.includes('FOLIO') || model.includes('CASE') ||
+      model.includes('CAPA') || model.includes('PELICULA') || model.includes('PULSEIRA') ||
+      model.includes('STRAP') || model.includes('AIRTAG') || model.includes('ADAPTADOR') ||
+      model.includes('AIRPODS') || model.includes('EARPODS') || model.includes('BEATS');
+    if (isAcessorio) return numCost;
+
+    // 2. iPads (+50)
+    const isIpad = (cat === 'IPAD' || cat === 'IPD' || model.includes('IPAD'));
     if (isIpad) {
       return numCost + (DFU_CONFIG.ipadValue || 50);
     }
+
+    // 3. iPhones (+100)
+    const isIphone = (cat === 'IPH' || model.includes('IPHONE') || model.includes('IPH '));
+    if (isIphone) {
+      return numCost + (DFU_CONFIG.iphoneValue || 100);
+    }
+
+    // 4. MacBooks / Macs (+200)
+    const isMac = (cat === 'MCB' || cat === 'IMAC' || cat === 'MNTR' ||
+      model.includes('MACBOOK') || model.includes('IMAC') || model.includes('MAC MINI') ||
+      model.includes('MAC STUDIO') || model.includes('MAC PRO') || /MAC/.test(model));
+    if (isMac) {
+      return numCost + (DFU_CONFIG.macValue || 200);
+    }
+
+    // 5. Apple Watch (+100)
+    const isWatch = (cat === 'RLG' || cat === 'WATCH' || model.includes('WATCH'));
+    if (isWatch) {
+      return numCost + (DFU_CONFIG.watchValue || 100);
+    }
+
     return numCost;
   }
 
