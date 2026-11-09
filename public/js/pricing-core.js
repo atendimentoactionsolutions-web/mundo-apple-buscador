@@ -21,7 +21,7 @@
   };
 
   function setDfuActive(active) {
-    DFU_CONFIG.active = DFU_CONFIG.locked ? false : !!active;
+    DFU_CONFIG.active = !!active;
   }
 
   function applyDFU(cost, category, rawModel, options = {}) {
