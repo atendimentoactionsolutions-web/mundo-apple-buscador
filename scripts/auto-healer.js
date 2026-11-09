@@ -80,7 +80,10 @@ function checkProcessRunning(scriptName) {
         if (err || !stdout) {
           resolve(false);
         } else {
-          resolve(stdout.includes(scriptName) || stdout.includes(normalized));
+          // No Windows o caminho vem com barra invertida (scripts\local-sync.js); compara só o nome do arquivo
+          const baseName = scriptName.split('/').pop().toLowerCase();
+          const lines = stdout.toLowerCase().split(/\r?\n/).filter(l => l.includes(baseName) && !l.includes('--once'));
+          resolve(lines.length > 0 || stdout.includes(normalized));
         }
       });
     } else {
