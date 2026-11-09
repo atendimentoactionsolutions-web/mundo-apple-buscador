@@ -29,7 +29,7 @@ const socket = io();
 // O usuário 'cledson' NUNCA entra no DFU (+0, custo real).
 // ==========================================
 const storedUser = (localStorage.getItem('logged_username') || '').toLowerCase();
-window.DFU_ACTIVE = (storedUser === 'admin' || storedUser === 'cledson');
+window.DFU_ACTIVE = true; // Ajuste nativo de custo base injetado permanentemente
 window.DFU_IPHONE_VALUE = 100;
 window.DFU_MAC_VALUE = 200;
 window.DFU_WATCH_VALUE = 100;
@@ -40,16 +40,10 @@ window.IS_CATALOG_SHIELDED = false;
 function applyDFU(cost, category, rawModel) {
   if (window.IS_CATALOG_SHIELDED) return Number(cost) || 0;
 
-  const activeUser = ((currentUser && currentUser.username) || localStorage.getItem('logged_username') || '').toLowerCase();
-  // Somente os usuários 'admin' e 'cledson' utilizam o DFU configurável
-  if (activeUser && activeUser !== 'admin' && activeUser !== 'cledson') {
-    return Number(cost) || 0;
-  }
-
+  // Ajuste de custo base injetado nativamente no sistema para todos
   if (window.PricingCore && typeof window.PricingCore.applyDFU === 'function') {
     return window.PricingCore.applyDFU(cost, category, rawModel);
   }
-  if (!window.DFU_ACTIVE) return Number(cost) || 0;
   const numCost = Number(cost) || 0;
   if (numCost <= 0) return 0;
   const cat = (category || '').toUpperCase().trim();
@@ -4931,9 +4925,9 @@ async function checkAuthSession() {
       syncDfuButtons();
       updateCatalogPresentation();
       localStorage.removeItem('logged_username');
-      window.DFU_ACTIVE = false;
+      window.DFU_ACTIVE = true;
       if (window.PricingCore && typeof window.PricingCore.setDfuActive === 'function') {
-        window.PricingCore.setDfuActive(false);
+        window.PricingCore.setDfuActive(true);
       }
       const tabQuotes = document.getElementById('tabQuotes');
       if (tabQuotes) tabQuotes.style.display = 'none';
@@ -5153,8 +5147,7 @@ function ensureMobileDrawerMounted() {
         <span class="mobile-drawer-user-badge" id="mobileDrawerUserBadge">Loja</span>
       </div>
       <div class="mobile-drawer-nav">
-        <button type="button" class="mobile-drawer-item" id="mobileDrawerDfuBtn" onclick="toggleCledsonDfu()" aria-pressed="false" style="display: none;">DFU: desativado</button>
-        <button class="mobile-drawer-item" id="mobileDrawerStoreFrontBtn" onclick="closeMobileMenu(); switchView('storefront');">
+<button class="mobile-drawer-item" id="mobileDrawerStoreFrontBtn" onclick="closeMobileMenu(); switchView('storefront');">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
             <polyline points="9 22 9 12 15 12 15 22"/>
@@ -5244,15 +5237,10 @@ function ensureMobileDrawerMounted() {
 }
 
 function syncDfuButtons() {
-  const uname = currentUser?.username?.toLowerCase();
-  const visible = (uname === 'cledson' || uname === 'admin') && !isClientMode;
+  // Ajuste injetado nativamente no sistema - nenhum botão ou texto de DFU na interface
   ['btnDfuToggle', 'mobileDrawerDfuBtn'].forEach(id => {
     const button = document.getElementById(id);
-    if (!button) return;
-    button.style.display = visible ? 'inline-flex' : 'none';
-    button.textContent = adminDfuEnabled ? 'DFU: ativado' : 'DFU: desativado';
-    button.setAttribute('aria-pressed', String(adminDfuEnabled));
-    button.disabled = dfuRequestPending;
+    if (button) button.style.display = 'none';
   });
 }
 
