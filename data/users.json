@@ -9,9 +9,9 @@
     "role": "admin",
     "status": "active",
     "expires_at": null,
-    "current_session_token": "8b63d480-539d-4986-ab58-aa3b8af6750e",
+    "current_session_token": "cf8f54e9-ea30-4933-9a46-202e089a8bf8",
     "created_at": "2026-09-10T11:48:52.784Z",
-    "last_login_at": "2026-11-09T14:18:38.069Z",
+    "last_login_at": "2026-11-09T14:20:00.791Z",
     "active_session_tokens": [
       "2382dd1e-cd8a-4dfa-a510-462f60ecf399",
       "7cc44672-a4ab-4580-a202-7ff6f864ab0a",
@@ -19,7 +19,8 @@
       "f023ec98-6666-4491-bb21-8a90701dbcd7",
       "b55e9391-c65c-4590-b6e9-8246437b6a00",
       "83392ddb-3ab4-4fe8-9e06-2da90d18a515",
-      "8b63d480-539d-4986-ab58-aa3b8af6750e"
+      "8b63d480-539d-4986-ab58-aa3b8af6750e",
+      "cf8f54e9-ea30-4933-9a46-202e089a8bf8"
     ]
   },
   {
