@@ -9,9 +9,9 @@
     "role": "admin",
     "status": "active",
     "expires_at": null,
-    "current_session_token": "837a0b36-e33b-4785-be9b-df2021245aea",
+    "current_session_token": "7dd9a9e5-ee65-4b42-bf8b-301d8e8f791f",
     "created_at": "2026-09-10T11:48:52.784Z",
-    "last_login_at": "2026-11-10T12:04:26.159Z",
+    "last_login_at": "2026-11-10T17:34:21.080Z",
     "active_session_tokens": [
       "2382dd1e-cd8a-4dfa-a510-462f60ecf399",
       "7cc44672-a4ab-4580-a202-7ff6f864ab0a",
@@ -22,7 +22,8 @@
       "8b63d480-539d-4986-ab58-aa3b8af6750e",
       "7b039fce-d676-4fc0-bdf3-b12325fa4d1f",
       "6ed2f732-a19f-4649-a4f1-a579b425390b",
-      "837a0b36-e33b-4785-be9b-df2021245aea"
+      "837a0b36-e33b-4785-be9b-df2021245aea",
+      "7dd9a9e5-ee65-4b42-bf8b-301d8e8f791f"
     ]
   },
   {
@@ -35,14 +36,13 @@
     "role": "admin",
     "status": "active",
     "expires_at": null,
-    "current_session_token": "edcd7b01-e505-4654-b62f-901e3dc417a0",
+    "current_session_token": "c320070f-1d64-4ae1-aaab-a3efff85f0cf",
     "active_session_tokens": [
       "5ba89a89-9c83-4f43-9a68-85e09fc9efcf",
       "b5de84ee-df14-40bc-a99a-bd644872b089",
       "303608b7-df94-42a6-9114-486ca2913c3f",
       "78eb0269-3884-44d6-a8d2-e1fdd28a796a",
-      "c320070f-1d64-4ae1-aaab-a3efff85f0cf",
-      "edcd7b01-e505-4654-b62f-901e3dc417a0"
+      "c320070f-1d64-4ae1-aaab-a3efff85f0cf"
     ],
     "created_at": "2026-10-14T15:35:09.812Z",
     "custom_margins": {
