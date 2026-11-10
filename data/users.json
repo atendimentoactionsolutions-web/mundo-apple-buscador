@@ -35,14 +35,13 @@
     "role": "admin",
     "status": "active",
     "expires_at": null,
-    "current_session_token": "b8225ed9-134e-4c16-9b4b-a7942b95eb68",
+    "current_session_token": "c320070f-1d64-4ae1-aaab-a3efff85f0cf",
     "active_session_tokens": [
       "5ba89a89-9c83-4f43-9a68-85e09fc9efcf",
       "b5de84ee-df14-40bc-a99a-bd644872b089",
       "303608b7-df94-42a6-9114-486ca2913c3f",
       "78eb0269-3884-44d6-a8d2-e1fdd28a796a",
-      "c320070f-1d64-4ae1-aaab-a3efff85f0cf",
-      "b8225ed9-134e-4c16-9b4b-a7942b95eb68"
+      "c320070f-1d64-4ae1-aaab-a3efff85f0cf"
     ],
     "created_at": "2026-10-14T15:35:09.812Z",
     "custom_margins": {
