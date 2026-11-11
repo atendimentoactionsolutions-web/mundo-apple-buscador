@@ -11,6 +11,7 @@ const quotesManager = require('./quotes');
 const PricingCore = require('./public/js/pricing-core.js');
 const QuoteCore = require('./public/js/quote-core.js');
 const { sanitizeCatalog } = require('./lib/catalog-sanitizer.js');
+const { processDailyPricesText } = require('./lib/daily-prices-importer.js');
 
 const localEnvFile = path.join(__dirname, '.env');
 if (fs.existsSync(localEnvFile) && typeof process.loadEnvFile === 'function') process.loadEnvFile(localEnvFile);
