@@ -142,4 +142,4 @@ for item in parsed:
 
 print('\nSummary by (Category, Condition):')
 for (cat, cond), count in sorted(summary.items()):
-    print(f'  {cat.padEnd(10)} | {cond.padEnd(10)} : {count} itens')
+    print(f'  {cat.ljust(12)} | {cond.ljust(10)} : {count} itens')
