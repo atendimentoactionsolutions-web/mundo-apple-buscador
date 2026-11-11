@@ -1,25 +1,8 @@
 import urllib.request
 import json
-import http.cookiejar
 
-cj = http.cookiejar.CookieJar()
-opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+token = "c320070f-1d64-4ae1-aaab-a3efff85f0cf"
 
-# 1. Login as admin
-login_payload = json.dumps({'username': 'cledson', 'password': '123'}).encode('utf-8')
-login_req = urllib.request.Request('http://127.0.0.1:3333/api/auth/login', data=login_payload, headers={'Content-Type': 'application/json'})
-
-try:
-    with opener.open(login_req) as resp:
-        print('Login status:', resp.status)
-        user_data = json.loads(resp.read().decode())
-        print('Logged in user:', user_data.get('user', {}).get('username'))
-except Exception as e:
-    print('Login failed:', e)
-    # try test login or inspect users.json
-    exit(1)
-
-# 2. Test POST /api/admin/daily-prices
 test_list = """
 APPLE TV 4K • 128GB • Sem cor • Custo R$ 1.499,00 • Baixa disponibilidade: 1 fornecedor
 HOTWAV A17 PRO MAX • 128/4 • SILVER • Custo R$ 650,00
@@ -36,11 +19,15 @@ import_payload = json.dumps({
 import_req = urllib.request.Request(
     'http://127.0.0.1:3333/api/admin/daily-prices',
     data=import_payload,
-    headers={'Content-Type': 'application/json'},
+    headers={
+        'Content-Type': 'application/json',
+        'Cookie': f'fornecedor_session={token}',
+        'Authorization': f'Bearer {token}'
+    },
     method='POST'
 )
 
-with opener.open(import_req) as resp:
+with urllib.request.urlopen(import_req) as resp:
     print('Import status:', resp.status)
     result = json.loads(resp.read().decode())
     print('Import result:')
