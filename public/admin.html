@@ -2237,6 +2237,116 @@
       if (!str) return '';
       return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
+
+    // =========================================================================
+    // IMPORTAÇÃO / ADIÇÃO DE PREÇOS DO DIA (NATIVO DO PAINEL ADMIN)
+    // =========================================================================
+    function openDailyPricesModal() {
+      const modal = document.getElementById('modalDailyPrices');
+      if (!modal) return;
+      const dateInput = document.getElementById('dailyPricesDate');
+      if (dateInput && !dateInput.value) {
+        const now = new Date();
+        const d = String(now.getDate()).padStart(2, '0');
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        dateInput.value = `${d}-${m}`;
+      }
+      const feedback = document.getElementById('dailyPricesFeedback');
+      if (feedback) feedback.style.display = 'none';
+      modal.style.display = 'flex';
+      const ta = document.getElementById('dailyPricesRawText');
+      if (ta) ta.focus();
+    }
+
+    function closeDailyPricesModal() {
+      const modal = document.getElementById('modalDailyPrices');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function clearDailyPricesInput() {
+      const ta = document.getElementById('dailyPricesRawText');
+      if (ta) ta.value = '';
+      const feedback = document.getElementById('dailyPricesFeedback');
+      if (feedback) feedback.style.display = 'none';
+    }
+
+    async function submitDailyPrices() {
+      const ta = document.getElementById('dailyPricesRawText');
+      const rawText = ta ? ta.value.trim() : '';
+      if (!rawText) {
+        alert('Por favor, cole ou digite a lista de produtos antes de processar.');
+        if (ta) ta.focus();
+        return;
+      }
+
+      const dateInput = document.getElementById('dailyPricesDate');
+      const modeSelect = document.getElementById('dailyPricesMode');
+      const date = dateInput ? dateInput.value.trim() : '';
+      const mode = modeSelect ? modeSelect.value : 'replace';
+
+      const btn = document.getElementById('btnSubmitDailyPrices');
+      const feedback = document.getElementById('dailyPricesFeedback');
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>Processando...</span>';
+      }
+
+      if (feedback) {
+        feedback.style.display = 'block';
+        feedback.style.background = 'rgba(0, 113, 227, 0.15)';
+        feedback.style.border = '1px solid rgba(0, 113, 227, 0.4)';
+        feedback.style.color = '#2997ff';
+        feedback.textContent = 'Processando lista e aplicando regras anti-erros...';
+      }
+
+      try {
+        const resp = await fetch('/api/admin/daily-prices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rawText, date, mode })
+        });
+
+        const data = await resp.json();
+
+        if (!resp.ok || !data.success) {
+          throw new Error(data.error || 'Erro ao processar catálogo.');
+        }
+
+        if (feedback) {
+          feedback.style.background = 'rgba(52, 199, 89, 0.15)';
+          feedback.style.border = '1px solid rgba(52, 199, 89, 0.4)';
+          feedback.style.color = '#34c759';
+          feedback.innerHTML = `
+            <strong>✅ Catálogo Atualizado com Sucesso!</strong><br>
+            • Produtos adicionados/válidos: <strong>${data.added || 0}</strong><br>
+            • Total no catálogo ativo: <strong>${data.totalCatalog || 0}</strong><br>
+            • Hotwav/Android bloqueados: <strong>${data.stats?.blockedHotwav || 0}</strong><br>
+            • Seminovos bloqueados: <strong>${data.stats?.blockedSeminovos || 0}</strong><br>
+            • Outros/CPO bloqueados: <strong>${data.stats?.blockedOthers || 0}</strong>
+          `;
+        }
+
+        if (ta) ta.value = '';
+        setTimeout(() => {
+          alert(`✅ Catálogo atualizado com sucesso!\n\n${data.added} produtos foram integrados na vitrine.\nHotwav e Seminovos foram bloqueados automaticamente.`);
+          closeDailyPricesModal();
+        }, 1200);
+      } catch (err) {
+        console.error('Erro ao enviar preços:', err);
+        if (feedback) {
+          feedback.style.background = 'rgba(255, 69, 58, 0.15)';
+          feedback.style.border = '1px solid rgba(255, 69, 58, 0.4)';
+          feedback.style.color = '#ff453a';
+          feedback.textContent = `❌ Erro: ${err.message}`;
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>Processar e Atualizar</span>';
+        }
+      }
+    }
   </script>
 </body>
 </html>
