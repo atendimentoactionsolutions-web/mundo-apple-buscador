@@ -73,7 +73,8 @@ function isAppleNovo(p) {
   if (ANDROID_CATEGORIES.has(cat)) return false;
   if (
     name.includes('samsung') || name.includes('xiaomi') || name.includes('redmi') ||
-    name.includes('poco') || name.includes('motorola') || name.includes('realme') || name.includes('infinix')
+    name.includes('poco') || name.includes('motorola') || name.includes('realme') || name.includes('infinix') ||
+    name.includes('hotwav') || desc.includes('hotwav')
   ) {
     return false;
   }

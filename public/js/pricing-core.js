@@ -211,6 +211,9 @@
     const cat = (p.category || '').toUpperCase().trim();
     const name = (p.name || '').toUpperCase();
     const desc = (p.description || '').toUpperCase();
+    if (name.includes('HOTWAV') || desc.includes('HOTWAV') || cat === 'HOTWAV' || cat === 'ANDROID') {
+      return true;
+    }
     const isSemi = p.isSeminovo === true || p.condition === 'SEMINOVO' || cat === 'SEMI' ||
                    name.includes('SEMI NOVO') || name.includes('SEMI-NOVO') || name.includes('SEMINOVO') ||
                    name.includes('USADO') || name.includes('VITRINE') || desc.includes('SEMI');
