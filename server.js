@@ -1605,6 +1605,76 @@ app.post('/api/admin/push-catalog', asyncHandler(async (req, res) => {
   res.json({ success: true, count: productsMap.size, date: latestDate, audit: auditReport });
 }));
 
+// Endpoint do Painel Admin para Importar / Adicionar Preços do Dia diretamente
+app.post('/api/admin/daily-prices', requireAdminApi, asyncHandler(async (req, res) => {
+  const { rawText, date, mode = 'replace', dollarRate: newDollar, dollarVariation: newVar } = req.body || {};
+  if (!rawText || typeof rawText !== 'string' || !rawText.trim()) {
+    return res.status(400).json({ error: 'Nenhum texto de produtos fornecido.' });
+  }
+
+  const targetDate = date || `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+
+  // 1. Processar texto e filtrar Hotwav / Seminovos
+  const importResult = processDailyPricesText(rawText, { dateStr: targetDate });
+  if (!importResult.success || importResult.products.length === 0) {
+    return res.status(400).json({
+      error: 'Nenhum produto válido encontrado para importação.',
+      stats: importResult.stats
+    });
+  }
+
+  // 2. Passar pelo Sanitizer / Guardião de Integridade
+  const { cleanProducts, auditReport } = sanitizeCatalog(importResult.products, { todayDateStr: targetDate });
+
+  if (cleanProducts.length === 0) {
+    return res.status(400).json({
+      error: 'Todos os produtos foram filtrados pelo sistema anti-erros.',
+      stats: importResult.stats,
+      audit: auditReport
+    });
+  }
+
+  if (mode === 'append') {
+    cleanProducts.forEach(p => {
+      productsMap.set(String(p.id), p);
+    });
+  } else {
+    productsMap.clear();
+    cleanProducts.forEach(p => {
+      productsMap.set(String(p.id), p);
+    });
+  }
+
+  latestDate = targetDate;
+  if (newDollar) dollarRate = newDollar;
+  if (newVar !== undefined) dollarVariation = newVar;
+
+  invalidateProductsCache();
+  scheduleCatalogSnapshot();
+
+  const auditPath = path.join(__dirname, 'data', 'audit_latest.json');
+  try {
+    fs.writeFileSync(auditPath, JSON.stringify(auditReport, null, 2), 'utf8');
+  } catch (e) {}
+
+  broadcastCatalogReloaded({
+    total: productsMap.size,
+    latestDate,
+    dollarRate,
+    dollarVariation
+  });
+
+  console.log(`[Admin Daily Prices] ✅ ${cleanProducts.length} produtos adicionados com sucesso pelo painel admin. Total no catálogo: ${productsMap.size}`);
+  res.json({
+    success: true,
+    totalCatalog: productsMap.size,
+    added: cleanProducts.length,
+    date: latestDate,
+    stats: importResult.stats,
+    audit: auditReport
+  });
+}));
+
 // Endpoint de Saúde e Diagnóstico da Auditoria Anti-Erros
 app.get(['/api/health', '/api/v1/health', '/api/audit'], asyncHandler(async (req, res) => {
   const auditPath = path.join(__dirname, 'data', 'audit_latest.json');
