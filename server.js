@@ -1383,7 +1383,7 @@ app.post('/api/admin/card-rates', asyncHandler(async (req, res) => {
 // =========================================================================
 // BLINDAGEM DE SEGURANÇA E DADOS (ANTI-INSPEÇÃO PARA VISITANTES)
 // =========================================================================
-const SERVER_DFU_ACTIVE = true;
+const SERVER_DFU_ACTIVE = false;
 const SERVER_DFU_IPHONE_VALUE = 100;
 const SERVER_DFU_MAC_VALUE = 200;
 const SERVER_DFU_WATCH_VALUE = 100;
