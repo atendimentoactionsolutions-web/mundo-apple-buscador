@@ -22,6 +22,7 @@ test('catalog sanitizer strictly filters ativados, android, cpo, and seminovos',
   const dirtyItems = [
     { id: '1', name: 'IPHONE 17 PRO MAX', category: 'IPH', price: 6920, storage: '256GB', color: 'BLUE', priceDate: '07-11' },
     { id: '2', name: 'SAMSUNG S24 ULTRA', category: 'SAMSUNG', price: 5000, storage: '256GB' }, // Android
+    { id: '2b', name: 'HOTWAV A17 PRO MAX', category: 'HOTWAV', price: 650, storage: '128/4' }, // Hotwav Android
     { id: '3', name: 'IPHONE 16 PRO ATIVADO', category: 'IPH', price: 4000, storage: '128GB' }, // Ativado
     { id: '4', name: 'IPHONE 15 CPO', category: 'IPH', price: 3500, storage: '128GB' }, // CPO
     { id: '5', name: 'IPHONE 14 PRO AS IS', category: 'IPH', price: 3000, storage: '128GB' }, // AS IS
@@ -38,7 +39,7 @@ test('catalog sanitizer strictly filters ativados, android, cpo, and seminovos',
   assert.equal(cleanProducts[0].name, 'IPHONE 17 PRO MAX');
   assert.equal(cleanProducts[0].price, 6920);
 
-  assert.equal(auditReport.anomalies.androidBlocked, 1);
+  assert.equal(auditReport.anomalies.androidBlocked, 2);
   assert.equal(auditReport.anomalies.ativadoBlocked, 1);
   assert.equal(auditReport.anomalies.cpoBlocked, 1);
   assert.equal(auditReport.anomalies.asIsBlocked, 1);
