@@ -1304,6 +1304,57 @@
     </div>
   </div>
 
+  <!-- Modal Adicionar Preço do Dia -->
+  <div class="modal-overlay" id="modalDailyPrices" role="dialog" aria-modal="true" style="display: none; align-items: center; justify-content: center; z-index: 99999;">
+    <div class="modal-content" style="max-width: 680px; width: 92%; padding: 26px; border-radius: 18px; background: var(--bg-card, #1c1c1e); border: 1px solid rgba(0, 113, 227, 0.4); box-shadow: 0 24px 48px rgba(0,0,0,0.8);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(0, 113, 227, 0.15); display: flex; align-items: center; justify-content: center; color: #2997ff;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          </div>
+          <div>
+            <h3 style="font-size: 1.25rem; font-weight: 800; color: #fff; margin: 0;">Adicionar Preços do Dia</h3>
+            <span style="font-size: 0.82rem; color: #888;">Cole a lista com os custos dos fornecedores para atualizar a vitrine</span>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeDailyPricesModal()" style="background: none; border: none; color: #888; font-size: 1.4rem; cursor: pointer;">✕</button>
+      </div>
+
+      <div style="display: flex; gap: 14px; margin-bottom: 14px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 160px;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #aaa; margin-bottom: 6px;">Data do Catálogo (DD-MM):</label>
+          <input type="text" id="dailyPricesDate" style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #fff; font-size: 0.9rem;" placeholder="Ex: 11-11">
+        </div>
+        <div style="flex: 1.5; min-width: 220px;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #aaa; margin-bottom: 6px;">Modo de Atualização:</label>
+          <select id="dailyPricesMode" style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: #2c2c2e; color: #fff; font-size: 0.9rem;">
+            <option value="replace">Substituir catálogo do dia (Recomendado)</option>
+            <option value="append">Acrescentar / Mesclar aos produtos existentes</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label style="font-size: 0.8rem; font-weight: 600; color: #aaa;">Lista de Produtos (Linhas de Fornecedores):</label>
+          <button type="button" onclick="clearDailyPricesInput()" style="background: none; border: none; color: #ff453a; font-size: 0.78rem; cursor: pointer;">Limpar texto</button>
+        </div>
+        <textarea id="dailyPricesRawText" rows="10" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff; font-family: monospace; font-size: 0.85rem; line-height: 1.45; resize: vertical;" placeholder="Cole aqui a lista de produtos. Exemplo:&#10;APPLE TV 4K • 128GB • Sem cor • Custo R$ 1.499,00&#10;IPHONE 16 PRO MAX • 256GB • BLACK • Custo R$ 6.100,00&#10;MACBOOK AIR M3 13&quot; • 256GB • SPACE GRAY • Custo R$ 6.500,00"></textarea>
+      </div>
+
+      <div id="dailyPricesFeedback" style="display: none; padding: 12px; border-radius: 10px; margin-bottom: 16px; font-size: 0.86rem; line-height: 1.5;"></div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 12px;">
+        <button type="button" onclick="closeDailyPricesModal()" style="padding: 10px 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #aaa; font-weight: 600; cursor: pointer;">Cancelar</button>
+        <button type="button" id="btnSubmitDailyPrices" onclick="submitDailyPrices()" style="padding: 10px 24px; border-radius: 10px; border: none; background: #0071e3; color: #fff; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+          <span>Processar e Atualizar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let currentUser = null;
 
