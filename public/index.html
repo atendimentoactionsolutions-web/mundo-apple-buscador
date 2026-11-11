@@ -700,62 +700,11 @@
     </div>
   </div>
 
-  <!-- Modal Auditoria e Guardião Anti-Erros -->
-  <div class="modal-overlay" id="auditHealthModal" role="dialog" aria-modal="true" style="display: none; align-items: center; justify-content: center; z-index: 99999;">
-    <div class="modal-content" style="max-width: 460px; width: 90%; padding: 24px; border-radius: 16px; background: var(--bg-card, #1c1c1e); border: 1px solid rgba(52, 199, 89, 0.4); box-shadow: 0 20px 40px rgba(0,0,0,0.7);">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(52, 199, 89, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">🛡️</div>
-          <div>
-            <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0;">Guardião Anti-Erros</h3>
-            <span style="font-size: 0.8rem; color: #34c759; font-weight: 600;">● Sistema 100% Auditado & Saudável</span>
-          </div>
-        </div>
-        <button class="modal-close" onclick="closeAuditHealthModal()" style="background: none; border: none; color: #888; font-size: 1.3rem; cursor: pointer;">✕</button>
-      </div>
-
-      <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; font-size: 0.82rem; line-height: 1.4; color: #bbb;">
-        Este módulo roda localmente de forma ininterrupta, garantindo que <strong>nenhum erro de preço, produto ativado ou oferta obsoleta</strong> entre no sistema.
-      </div>
-
-      <div id="auditHealthDetails" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.88rem;">
-        <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 8px;">
-          <span style="color: #999;">Status de Integridade:</span>
-          <span style="color: #34c759; font-weight: 700;">100% Íntegro</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 8px;">
-          <span style="color: #999;">Produtos Oficiais Apple:</span>
-          <span id="auditTotalProducts" style="color: #fff; font-weight: 600;">3.619</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 8px;">
-          <span style="color: #999;">Bloqueio de Ativados:</span>
-          <span style="color: #34c759; font-weight: 600;">0 vazamentos (Ativo)</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 8px;">
-          <span style="color: #999;">Bloqueio de Android/CPO:</span>
-          <span style="color: #34c759; font-weight: 600;">0 vazamentos (Ativo)</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 8px;">
-          <span style="color: #999;">Preços Zerados / Inválidos:</span>
-          <span style="color: #34c759; font-weight: 600;">0 detectados</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 8px;">
-          <span style="color: #999;">Auto-Cura em Tempo Real:</span>
-          <span style="color: #34c759; font-weight: 600;">Operacional</span>
-        </div>
-      </div>
-
-      <div style="margin-top: 18px; display: flex; justify-content: flex-end;">
-        <button onclick="closeAuditHealthModal()" style="padding: 9px 18px; border-radius: 8px; border: none; background: #0071e3; color: #fff; font-weight: 600; cursor: pointer;">Entendido</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="/js/pricing-core.js?v=3.0"></script>
+  <script src="/js/pricing-core.js?v=3.1"></script>
   <script src="/js/quote-core.js?v=1.0"></script>
   <script src="/js/jspdf.umd.min.js"></script>
   <script src="/js/jspdf.plugin.autotable.min.js"></script>
   <script src="/js/quotes-module.js?v=1.2"></script>
-  <script src="/js/app.js?v=87.0"></script>
+  <script src="/js/app.js?v=88.0"></script>
 </body>
 </html>
