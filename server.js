@@ -1684,7 +1684,7 @@ app.get(['/api/health', '/api/v1/health', '/api/audit'], asyncHandler(async (req
   }
 
   const total = productsMap.size;
-  const isHealthy = total > 500;
+  const isHealthy = total > 50 && (!audit || audit.passed !== false);
 
   res.json({
     status: isHealthy ? 'HEALTHY' : 'WARNING',
