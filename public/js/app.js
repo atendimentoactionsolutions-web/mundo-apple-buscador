@@ -5588,24 +5588,6 @@ window.shareClientCatalogLink = async function() {
   }
 };
 
-window.openAuditHealthModal = function() {
-  const modal = document.getElementById('auditHealthModal');
-  if (!modal) return;
-  modal.style.display = 'flex';
-  fetch('/api/health')
-    .then(r => r.json())
-    .then(data => {
-      const el = document.getElementById('auditTotalProducts');
-      if (el && data.totalProducts) el.textContent = data.totalProducts.toLocaleString('pt-BR');
-    })
-    .catch(() => {});
-};
-
-window.closeAuditHealthModal = function() {
-  const modal = document.getElementById('auditHealthModal');
-  if (modal) modal.style.display = 'none';
-};
-
 initClientModeCheck();
 switchView('storefront');
 initializeApp();
