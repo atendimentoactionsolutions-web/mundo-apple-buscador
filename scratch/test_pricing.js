@@ -19,8 +19,8 @@ const testCases = [
 ];
 
 testCases.forEach(tc => {
-  const margin = PricingCore.getProductMargin(tc.cat, tc.name, margins);
-  const retail = PricingCore.calculateRetailPrice(tc.cost, tc.cat, tc.name, margins);
+  const margin = PricingCore.getProductMargin(tc.name, tc.cat, false, margins);
+  const retail = PricingCore.calculateRetailPrice(tc.cost, tc.cat, tc.name, false, margins);
   const dfuCost = PricingCore.applyDFU(tc.cost, tc.cat, tc.name);
   console.log(tc.name.padEnd(32), 'Custo: ' + String(tc.cost).padEnd(6), 'DFU+Custo: ' + String(dfuCost).padEnd(6), 'Margem: ' + String(margin).padEnd(6), 'Venda: ' + retail);
 });
