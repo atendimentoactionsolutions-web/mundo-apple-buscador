@@ -79,6 +79,8 @@ def parse_line_improved(line):
         cat = 'ANDROID'
     elif 'APPLE TV' in clean_n:
         cat = 'APPLE_TV'
+    elif any(k in clean_n for k in ['PENCIL', 'MAGIC KEYBOARD', 'MAGIC MOUSE', 'MAGIC TRACKPAD', 'SMART KEYBOARD', 'SMART FOLIO', 'FOLIO', 'AIRTAG']):
+        cat = 'ACSS'
     elif 'AIRPODS' in clean_n:
         cat = 'PODS'
     elif 'IPAD' in clean_n:
@@ -89,8 +91,6 @@ def parse_line_improved(line):
         cat = 'MCB'
     elif 'APPLE WATCH' in clean_n:
         cat = 'RLG'
-    elif any(k in clean_n for k in ['PENCIL', 'MAGIC KEYBOARD', 'MAGIC MOUSE', 'MAGIC TRACKPAD', 'SMART KEYBOARD', 'SMART FOLIO', 'AIRTAG']):
-        cat = 'ACSS'
 
     # Condition detection
     condition = 'NOVO'
