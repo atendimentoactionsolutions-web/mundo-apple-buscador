@@ -12,7 +12,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
 
   const DFU_CONFIG = {
-    active: true, // DFU ATIVO (iPhones: +100, MacBooks: +200, Apple Watch: +100, iPads: +50)
+    active: false, // DFU Desativado / Removido da fórmula de venda (Preço = Custo + Margem)
     iphoneValue: 100,
     macValue: 200,
     watchValue: 100,
