@@ -441,6 +441,11 @@ async function main() {
   console.log(`======================================================\n`);
 
   async function scheduleNext() {
+    if (process.env.PAUSE_PXT_UPSTREAM === 'true') {
+      console.log('⏸️ [Modo Local] Sincronização upstream pausada no .env. Catálogo preservado localmente.');
+      setTimeout(scheduleNext, 60 * 60 * 1000);
+      return;
+    }
     const next = getNextScheduledTime(new Date(), false);
     const targetStr = next.targetDate.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
