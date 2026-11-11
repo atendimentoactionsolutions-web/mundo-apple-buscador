@@ -1381,6 +1381,8 @@
         if (currentUser.role === 'admin') {
           if (roleTag) roleTag.textContent = 'PAINEL DO ADMINISTRADOR';
           if (adminOnlySection) adminOnlySection.style.display = 'block';
+          const btnHeader = document.getElementById('btnHeaderDailyPrices');
+          if (btnHeader) btnHeader.style.display = 'inline-flex';
           fetchLojistas();
         } else {
           // Lojista comum: Oculta painel de usuários/mensalidades e foca em suas margens
