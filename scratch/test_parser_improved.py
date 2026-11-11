@@ -113,12 +113,11 @@ def parse_line_improved(line):
     region = '(CHIP VIRTUAL) 🇺🇸' if cat == 'IPH' else None
 
     # Normalize color & storage strings
-    if color in ['SEM COR', 'SEM-COR', 'SEMCOR']:
-        clean_color = 'Sem cor'
-    else:
-        clean_color = color.title()
+    clean_color = color.upper()
+    if clean_color in ['SEM COR', 'SEM-COR', 'SEMCOR', 'SEM COR']:
+        clean_color = 'SEM COR'
 
-    clean_storage = storage or 'Padrão'
+    clean_storage = storage or 'PADRÃO'
     if ram:
         clean_storage = f"{clean_storage} / {ram} RAM"
 
