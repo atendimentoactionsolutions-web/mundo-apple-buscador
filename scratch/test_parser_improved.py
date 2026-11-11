@@ -163,10 +163,27 @@ lines = [l.strip() for l in text.splitlines() if l.strip() and not l.startswith(
 items = [parse_line_improved(l) for l in lines]
 items = [i for i in items if i]
 
-print(f'Total parsed items: {len(items)}')
+apple_novos = [i for i in items if i['condition'] == 'NOVO' and i['category'] != 'ANDROID']
+cpo_items = [i for i in items if i['condition'] == 'CPO']
+ativados_items = [i for i in items if i['condition'] == 'ATIVADO']
+android_items = [i for i in items if i['category'] == 'ANDROID']
 
-# Print examples across categories
-for idx in [0, 1, 20, 24, 25, 40, 50, 70, 150, 250, 350, 420]:
-    if idx < len(items):
-        it = items[idx]
-        print(f"[{it['category']}] {it['name']} | Armazenamento: {it['storage']} | Cor: {it['color']} | Condição: {it['condition']} | Custo: R$ {it['price']}")
+print(f'Total parsed items: {len(items)}')
+print(f'Apple Novos: {len(apple_novos)}')
+print(f'Apple CPO: {len(cpo_items)}')
+print(f'Apple Ativados: {len(ativados_items)}')
+print(f'Hotwav Android: {len(android_items)}')
+
+with open('data/novos_apple_importados.json', 'w', encoding='utf-8') as f:
+    json.dump(apple_novos, f, indent=2, ensure_ascii=False)
+
+with open('data/cpo_importados.json', 'w', encoding='utf-8') as f:
+    json.dump(cpo_items, f, indent=2, ensure_ascii=False)
+
+with open('data/ativados_importados.json', 'w', encoding='utf-8') as f:
+    json.dump(ativados_items, f, indent=2, ensure_ascii=False)
+
+with open('data/android_hotwav_importados.json', 'w', encoding='utf-8') as f:
+    json.dump(android_items, f, indent=2, ensure_ascii=False)
+
+print('Updated separated JSON files in data/')
