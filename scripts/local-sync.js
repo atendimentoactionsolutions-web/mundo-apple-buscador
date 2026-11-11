@@ -124,6 +124,10 @@ function processAppleProduct(p) {
 }
 
 async function performSync() {
+  if (process.env.PAUSE_PXT_UPSTREAM === 'true') {
+    console.log('[PXT] ⏸️ Sincronização upstream pausada no .env (PAUSE_PXT_UPSTREAM=true). Operando com catálogo local.');
+    return { count: 0, paused: true };
+  }
   const startTime = Date.now();
   const nowStr = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
   console.log(`\n======================================================`);
