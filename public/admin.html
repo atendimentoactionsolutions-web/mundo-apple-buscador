@@ -752,9 +752,18 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
       padding: 12px 16px;
       background: var(--bg-subtle);
       border-bottom: 1px solid var(--border-color);
+    }
+
+    .split-pane-header-title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
     }
 
     .split-pane-header strong {
@@ -763,9 +772,86 @@
     }
 
     .split-pane-header span {
-      font-size: 0.76rem;
+      font-size: 0.74rem;
       font-weight: 700;
       color: var(--text-secondary);
+    }
+
+    .split-pane-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .split-mini-btn {
+      padding: 6px 10px;
+      border-radius: 7px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 0.74rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+
+    .split-mini-btn:hover {
+      border-color: #0071e3;
+      color: #0071e3;
+    }
+
+    .split-mini-btn.whatsapp {
+      border-color: rgba(16, 185, 129, 0.35);
+      background: rgba(16, 185, 129, 0.1);
+      color: #059669;
+    }
+
+    .split-mini-btn.whatsapp:hover {
+      background: rgba(16, 185, 129, 0.2);
+      color: #047857;
+    }
+
+    .split-export-trigger {
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      background: rgba(16, 185, 129, 0.12);
+      color: #059669;
+      font-size: 0.82rem;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .split-export-trigger:hover {
+      background: rgba(16, 185, 129, 0.2);
+    }
+
+    .export-mode-pills {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .export-mode-btn {
+      padding: 9px 10px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border-color);
+      background: var(--bg-subtle);
+      color: var(--text-secondary);
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .export-mode-btn.active {
+      border-color: var(--accent-green);
+      background: rgba(16, 185, 129, 0.14);
+      color: var(--accent-green);
     }
 
     .split-pane.cost-pane .split-pane-header {
@@ -945,10 +1031,13 @@
           <div class="search-input-wrap" style="max-width: 460px;">
             <input type="text" id="splitCatalogSearch" placeholder="Buscar modelo, capacidade ou cor nas duas listas..." oninput="renderSplitCatalog()">
           </div>
-          <div class="split-mode-pills" role="group" aria-label="Modo de visualização">
-            <button type="button" class="split-mode-pill active" id="btnModeSplit" onclick="setSplitViewMode('split')">Lado a lado</button>
-            <button type="button" class="split-mode-pill" id="btnModeCost" onclick="setSplitViewMode('cost')">Só Custo</button>
-            <button type="button" class="split-mode-pill" id="btnModeReal" onclick="setSplitViewMode('real')">Só Real</button>
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div class="split-mode-pills" role="group" aria-label="Modo de visualização">
+              <button type="button" class="split-mode-pill active" id="btnModeSplit" onclick="setSplitViewMode('split')">Lado a lado</button>
+              <button type="button" class="split-mode-pill" id="btnModeCost" onclick="setSplitViewMode('cost')">Só Custo</button>
+              <button type="button" class="split-mode-pill" id="btnModeReal" onclick="setSplitViewMode('real')">Só Real</button>
+            </div>
+            <button type="button" class="split-export-trigger" id="btnSplitExportFiltered" onclick="openAdminExportModal({ fromSplitFilters: true })">Exportar Filtro</button>
           </div>
         </div>
 
@@ -968,8 +1057,14 @@
         <div class="split-panes-grid mode-split" id="splitCatalogGrid">
           <section class="split-pane cost-pane" id="splitCostPane" aria-label="Lista Preço de Custo">
             <div class="split-pane-header">
-              <strong>Preço de Custo</strong>
-              <span id="splitCostPaneMeta">Lista importada</span>
+              <div class="split-pane-header-title">
+                <strong>Preço de Custo</strong>
+                <span id="splitCostPaneMeta">Lista importada</span>
+              </div>
+              <div class="split-pane-actions">
+                <button type="button" class="split-mini-btn whatsapp" id="btnExportCostWhatsApp" onclick="exportSplitPaneWhatsApp('cost', this)" title="Copiar Preço de Custo filtrado para WhatsApp">WhatsApp</button>
+                <button type="button" class="split-mini-btn" id="btnExportCostCsv" onclick="exportSplitPaneCsv('cost')" title="Baixar Preço de Custo filtrado em CSV">CSV</button>
+              </div>
             </div>
             <div class="split-pane-scroll" id="splitCostScroll">
               <div class="empty-state">Carregando lista de custos...</div>
@@ -977,8 +1072,14 @@
           </section>
           <section class="split-pane real-pane" id="splitRealPane" aria-label="Lista Preço Real">
             <div class="split-pane-header">
-              <strong>Preço Real</strong>
-              <span id="splitRealPaneMeta">Valor com margem</span>
+              <div class="split-pane-header-title">
+                <strong>Preço Real</strong>
+                <span id="splitRealPaneMeta">Valor com margem</span>
+              </div>
+              <div class="split-pane-actions">
+                <button type="button" class="split-mini-btn whatsapp" id="btnExportRealWhatsApp" onclick="exportSplitPaneWhatsApp('real', this)" title="Copiar Preço Real filtrado para WhatsApp">WhatsApp</button>
+                <button type="button" class="split-mini-btn" id="btnExportRealCsv" onclick="exportSplitPaneCsv('real')" title="Baixar Preço Real filtrado em CSV">CSV</button>
+              </div>
             </div>
             <div class="split-pane-scroll" id="splitRealScroll">
               <div class="empty-state">Carregando lista com margem...</div>
@@ -1181,7 +1282,7 @@
   </div>
 
   <div class="modal-overlay" id="adminExportModal">
-    <div class="modal-box" style="max-width: 580px;">
+    <div class="modal-box" style="max-width: 620px;">
       <div class="modal-header">
         <div>
           <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800;">Exportar Catálogo</h3>
@@ -1189,20 +1290,35 @@
         </div>
         <button type="button" class="modal-close-btn" onclick="closeAdminExportModal()">✕</button>
       </div>
+
+      <label class="modal-form-label" style="margin-bottom: 6px; display: block;">Tabela de Valores:</label>
+      <div class="export-mode-pills" id="exportPriceModePills">
+        <button type="button" class="export-mode-btn active" data-export-mode="cost" onclick="selectExportPriceMode('cost', this)">Preço de Custo</button>
+        <button type="button" class="export-mode-btn" data-export-mode="real" onclick="selectExportPriceMode('real', this)">Preço Real</button>
+        <button type="button" class="export-mode-btn" data-export-mode="both" onclick="selectExportPriceMode('both', this)">Custo + Real</button>
+      </div>
+
+      <div class="modal-form-group" style="margin-bottom: 12px;">
+        <input type="text" id="adminExportSearchInput" class="modal-input" placeholder="Filtrar modelo, capacidade ou cor (opcional)..." oninput="updateAdminExportSummary()">
+      </div>
+
       <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;" id="exportCategoryFilterPills">
-        <button type="button" class="period-btn active" onclick="selectExportCategory('ALL', this)">Todos</button>
-        <button type="button" class="period-btn" onclick="selectExportCategory('IPH', this)">iPhone</button>
-        <button type="button" class="period-btn" onclick="selectExportCategory('MCB', this)">Mac</button>
-        <button type="button" class="period-btn" onclick="selectExportCategory('IPAD', this)">iPad</button>
-        <button type="button" class="period-btn" onclick="selectExportCategory('RLG', this)">Watch</button>
-        <button type="button" class="period-btn" onclick="selectExportCategory('PODS', this)">AirPods</button>
-        <button type="button" class="period-btn" onclick="selectExportCategory('ACSS', this)">Acessórios</button>
+        <button type="button" class="period-btn active" data-export-cat="ALL" onclick="selectExportCategory('ALL', this)">Todos</button>
+        <button type="button" class="period-btn" data-export-cat="IPH" onclick="selectExportCategory('IPH', this)">iPhone</button>
+        <button type="button" class="period-btn" data-export-cat="IPH_CPO" onclick="selectExportCategory('IPH_CPO', this)">iPhone CPO</button>
+        <button type="button" class="period-btn" data-export-cat="MCB" onclick="selectExportCategory('MCB', this)">Mac</button>
+        <button type="button" class="period-btn" data-export-cat="MCB_CPO" onclick="selectExportCategory('MCB_CPO', this)">Mac CPO</button>
+        <button type="button" class="period-btn" data-export-cat="IPAD" onclick="selectExportCategory('IPAD', this)">iPad</button>
+        <button type="button" class="period-btn" data-export-cat="IPAD_CPO" onclick="selectExportCategory('IPAD_CPO', this)">iPad CPO</button>
+        <button type="button" class="period-btn" data-export-cat="RLG" onclick="selectExportCategory('RLG', this)">Watch</button>
+        <button type="button" class="period-btn" data-export-cat="PODS" onclick="selectExportCategory('PODS', this)">AirPods</button>
+        <button type="button" class="period-btn" data-export-cat="ACSS" onclick="selectExportCategory('ACSS', this)">Acessórios</button>
       </div>
       <p id="exportFilteredCount" style="font-size: 0.85rem; font-weight: 700; margin-bottom: 6px;"></p>
       <p id="exportPreviewDesc" style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 16px;"></p>
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <button type="button" class="btn-save" onclick="executeAdminWhatsAppExport(this)" style="flex: 1;"><span id="btnAdminCopyWhatsAppText">Copiar para WhatsApp</span></button>
-        <button type="button" class="btn-primary-blue" onclick="executeAdminCsvExport(this)" style="flex: 1; justify-content: center;"><span id="btnAdminDownloadCsvText">Baixar CSV / Excel</span></button>
+        <button type="button" class="btn-save" id="btnAdminCopyWhatsApp" onclick="executeAdminWhatsAppExport(this)" style="flex: 1;"><span id="btnAdminCopyWhatsAppText">Copiar para WhatsApp</span></button>
+        <button type="button" class="btn-primary-blue" id="btnAdminDownloadCsv" onclick="executeAdminCsvExport(this)" style="flex: 1; justify-content: center;"><span id="btnAdminDownloadCsvText">Baixar CSV / Excel</span></button>
       </div>
       <div class="modal-actions"><button type="button" class="btn-cancel" onclick="closeAdminExportModal()">Fechar</button></div>
     </div>
@@ -1276,6 +1392,7 @@
     };
     let adminProductsCache = [];
     let adminExportActiveCategory = 'ALL';
+    let adminExportPriceMode = 'cost';
     let adminExportDate = '';
     let splitRawProducts = [];
     let splitCostById = new Map();
@@ -1627,16 +1744,20 @@
       return false;
     }
 
-    function getSortedFilteredSplitRows() {
+    function getSortedFilteredSplitRows(categoryOverride, searchOverride) {
       const pc = window.PricingCore;
       if (pc && typeof pc.setDfuActive === 'function') pc.setDfuActive(true);
-      const query = (document.getElementById('splitCatalogSearch')?.value || '').trim().toUpperCase();
+      const activeCat = categoryOverride !== undefined ? categoryOverride : splitCategory;
+      const rawQuery = searchOverride !== undefined
+        ? searchOverride
+        : (document.getElementById('splitCatalogSearch')?.value || '');
+      const query = String(rawQuery || '').trim().toUpperCase();
       const tokens = query ? query.split(/\s+/).filter(Boolean) : [];
 
       const rows = splitRawProducts
         .filter(p => {
           if (!p || !(Number(p.price) > 0)) return false;
-          if (!matchesSplitCategory(p, splitCategory)) return false;
+          if (!matchesSplitCategory(p, activeCat)) return false;
           if (!tokens.length) return true;
           const haystack = `${p.name || ''} ${p.storage || ''} ${p.color || ''} ${p.category || ''} ${p.condition || ''}`.toUpperCase();
           return tokens.every(tok => haystack.includes(tok));
@@ -1763,6 +1884,8 @@
         const latestDate = rawJson.latestDate || '';
 
         splitRawProducts = rawList.filter(p => p && Number(p.price) > 0 && (!pc || !pc.isDisallowedProduct(p)));
+        adminProductsCache = splitRawProducts;
+        adminExportDate = latestDate || adminExportDate || '';
         splitCostById = new Map();
         if (costResp && costResp.ok) {
           const costJson = await costResp.json();
@@ -1870,14 +1993,171 @@
       updateAdminThemeUI(isLight);
     }
 
-    async function openAdminExportModal() {
-      document.getElementById('adminExportModal').classList.add('open');
-      const resp = await fetch('/api/cost-products');
-      const data = await resp.json();
-      if (data && data.success && Array.isArray(data.data)) {
-        adminProductsCache = data.data;
-        adminExportDate = data.latestDate || '';
+    const EXPORT_MODE_CONFIG = {
+      cost: {
+        label: 'Preço de Custo',
+        waTitle: dateStr => `🍏 *TABELA PREÇO DE CUSTO (${dateStr || 'ATUAL'})*\n`,
+        csvHeaders: ['Produto', 'Categoria', 'Condição', 'Capacidade', 'Cor', 'Preço de Custo (R$)', 'Data'],
+        filePrefix: 'Preco_de_Custo'
+      },
+      real: {
+        label: 'Preço Real',
+        waTitle: dateStr => `🍏 *TABELA PREÇO REAL (${dateStr || 'ATUAL'})*\n`,
+        csvHeaders: ['Produto', 'Categoria', 'Condição', 'Capacidade', 'Cor', 'Preço Real (R$)', 'Margem (R$)', 'Data'],
+        filePrefix: 'Preco_Real'
+      },
+      both: {
+        label: 'Comparativo Custo + Real',
+        waTitle: dateStr => `🍏 *COMPARATIVO CUSTO x REAL (${dateStr || 'ATUAL'})*\n`,
+        csvHeaders: ['Produto', 'Categoria', 'Condição', 'Capacidade', 'Cor', 'Preço de Custo (R$)', 'Margem (R$)', 'Preço Real (R$)', 'Data'],
+        filePrefix: 'Comparativo_Custo_Real'
       }
+    };
+
+    function getExportModeConfig(mode) {
+      return EXPORT_MODE_CONFIG[mode] || EXPORT_MODE_CONFIG.cost;
+    }
+
+    function buildWhatsAppExportText(rows, mode, dateStr) {
+      const cfg = getExportModeConfig(mode);
+      const groups = new Map();
+      rows.forEach(r => {
+        const key = (r.product.name || '').trim().toUpperCase();
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(r);
+      });
+      const blocks = [cfg.waTitle(dateStr)];
+      groups.forEach((items, title) => {
+        items.sort((a, b) => (mode === 'real' ? a.realPrice - b.realPrice : a.costPrice - b.costPrice));
+        const lines = [`📱 *${title}*`];
+        items.forEach(r => {
+          const p = r.product;
+          const spec = [p.storage, p.color].filter(Boolean).join(' - ') || 'Padrão';
+          if (mode === 'real') {
+            lines.push(`• ${spec}: ${formatBrl(r.realPrice)}`);
+          } else if (mode === 'both') {
+            lines.push(`• ${spec}: Custo ${formatBrl(r.costPrice)} | Real ${formatBrl(r.realPrice)}`);
+          } else {
+            lines.push(`• ${spec}: ${formatBrl(r.costPrice)}`);
+          }
+        });
+        blocks.push(lines.join('\n'));
+      });
+      return blocks.join('\n\n');
+    }
+
+    function buildCsvExportData(rows, mode, dateStr) {
+      const cfg = getExportModeConfig(mode);
+      const esc = s => `"${String(s ?? '').replace(/"/g, '""')}"`;
+      const money = v => esc((Number(v) || 0).toFixed(2).replace('.', ','));
+      const csvRows = rows.map(r => {
+        const p = r.product;
+        const base = [
+          esc(p.name),
+          esc(p.category),
+          esc(p.condition || (r.isCpo ? 'CPO' : 'NOVO')),
+          esc(p.storage),
+          esc(p.color)
+        ];
+        if (mode === 'real') {
+          base.push(money(r.realPrice), money(r.appliedMargin));
+        } else if (mode === 'both') {
+          base.push(money(r.costPrice), money(r.appliedMargin), money(r.realPrice));
+        } else {
+          base.push(money(r.costPrice));
+        }
+        base.push(esc(dateStr || ''));
+        return base.join(';');
+      });
+      const safeDate = String(dateStr || 'atual').replace(/[^0-9A-Za-z_-]/g, '-');
+      return {
+        csv: '\uFEFF' + [cfg.csvHeaders.join(';'), ...csvRows].join('\n'),
+        filename: `${cfg.filePrefix}_${safeDate}.csv`
+      };
+    }
+
+    async function copyExportTextWithFeedback(text, targetEl, defaultLabel) {
+      let copied = false;
+      try {
+        if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          await navigator.clipboard.writeText(text);
+          copied = true;
+        }
+      } catch (e) {}
+      if (!copied && typeof document !== 'undefined' && typeof document.createElement === 'function') {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select?.();
+          copied = Boolean(document.execCommand && document.execCommand('copy'));
+          document.body.removeChild(ta);
+        } catch (e) {}
+      }
+      if (targetEl) {
+        targetEl.textContent = copied ? '✓ Copiado!' : 'Erro ao copiar';
+        if (typeof setTimeout === 'function') {
+          setTimeout(() => { targetEl.textContent = defaultLabel; }, 2000);
+        }
+      }
+      return copied;
+    }
+
+    function triggerCsvDownload(csv, filename) {
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    async function exportSplitPaneWhatsApp(mode, btn) {
+      if (!splitRawProducts.length) await loadSplitCatalog();
+      const rows = getSortedFilteredSplitRows();
+      if (!rows.length) return alert('Nenhum produto encontrado para exportar neste filtro.');
+      const text = buildWhatsAppExportText(rows, mode, adminExportDate);
+      await copyExportTextWithFeedback(text, btn, 'WhatsApp');
+      return text;
+    }
+
+    async function exportSplitPaneCsv(mode) {
+      if (!splitRawProducts.length) await loadSplitCatalog();
+      const rows = getSortedFilteredSplitRows();
+      if (!rows.length) return alert('Nenhum produto encontrado para exportar neste filtro.');
+      const { csv, filename } = buildCsvExportData(rows, mode, adminExportDate);
+      triggerCsvDownload(csv, filename);
+      return { csv, filename };
+    }
+
+    function syncExportModalFilterPills() {
+      document.querySelectorAll('#exportPriceModePills .export-mode-btn').forEach(el => {
+        el.classList.toggle('active', el.dataset?.exportMode === adminExportPriceMode);
+      });
+      document.querySelectorAll('#exportCategoryFilterPills .period-btn').forEach(el => {
+        el.classList.toggle('active', el.dataset?.exportCat === adminExportActiveCategory);
+      });
+    }
+
+    async function openAdminExportModal(opts = {}) {
+      document.getElementById('adminExportModal').classList.add('open');
+      if (!splitRawProducts.length) {
+        await loadSplitCatalog();
+      }
+      const searchInput = document.getElementById('adminExportSearchInput');
+      if (opts && opts.fromSplitFilters) {
+        adminExportActiveCategory = splitCategory || 'ALL';
+        adminExportPriceMode = (splitViewMode === 'cost' || splitViewMode === 'real') ? splitViewMode : 'both';
+        if (searchInput) searchInput.value = document.getElementById('splitCatalogSearch')?.value || '';
+      } else {
+        if (!EXPORT_MODE_CONFIG[adminExportPriceMode]) adminExportPriceMode = 'cost';
+      }
+      syncExportModalFilterPills();
       updateAdminExportSummary();
     }
 
@@ -1885,75 +2165,51 @@
       document.getElementById('adminExportModal').classList.remove('open');
     }
 
+    function selectExportPriceMode(mode, btn) {
+      adminExportPriceMode = EXPORT_MODE_CONFIG[mode] ? mode : 'cost';
+      document.querySelectorAll('#exportPriceModePills .export-mode-btn').forEach(p => p.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      updateAdminExportSummary();
+    }
+
     function selectExportCategory(cat, btn) {
-      adminExportActiveCategory = cat;
+      adminExportActiveCategory = cat || 'ALL';
       document.querySelectorAll('#exportCategoryFilterPills .period-btn').forEach(p => p.classList.remove('active'));
       if (btn) btn.classList.add('active');
       updateAdminExportSummary();
     }
 
-    function filterAdminExportProducts() {
-      return adminProductsCache.filter(p => {
-        if (!p || !p.price || p.price <= 0) return false;
-        if (adminExportActiveCategory === 'ALL') return true;
-        const cat = (p.category || '').toUpperCase();
-        const name = (p.name || '').toUpperCase();
-        if (adminExportActiveCategory === 'IPH') return cat === 'IPH' || name.includes('IPHONE');
-        if (adminExportActiveCategory === 'MCB') return cat === 'MCB' || cat === 'IMAC' || name.includes('MAC') || name.includes('IMAC');
-        if (adminExportActiveCategory === 'IPAD') return cat === 'IPAD' || name.includes('IPAD');
-        if (adminExportActiveCategory === 'RLG') return cat === 'RLG' || name.includes('WATCH');
-        if (adminExportActiveCategory === 'PODS') return cat === 'PODS' || name.includes('AIRPOD');
-        if (adminExportActiveCategory === 'ACSS') return cat === 'ACSS' || cat === 'APPLE_TV' || name.includes('PENCIL') || name.includes('KEYBOARD') || name.includes('AIRTAG') || name.includes('MOUSE');
-        return true;
-      });
+    function getAdminExportFilteredRows() {
+      const searchQuery = document.getElementById('adminExportSearchInput')?.value || '';
+      return getSortedFilteredSplitRows(adminExportActiveCategory, searchQuery);
     }
 
     function updateAdminExportSummary() {
-      const filtered = filterAdminExportProducts();
-      document.getElementById('exportProductsCountSubtitle').textContent = `Data: ${adminExportDate || 'Atual'} • ${adminProductsCache.length} itens`;
-      document.getElementById('exportFilteredCount').textContent = `${filtered.length} ofertas filtradas`;
-      document.getElementById('exportPreviewDesc').textContent = filtered.length ? 'Pronto para copiar ou baixar planilha CSV.' : 'Nenhum produto nesta categoria.';
+      const rows = getAdminExportFilteredRows();
+      const cfg = getExportModeConfig(adminExportPriceMode);
+      const subEl = document.getElementById('exportProductsCountSubtitle');
+      const countEl = document.getElementById('exportFilteredCount');
+      const descEl = document.getElementById('exportPreviewDesc');
+      if (subEl) subEl.textContent = `Data: ${adminExportDate || 'Atual'} • ${splitRawProducts.length} itens no catálogo`;
+      if (countEl) countEl.textContent = `${rows.length} ofertas filtradas (${cfg.label})`;
+      if (descEl) descEl.textContent = rows.length ? `Pronto para copiar ou baixar CSV de ${cfg.label}.` : 'Nenhum produto encontrado para este filtro.';
     }
 
     async function executeAdminWhatsAppExport(btn) {
-      const prods = filterAdminExportProducts();
-      if (!prods.length) return alert('Nenhum produto para exportar.');
-      const groups = new Map();
-      prods.forEach(p => {
-        const key = (p.name || '').trim().toUpperCase();
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key).push(p);
-      });
-      const blocks = [`🍏 *TABELA DE CUSTOS (${adminExportDate || 'ATUAL'})*\n`];
-      groups.forEach((items, title) => {
-        items.sort((a, b) => a.price - b.price);
-        const lines = [`📱 *${title}*`];
-        items.forEach(item => {
-          const spec = [item.storage, item.color].filter(Boolean).join(' - ') || 'Padrão';
-          lines.push(`• ${spec}: ${Number(item.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
-        });
-        blocks.push(lines.join('\n'));
-      });
-      await navigator.clipboard.writeText(blocks.join('\n\n'));
+      const rows = getAdminExportFilteredRows();
+      if (!rows.length) return alert('Nenhum produto para exportar.');
+      const text = buildWhatsAppExportText(rows, adminExportPriceMode, adminExportDate);
       const span = document.getElementById('btnAdminCopyWhatsAppText');
-      if (span) { span.textContent = '✓ Copiado!'; setTimeout(() => { span.textContent = 'Copiar para WhatsApp'; }, 2000); }
+      await copyExportTextWithFeedback(text, span || btn, 'Copiar para WhatsApp');
+      return text;
     }
 
     function executeAdminCsvExport() {
-      const prods = filterAdminExportProducts();
-      if (!prods.length) return alert('Nenhum produto para exportar.');
-      const esc = s => `"${String(s ?? '').replace(/"/g, '""')}"`;
-      const rows = prods.map(p => [esc(p.name), esc(p.category), esc(p.condition || 'NOVO'), esc(p.storage), esc(p.color), esc((Number(p.price) || 0).toFixed(2).replace('.', ',')), esc(adminExportDate)].join(';'));
-      const csv = '\uFEFF' + ['Produto;Categoria;Condição;Capacidade;Cor;Custo (R$);Data', ...rows].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Catalogo_${adminExportDate || 'atual'}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const rows = getAdminExportFilteredRows();
+      if (!rows.length) return alert('Nenhum produto para exportar.');
+      const { csv, filename } = buildCsvExportData(rows, adminExportPriceMode, adminExportDate);
+      triggerCsvDownload(csv, filename);
+      return { csv, filename };
     }
 
     function openDailyPricesModal() {

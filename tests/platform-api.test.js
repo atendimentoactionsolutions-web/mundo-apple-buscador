@@ -300,17 +300,26 @@ test('admin split catalog pane renders Preço de Custo and Preço Real side-by-s
     location: { href: '/admin.html' },
     localStorage: { getItem: () => 'light', setItem: () => {}, removeItem: () => {} }
   };
+  const copiedTexts = [];
+  const createdDownloads = [];
   const sandbox = {
     window: windowObj,
+    navigator: {
+      clipboard: { writeText: async text => { copiedTexts.push(text); } }
+    },
     document: {
       body: { classList: makeClassList(['light-theme']), appendChild: () => {}, removeChild: () => {} },
       getElementById: getEl,
       querySelectorAll: () => [],
       addEventListener: (ev, fn) => { if (ev === 'DOMContentLoaded') domLoadedHandler = fn; },
-      createElement: () => ({ click: () => {}, style: {} })
+      createElement: () => {
+        const anchor = { click: () => { createdDownloads.push({ filename: anchor.download, href: anchor.href }); }, style: {}, download: '', href: '' };
+        return anchor;
+      }
     },
     localStorage: windowObj.localStorage,
     requestAnimationFrame: fn => fn(),
+    setTimeout,
     alert: () => {},
     confirm: () => true,
     CSS: { escape: s => String(s) },
@@ -323,8 +332,11 @@ test('admin split catalog pane renders Preço de Custo and Preço Real side-by-s
         json: async () => hit.body
       };
     },
-    URL,
-    Blob,
+    URL: {
+      createObjectURL: blob => blob._text || '',
+      revokeObjectURL: () => {}
+    },
+    Blob: function(parts) { this._text = parts.join(''); },
     Map,
     Set,
     Array,
@@ -369,4 +381,40 @@ test('admin split catalog pane renders Preço de Custo and Preço Real side-by-s
   iphoneMarginInput.dispatchEvent('input');
   assert.match(getEl('splitCostScroll').innerHTML, /6\.100,00/);
   assert.match(getEl('splitRealScroll').innerHTML, /7\.050,00/);
+
+  await sandbox.exportSplitPaneWhatsApp('cost');
+  await sandbox.exportSplitPaneWhatsApp('real');
+  assert.equal(copiedTexts.length, 2);
+  assert.match(copiedTexts[0], /TABELA PREÇO DE CUSTO[\s\S]*IPHONE 17 PRO[\s\S]*6\.100,00/);
+  assert.match(copiedTexts[1], /TABELA PREÇO REAL[\s\S]*IPHONE 17 PRO[\s\S]*7\.050,00/);
+  assert.equal(/dfu/i.test(copiedTexts.join('\n')), false, 'Exported WhatsApp text must not mention DFU');
+
+  const expectedDate = routeMap.get('/api/products').body.latestDate || 'atual';
+  await sandbox.exportSplitPaneCsv('cost');
+  await sandbox.exportSplitPaneCsv('real');
+  assert.equal(createdDownloads.length, 2);
+  assert.equal(createdDownloads[0].filename, `Preco_de_Custo_${expectedDate}.csv`);
+  assert.match(createdDownloads[0].href, /Preço de Custo \(R\$\);Data\n"IPHONE 17 PRO".*6100,00/);
+  assert.equal(createdDownloads[1].filename, `Preco_Real_${expectedDate}.csv`);
+  assert.match(createdDownloads[1].href, /Preço Real \(R\$\);Margem \(R\$\);Data\n"IPHONE 17 PRO".*7050,00.*950,00/);
+
+  getEl('splitCatalogSearch').value = '17 PRO';
+  await sandbox.openAdminExportModal({ fromSplitFilters: true });
+  assert.equal(getEl('adminExportSearchInput').value, '17 PRO');
+  assert.match(getEl('exportFilteredCount').textContent, /1 ofertas filtradas \(Comparativo Custo \+ Real\)/);
+  const bothWa = await sandbox.executeAdminWhatsAppExport();
+  const bothCsv = sandbox.executeAdminCsvExport();
+  assert.match(bothWa, /COMPARATIVO CUSTO x REAL[\s\S]*Custo R\$\s*6\.100,00 \| Real R\$\s*7\.050,00/);
+  assert.equal(bothCsv.filename, `Comparativo_Custo_Real_${expectedDate}.csv`);
+  assert.match(bothCsv.csv, /6100,00";"950,00";"7050,00/);
+  assert.equal(/dfu/i.test(bothWa + bothCsv.csv), false, 'Comparative export must not mention DFU');
+
+  getEl('adminExportSearchInput').value = '';
+  sandbox.selectExportPriceMode('real');
+  sandbox.selectExportCategory('IPH_CPO');
+  assert.match(getEl('exportFilteredCount').textContent, /0 ofertas filtradas \(Preço Real\)/);
+  sandbox.selectExportCategory('IPH');
+  assert.match(getEl('exportFilteredCount').textContent, /1 ofertas filtradas \(Preço Real\)/);
+  const realModalWa = await sandbox.executeAdminWhatsAppExport();
+  assert.match(realModalWa, /TABELA PREÇO REAL[\s\S]*IPHONE 17 PRO[\s\S]*7\.050,00/);
 });
