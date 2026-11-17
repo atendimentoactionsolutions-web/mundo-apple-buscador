@@ -16,15 +16,7 @@
     "sheetDate": "11-11",
     "listTimestamp": "12:58:27",
     "sheetTimestamp": "12:58:27",
-    "supplier": {
-      "id": "fornecedor-oficial",
-      "name": "FORNECEDOR OFICIAL",
-      "whatsappNumber": "+55 11 98254-2277",
-      "address": "SHOPPING ORIENTAL",
-      "locationFilter": "SHOPPING ORIENTAL",
-      "priority": 0,
-      "isVerified": true
-    },
+    "supplier": null,
     "isSeminovo": false,
     "condition": "ATIVADO",
     "dispCount": 1
@@ -46,15 +38,7 @@
     "sheetDate": "11-11",
     "listTimestamp": "12:58:27",
     "sheetTimestamp": "12:58:27",
-    "supplier": {
-      "id": "fornecedor-oficial",
-      "name": "FORNECEDOR OFICIAL",
-      "whatsappNumber": "+55 11 98254-2277",
-      "address": "SHOPPING ORIENTAL",
-      "locationFilter": "SHOPPING ORIENTAL",
-      "priority": 0,
-      "isVerified": true
-    },
+    "supplier": null,
     "isSeminovo": false,
     "condition": "ATIVADO",
     "dispCount": 1
@@ -76,15 +60,7 @@
     "sheetDate": "11-11",
     "listTimestamp": "12:58:27",
     "sheetTimestamp": "12:58:27",
-    "supplier": {
-      "id": "fornecedor-oficial",
-      "name": "FORNECEDOR OFICIAL",
-      "whatsappNumber": "+55 11 98254-2277",
-      "address": "SHOPPING ORIENTAL",
-      "locationFilter": "SHOPPING ORIENTAL",
-      "priority": 0,
-      "isVerified": true
-    },
+    "supplier": null,
     "isSeminovo": false,
     "condition": "ATIVADO",
     "dispCount": 2
@@ -106,15 +82,7 @@
     "sheetDate": "11-11",
     "listTimestamp": "12:58:27",
     "sheetTimestamp": "12:58:27",
-    "supplier": {
-      "id": "fornecedor-oficial",
-      "name": "FORNECEDOR OFICIAL",
-      "whatsappNumber": "+55 11 98254-2277",
-      "address": "SHOPPING ORIENTAL",
-      "locationFilter": "SHOPPING ORIENTAL",
-      "priority": 0,
-      "isVerified": true
-    },
+    "supplier": null,
     "isSeminovo": false,
     "condition": "ATIVADO",
     "dispCount": 1
@@ -136,15 +104,7 @@
     "sheetDate": "11-11",
     "listTimestamp": "12:58:27",
     "sheetTimestamp": "12:58:27",
-    "supplier": {
-      "id": "fornecedor-oficial",
-      "name": "FORNECEDOR OFICIAL",
-      "whatsappNumber": "+55 11 98254-2277",
-      "address": "SHOPPING ORIENTAL",
-      "locationFilter": "SHOPPING ORIENTAL",
-      "priority": 0,
-      "isVerified": true
-    },
+    "supplier": null,
     "isSeminovo": false,
     "condition": "ATIVADO",
     "dispCount": 1
@@ -166,15 +126,7 @@
     "sheetDate": "11-11",
     "listTimestamp": "12:58:27",
     "sheetTimestamp": "12:58:27",
-    "supplier": {
-      "id": "fornecedor-oficial",
-      "name": "FORNECEDOR OFICIAL",
-      "whatsappNumber": "+55 11 98254-2277",
-      "address": "SHOPPING ORIENTAL",
-      "locationFilter": "SHOPPING ORIENTAL",
-      "priority": 0,
-      "isVerified": true
-    },
+    "supplier": null,
     "isSeminovo": false,
     "condition": "ATIVADO",
     "dispCount": 1

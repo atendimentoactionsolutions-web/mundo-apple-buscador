@@ -1,0 +1,53 @@
+/* O acesso aos custos permanece ao lado do indicador, inclusive no celular. */
+.catalog-app .price-page-access {
+  display: inline-flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.catalog-app .price-live-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.catalog-app .price-live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #10b981;
+}
+.catalog-app .price-cost-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 7px;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 7px;
+  color: var(--text-primary);
+  font-size: 10px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.catalog-app .price-cost-link:hover { background: var(--bg-secondary, #f1f5f9); }
+.catalog-app .price-cost-link:focus-visible { outline: 2px solid #0071e3; outline-offset: 2px; }
+
+/* Ações discretas em coluna: Ver em cima e Custo logo abaixo. */
+.catalog-app .mock-card-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.catalog-app .mock-card-actions .mock-card-ver-btn {
+  justify-content: center;
+  white-space: nowrap;
+}
+.catalog-app .mock-card-cost-btn { cursor: pointer; }
+.catalog-app .mock-card-cost-btn > span:first-child { font-size: 10px; }
+.catalog-app .mock-card-cost-btn:disabled { opacity: .6; cursor: wait; }

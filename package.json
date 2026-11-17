@@ -1,12 +1,12 @@
 {
   "name": "buscador-apple-pro",
   "version": "1.0.0",
-  "description": "Buscador PXT Exclusivo Apple Novos/Lacrados em Tempo Real",
+  "description": "Catálogo Apple com atualização manual de produtos e preços",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "test": "node --test tests/*.test.js",
-    "audit": "node scripts/daily-audit.js"
+    "import:catalog": "node scripts/import-catalog.js"
   },
   "overrides": {
     "qs": "^6.16.2"
@@ -15,7 +15,6 @@
     "axios": "^1.7.7",
     "cors": "^2.8.5",
     "express": "^4.21.1",
-    "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io": "^4.8.1"
   }
 }

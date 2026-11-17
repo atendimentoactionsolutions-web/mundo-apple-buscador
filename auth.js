@@ -44,23 +44,7 @@ function verifyPassword(password, storedHash) {
 
 // Lê usuários de data/users.json
 function getLocalUsers() {
-  try {
-    if (!fs.existsSync(LOCAL_DATA_DIR)) {
-      fs.mkdirSync(LOCAL_DATA_DIR, { recursive: true });
-    }
-    if (!fs.existsSync(LOCAL_USERS_FILE)) {
-      const defaultAdmin = [bootstrapAdmin()];
-      fs.writeFileSync(LOCAL_USERS_FILE, JSON.stringify(defaultAdmin, null, 2));
-      return defaultAdmin;
-    }
-    const raw = fs.readFileSync(LOCAL_USERS_FILE, 'utf-8');
-    const users = JSON.parse(raw);
-    if (!Array.isArray(users)) throw new Error('Formato inválido de users.json.');
-    return users;
-  } catch (err) {
-    console.error('[Auth] Erro ao ler users.json local:', err.message);
-    throw new Error('Não foi possível ler os usuários. Os dados existentes foram preservados.', { cause: err });
-  }
+  return []; // Contas e sessões desativadas permanentemente.
 }
 
 // Salva usuários em data/users.json
@@ -80,29 +64,8 @@ function saveLocalUsers(users) {
 
 // Inicializa a autenticação local e garante o admin padrão
 async function initAuth() {
-  console.log('[Auth] Inicializando autenticação local (data/users.json)...');
-  const users = getLocalUsers();
-  const admin = users.find(u => u.username === 'admin');
-  if (!admin) {
-    console.log('[Auth] Criando usuário admin padrão local...');
-    users.unshift(bootstrapAdmin());
-    saveLocalUsers(users);
-    console.log('[Auth] Administrador criado com a senha configurada no ambiente.');
-  } else {
-    // Garante propriedades vitais de acesso ilimitado para admin existente
-    let updated = false;
-    if (admin.role !== 'admin') { admin.role = 'admin'; updated = true; }
-    if (admin.status !== 'active') { admin.status = 'active'; updated = true; }
-    if (admin.expires_at !== null) { admin.expires_at = null; updated = true; }
-    if (!Array.isArray(admin.active_session_tokens)) {
-      admin.active_session_tokens = admin.current_session_token ? [admin.current_session_token] : [];
-      updated = true;
-    }
-    if (updated) {
-      saveLocalUsers(users);
-    }
-    console.log(`[Auth] ✅ Armazenamento local pronto! ${users.length} usuário(s) carregado(s).`);
-  }
+  saveLocalUsers([]);
+  console.log('[Catálogo] Modo público sem usuários.');
 }
 
 // Busca usuário por username

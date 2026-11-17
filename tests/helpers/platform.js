@@ -27,7 +27,7 @@ function isolatedModules(root, environment = {}) {
       module, __dirname: root, Buffer, URL, URLSearchParams,
       require: request => request === './auth' ? load('auth.js') : request === './quotes' ? load('quotes.js')
         : (request.startsWith('./public/js/') || request.startsWith('./lib/')) ? require(path.join(project, request)) : require(request),
-      process: { env: { ...process.env, PORT: '0', PAUSE_PXT_UPSTREAM: 'true', DISABLE_LIVE_DOLLAR: 'true', ...environment }, on() {} },
+      process: { env: { ...process.env, PORT: '0', DISABLE_LIVE_DOLLAR: 'true', ...environment }, on() {} },
       console: { log() {}, warn() {}, error: (...args) => errors.push(args) },
       setInterval: (...args) => { intervals.push(args[1]); const timer = setInterval(...args); timers.add(timer); return timer; },
       setTimeout: (...args) => { const timer = setTimeout(...args); timers.add(timer); return timer; },

@@ -1,3 +1,23 @@
+function matchesCatalogCategory(p, selected) {
+  if (selected === 'ALL') return true;
+  if (selected === 'SEMI') return isSeminovoProduct(p);
+  const cpo = isCpoProduct(p) || p.condition === 'CPO';
+  const wantsCpo = selected.endsWith('_CPO');
+  if (cpo !== wantsCpo || isSeminovoProduct(p)) return false;
+  const base = selected.replace(/_CPO$/, '');
+  const cat = (p.category || '').toUpperCase().trim();
+  const name = (p.name || '').toUpperCase();
+  if (base === 'IPH') return cat === 'IPH' || name.includes('IPHONE');
+  if (base === 'MCB') return cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO') || name.includes('IMAC');
+  if (base === 'IPAD') return cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD');
+  if (base === 'RLG') return cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA');
+  if (base === 'PODS') return cat === 'PODS' || name.includes('AIRPOD');
+  if (base === 'ACSS') return cat === 'ACSS' || cat === 'APPLE_TV' || name.includes('APPLE TV') || name.includes('APPLETV') || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR') || name.includes('AIRTAG') || name.includes('TRACKPAD') || name.includes('MAGSAFE') || name.includes('ADAPTADOR') || name.includes('FOLIO') || name.includes('CAPA') || name.includes('CASE');
+  if (base === 'IMAC') return cat === 'IMAC' || name.includes('IMAC');
+  return false;
+}
+
+const IS_COST_PAGE = window.location.pathname.replace(/\/$/, '') === '/preco-de-custo';
 // MUNDO APPLE BUSCADOR - Frontend Engine (Tempo Real & Filtros Adaptativos)
 let allProducts = [];
 let currentUser = null;
@@ -180,7 +200,7 @@ function isDisallowedProduct(p) {
   }
   if (!p) return true;
   if (isAtivadoProduct(p)) return true;
-  if (isCpoProduct(p)) return true;
+
   if (isAsIsProduct(p)) return true;
   const cat = (p.category || '').toUpperCase().trim();
   const name = (p.name || '').toUpperCase();
@@ -248,6 +268,7 @@ function openCatalogDb() {
 }
 
 function getCatalogCacheKey() {
+  if (IS_COST_PAGE) return 'cost_products_dfu';
   return currentUser ? `authed_products_${currentUser.id || currentUser.username}` : 'shielded_products';
 }
 
@@ -322,7 +343,7 @@ async function loadProducts(dateParam) {
   const cacheKey = getCatalogCacheKey();
   try {
     const target = dateParam || selectedDateMode || 'today';
-    const res = await fetch(`/api/products?date=${target}`);
+    const res = await fetch(`${IS_COST_PAGE ? '/api/cost-products' : '/api/products'}?date=${target}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     if (requestId !== catalogRequestId) return;
@@ -559,8 +580,8 @@ function getFilteredProducts() {
   const sLower = searchQuery.trim().toLowerCase();
 
   let filtered = allProducts.filter(p => {
-    // Excluir produtos CPO
-    if (isCpoProduct(p)) return false;
+    // CPO permitido no catálogo
+
 
     // Category filter
     if (currentCategory !== 'ALL') {
@@ -631,7 +652,7 @@ function getMacBookRam(p) {
   const isMac = cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('IMAC');
   if (!isMac) return '';
 
-  // 1. No PXT, a memória RAM de MacBooks vem no campo region (ex: "8GB", "16GB", "24GB", "32GB", "36GB", "48GB", "64GB")
+  // 1. Em listas antigas, a memória RAM de MacBooks pode estar no campo region (ex: "8GB", "16GB", "24GB", "32GB", "36GB", "48GB", "64GB")
   if (p.region && /\b\d{1,3}\s*GB\b/i.test(p.region)) {
     return p.region.trim().toUpperCase();
   }
@@ -731,7 +752,7 @@ function buildSupplierWhatsAppMessage(model, storage, color, price, ram = '') {
 }
 
 // Apple Official Colors Hex Palette Helper
-// Apple Official Colors Hex Palette Helper (Mapeamento Oficial de Cores Apple & PXT)
+// Apple Official Colors Hex Palette Helper (Mapeamento Oficial de Cores Apple)
 function getAppleColorHex(colorName) {
   if (!colorName) return '#8e8e93';
   const c = colorName.trim().toUpperCase();
@@ -1095,7 +1116,7 @@ function renderAutocomplete(term) {
   // Extract all matching unique models
   const modelCounts = new Map();
   allProducts.forEach(p => {
-    if (isCpoProduct(p)) return;
+
 
     // Check category filter
     if (currentCategory !== 'ALL') {
@@ -1333,29 +1354,6 @@ socket.on('catalog_reloaded', (meta) => {
   loadProducts();
 });
 
-// Real-Time Connection Watchdog Status Handler
-socket.on('pxt_connection_status', (status) => {
-  const badge = document.getElementById('connectionBadge');
-  const dot = document.getElementById('connectionDot');
-  const text = document.getElementById('connectionText');
-
-  if (!badge || !dot || !text) return;
-
-  if (status.connected) {
-    badge.style.backgroundColor = 'var(--accent-green-bg)';
-    badge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-    badge.style.color = 'var(--accent-green)';
-    dot.style.backgroundColor = 'var(--accent-green)';
-    text.textContent = 'PREÇOS ATUALIZADOS AO VIVO';
-  } else {
-    badge.style.backgroundColor = 'rgba(245, 158, 11, 0.15)';
-    badge.style.borderColor = 'rgba(245, 158, 11, 0.4)';
-    badge.style.color = 'var(--accent-amber)';
-    dot.style.backgroundColor = 'var(--accent-amber)';
-    text.textContent = 'RECONECTANDO AUTOMATICAMENTE...';
-  }
-});
-
 // 10. Secondary Filter Change Events
 if (categoryNav) {
   categoryNav.addEventListener('click', (e) => {
@@ -1431,7 +1429,7 @@ function updateThemeUI(isLight) {
   }
 }
 
-const savedTheme = localStorage.getItem('apple_pxt_theme') || 'light';
+const savedTheme = localStorage.getItem('mundo_apple_theme') || 'light';
 if (savedTheme !== 'dark') {
   document.body.classList.add('light-theme');
   updateThemeUI(true);
@@ -1443,7 +1441,7 @@ if (savedTheme !== 'dark') {
 if (themeBtn) {
   themeBtn.addEventListener('click', () => {
     const isLight = document.body.classList.toggle('light-theme');
-    localStorage.setItem('apple_pxt_theme', isLight ? 'light' : 'dark');
+    localStorage.setItem('mundo_apple_theme', isLight ? 'light' : 'dark');
     updateThemeUI(isLight);
   });
 }
@@ -1912,6 +1910,7 @@ function updateStoreFrontColorFilterOptions(products) {
 
 // Renderizador da View Loja Física (Mockup Fiel ao Design)
 function renderStoreFront() {
+  updatePricesDayCategoryCounts();
   const container = document.getElementById('storefrontGrid');
   if (!container) return;
 
@@ -1927,7 +1926,7 @@ function renderStoreFront() {
   // Atualiza as opções de cor para o dropdown de cores
   updateStoreFrontColorFilterOptions();
 
-  // Filtrar produtos válidos (exclui CPO, AS IS e itens desativados)
+  // Filtrar produtos válidos (exclui AS IS e itens desativados)
   const filtered = allProducts.filter(p => {
     if (isDisallowedProduct(p)) return false;
     if (!p.price || p.price <= 0) return false;
@@ -1935,22 +1934,7 @@ function renderStoreFront() {
     const isSemi = isSeminovoProduct(p);
 
     // Filtro de Categoria (se houver busca por texto, busca em todo o catálogo)
-    if (searchTokens.length === 0 && sfCurrentCategory !== 'ALL') {
-      if (sfCurrentCategory === 'SEMI') {
-        if (!isSemi) return false;
-      } else {
-        if (isSemi) return false; // Separa novos de seminovos
-        const cat = (p.category || '').toUpperCase().trim();
-        const name = (p.name || '').toUpperCase();
-        if (sfCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
-        if (sfCurrentCategory === 'MCB' && !(cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO') || name.includes('IMAC'))) return false;
-        if (sfCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
-        if (sfCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
-        if (sfCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
-        if (sfCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR') || name.includes('AIRTAG') || name.includes('TRACKPAD') || name.includes('MAGSAFE') || name.includes('ADAPTADOR') || name.includes('FOLIO') || name.includes('CAPA') || name.includes('CASE'))) return false;
-        if (sfCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
-      }
-    }
+    if (searchTokens.length === 0 && !matchesCatalogCategory(p, sfCurrentCategory)) return false;
 
     // Filtro de Capacidade
     if (selectedCapacity !== 'ALL') {
@@ -2099,6 +2083,7 @@ function renderStoreFront() {
       storage: card.storage,
       ram: card.ram,
       isSeminovo: card.isSeminovo,
+      productIds: Array.from(card.colorsMap.values()).flatMap(c => c.offers.map(p => String(p.id))),
       colors: card.colorsArr.map(c => ({ color: c.color, price: c.retailPrice }))
     });
 
@@ -2132,6 +2117,7 @@ function renderStoreFront() {
         <div class="mock-card-header">
           <div class="mock-card-title-row">
             <h3 class="mock-card-title" title="${escapeHtml(card.displayName)}">${escapeHtml(formatDisplayModelName(card.displayName))}</h3>
+            <div class="mock-card-actions">
             <button class="mock-card-ver-btn" onclick="openClientShowcaseModal('${cardKey}')" title="Ver detalhes do modelo">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
@@ -2139,6 +2125,10 @@ function renderStoreFront() {
               </svg>
               <span>Ver</span>
             </button>
+              <button type="button" class="mock-card-ver-btn mock-card-cost-btn" onclick="openCardCostModal('${cardKey}', this)" title="Ver preço de custo com DFU" aria-label="${escapeHtml(`Ver custo com DFU de ${card.displayName} ${card.storage}${card.ram ? ` ${card.ram} RAM` : ''}`)}">
+                <span aria-hidden="true">R$</span><span>Custo</span>
+              </button>
+            </div>
           </div>
           <div class="mock-card-badges-row">
             ${card.storage ? `<span class="mock-storage-badge">${formatStorageBadge(card.storage)}</span>` : ''}
@@ -2176,9 +2166,41 @@ function formatModelTitleForCopy(model, storage, ram) {
     .replace(/\b(\d+)\s*RAM\b/gi, '$1 RAM');
 }
 
+// Consulta os custos por ID para preservar modelo, capacidade, RAM e cores do card.
+window.openCardCostModal = async function(cardKey, button) {
+  const card = window.storefrontCardMap?.get(cardKey);
+  if (!card) return;
+  const original = button?.innerHTML;
+  if (button) { button.disabled = true; button.textContent = '…'; }
+  try {
+    const response = await fetch('/api/cost-products', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Falha ao consultar custos.');
+    const result = await response.json();
+    if (!result.success || result.dfuActive !== true || !Array.isArray(result.data)) throw new Error('Custos indisponíveis.');
+    const ids = new Set(card.productIds || []);
+    const byColor = new Map();
+    for (const product of result.data) {
+      if (!ids.has(String(product.id))) continue;
+      const price = Number(product.price);
+      if (!Number.isFinite(price) || price <= 0) continue;
+      const color = String(product.color || 'Padrão').trim();
+      const key = color.toUpperCase();
+      if (!byColor.has(key) || price < byColor.get(key).price) byColor.set(key, { color, price });
+    }
+    const colors = Array.from(byColor.values()).sort((a, b) => a.price - b.price);
+    if (!colors.length) throw new Error('Atualize o catálogo para consultar este produto.');
+    openClientShowcaseModal(encodeURIComponent(card.model), encodeURIComponent(card.storage || ''),
+      encodeURIComponent(card.ram || ''), card.isSeminovo, encodeURIComponent(JSON.stringify(colors)), 'cost');
+  } catch (error) {
+    alert(error.message || 'Não foi possível consultar o custo. Tente novamente.');
+  } finally {
+    if (button) { button.disabled = false; button.innerHTML = original; }
+  }
+};
+
 // Modal de Vitrine Limpa para Apresentar ao Cliente
-window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSeminovo, encColorsJson) {
-  lastShowcaseArgs = [firstArg, encStorage, encRam, isSeminovo, encColorsJson];
+window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSeminovo, encColorsJson, priceMode = IS_COST_PAGE ? 'cost' : 'retail') {
+  lastShowcaseArgs = [firstArg, encStorage, encRam, isSeminovo, encColorsJson, priceMode];
   const modal = document.getElementById('clientShowcaseModal');
   const titleEl = document.getElementById('showcaseModelTitle');
   const subEl = document.getElementById('showcaseModelSubtitle');
@@ -2209,7 +2231,7 @@ window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSemino
   const titleFormatted = formatModelTitleForCopy(model, storage, ram);
   if (titleEl) titleEl.textContent = titleFormatted;
   if (subEl) {
-    subEl.textContent = `${isSemi ? 'Seminovo Selecionado' : 'Produto Novo Lacrado'} • Preços válidos à vista e simulação no cartão`;
+    subEl.textContent = priceMode === 'cost' ? 'Preço de custo • DFU ativo • Sem margem de venda' : `${isSemi ? 'Seminovo Selecionado' : 'Produto Novo Lacrado'} • Preços válidos à vista e simulação no cartão`;
   }
 
   // Gera lista espaçosa de cores
@@ -2434,46 +2456,18 @@ window.saveSingleProductMargin = async function() {
 
 // Category Count Badges Updater for Preços do Dia
 function updatePricesDayCategoryCounts() {
-  let cALL = 0, cSEMI = 0, cIPH = 0, cMCB = 0, cIPAD = 0, cRLG = 0, cPODS = 0, cACSS = 0, cIMAC = 0;
-
-  allProducts.forEach(p => {
-    if (!p.price || p.price <= 0) return;
-    const isSemi = isSeminovoProduct(p);
-    const cat = (p.category || '').toUpperCase().trim();
-    const name = (p.name || '').toUpperCase();
-    cALL++;
-    if (isSemi) {
-      cSEMI++;
-    } else {
-      if (cat === 'IPH' || name.includes('IPHONE')) cIPH++;
-      else if (cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO')) cMCB++;
-      else if (cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD')) cIPAD++;
-      else if (cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA')) cRLG++;
-      else if (cat === 'PODS' || name.includes('AIRPOD')) cPODS++;
-      else if (cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR') || name.includes('AIRTAG') || name.includes('TRACKPAD') || name.includes('MAGSAFE') || name.includes('ADAPTADOR') || name.includes('FOLIO') || name.includes('CAPA') || name.includes('CASE')) cACSS++;
-      else if (cat === 'IMAC' || name.includes('IMAC')) cIMAC++;
+  const categories = ['IPH', 'MCB', 'IPAD', 'RLG', 'PODS', 'ACSS', 'IMAC'];
+  const valid = allProducts.filter(p => p.price > 0 && !isDisallowedProduct(p));
+  for (const category of ['ALL', 'SEMI', ...categories, ...categories.map(c => c + '_CPO')]) {
+    const count = valid.filter(p => matchesCatalogCategory(p, category)).length;
+    const badge = document.getElementById('countCat' + category);
+    if (badge) badge.textContent = count;
+    if (category.endsWith('_CPO')) {
+      document.querySelectorAll(`[data-category="${category}"], [data-sf-category="${category}"]`).forEach(button => {
+        button.style.display = count || category === 'IPH_CPO' ? '' : 'none';
+      });
     }
-  });
-
-  const elAll = document.getElementById('countCatALL');
-  const elSemi = document.getElementById('countCatSEMI');
-  const elIph = document.getElementById('countCatIPH');
-  const elMcb = document.getElementById('countCatMCB');
-  const elIpad = document.getElementById('countCatIPAD');
-  const elRlg = document.getElementById('countCatRLG');
-  const elPods = document.getElementById('countCatPODS');
-  const elAcss = document.getElementById('countCatACSS');
-  const elImac = document.getElementById('countCatIMAC');
-
-  if (elAll) elAll.textContent = cALL;
-  if (elSemi) elSemi.textContent = cSEMI;
-  if (elIph) elIph.textContent = cIPH;
-  if (elMcb) elMcb.textContent = cMCB;
-  if (elIpad) elIpad.textContent = cIPAD;
-  if (elRlg) elRlg.textContent = cRLG;
-  if (elPods) elPods.textContent = cPODS;
-  if (elAcss) elAcss.textContent = cACSS;
-  if (elImac) elImac.textContent = cIMAC;
+  }
 }
 
 // 14. Model Sorting & Hierarchy Ranking (Zero Mistura - Organização Perfeita)
@@ -2703,7 +2697,7 @@ function renderPodAutocomplete(term) {
 
   const modelCounts = new Map();
   allProducts.forEach(p => {
-    if (isCpoProduct(p)) return;
+
     const name = (p.name || '').trim();
     if (!name) return;
     const normalizedName = normalizeSearchText(name);
@@ -2807,22 +2801,7 @@ function renderPricesOfTheDay() {
     const isSemi = isSeminovoProduct(p);
 
     // Category filter (se houver busca por texto, busca em todo o catalogo)
-    if (searchTokens.length === 0 && podCurrentCategory !== 'ALL') {
-      if (podCurrentCategory === 'SEMI') {
-        if (!isSemi) return false;
-      } else {
-        if (isSemi) return false; // Exclui seminovos das abas de novos lacrados
-        const cat = (p.category || '').toUpperCase().trim();
-        const name = (p.name || '').toUpperCase();
-        if (podCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
-        if (podCurrentCategory === 'MCB' && !(cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO') || name.includes('IMAC'))) return false;
-        if (podCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
-        if (podCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
-        if (podCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
-        if (podCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR') || name.includes('AIRTAG') || name.includes('TRACKPAD') || name.includes('MAGSAFE') || name.includes('ADAPTADOR') || name.includes('FOLIO') || name.includes('CAPA') || name.includes('CASE'))) return false;
-        if (podCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
-      }
-    }
+    if (searchTokens.length === 0 && !matchesCatalogCategory(p, podCurrentCategory)) return false;
 
     // Search filter inteligente multi-palavras (modelo, RAM, capacidade, cor ou fornecedor)
     if (searchTokens.length > 0) {
@@ -2916,7 +2895,7 @@ function renderPricesOfTheDay() {
     podShownCountText.textContent = `Mostrando ${sortedFamilies.length} modelos organizados (${filtered.length} ofertas)`;
   }
   if (podSupplierCountLabel) {
-    podSupplierCountLabel.textContent = `${suppliersSet.size || 100}+ fornecedores conectados em tempo real`;
+    podSupplierCountLabel.textContent = `${suppliersSet.size || 100}+ fornecedores na lista`;
   }
 
   updatePricesDayCategoryCounts();
@@ -2926,7 +2905,7 @@ function renderPricesOfTheDay() {
       container.innerHTML = `
         <div class="app-catalog-loader">
           <div class="app-spinner"></div>
-          <p style="color: var(--text-primary, #fff); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Sincronizando cotações Apple em tempo real...</p>
+          <p style="color: var(--text-primary, #fff); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Carregando a lista de produtos...</p>
           <span style="color: var(--text-muted, #888); font-size: 0.85rem;">Carregando modelos, cores e melhores preços dos fornecedores</span>
         </div>
       `;
@@ -3098,7 +3077,7 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
     const normStorage = storage.trim().toUpperCase().replace(/\s+/g, '');
 
     offers = allProducts.filter(p => {
-      if (isCpoProduct(p)) return false;
+
       const pIsSemi = isSeminovoProduct(p);
       if (isSeminovo ? !pIsSemi : pIsSemi) return false;
 
@@ -4038,12 +4017,6 @@ let currentExportScope = 'SF'; // 'SF' = Loja Física, 'POD' = Preços do Dia (F
 let exportModalIsAllScope = false;
 
 window.openStorefrontExportModal = function(forceAll = true) {
-  if (!currentUser) {
-    if (confirm('A exportação completa da tabela para o WhatsApp está disponível para usuários cadastrados. Deseja entrar na sua conta agora?')) {
-      window.location.href = '/login.html';
-    }
-    return;
-  }
   openExportSelectionModal('SF', forceAll);
 };
 window.exportStorefrontPDF = window.openStorefrontExportModal;
@@ -4103,25 +4076,10 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
 
     filtered = allProducts.filter(p => {
       if (!p.price || p.price <= 0) return false;
-      if (isCpoProduct(p)) return false;
+
       const isSemi = isSeminovoProduct(p);
 
-      if (searchTokens.length === 0 && podCurrentCategory !== 'ALL') {
-        if (podCurrentCategory === 'SEMI') {
-          if (!isSemi) return false;
-        } else {
-          if (isSemi) return false;
-          const cat = (p.category || '').toUpperCase().trim();
-          const name = (p.name || '').toUpperCase();
-          if (podCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
-          if (podCurrentCategory === 'MCB' && !(cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO') || name.includes('IMAC'))) return false;
-          if (podCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
-          if (podCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
-          if (podCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
-          if (podCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR') || name.includes('AIRTAG') || name.includes('TRACKPAD') || name.includes('MAGSAFE') || name.includes('ADAPTADOR') || name.includes('FOLIO') || name.includes('CAPA') || name.includes('CASE'))) return false;
-          if (podCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
-        }
-      }
+      if (searchTokens.length === 0 && !matchesCatalogCategory(p, podCurrentCategory)) return false;
 
       if (searchTokens.length > 0) {
         if (!matchSearchTokens(p, searchTokens)) return false;
@@ -4156,22 +4114,7 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
       if (!p.price || p.price <= 0) return false;
       const isSemi = isSeminovoProduct(p);
 
-      if (!exportModalIsAllScope && searchTokens.length === 0 && sfCurrentCategory !== 'ALL') {
-        if (sfCurrentCategory === 'SEMI') {
-          if (!isSemi) return false;
-        } else {
-          if (isSemi) return false;
-          const cat = (p.category || '').toUpperCase().trim();
-          const name = (p.name || '').toUpperCase();
-          if (sfCurrentCategory === 'IPH' && !(cat === 'IPH' || name.includes('IPHONE'))) return false;
-          if (sfCurrentCategory === 'MCB' && !(cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO') || name.includes('IMAC'))) return false;
-          if (sfCurrentCategory === 'IPAD' && !(cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD'))) return false;
-          if (sfCurrentCategory === 'RLG' && !(cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA'))) return false;
-          if (sfCurrentCategory === 'PODS' && !(cat === 'PODS' || name.includes('AIRPOD'))) return false;
-          if (sfCurrentCategory === 'ACSS' && !(cat === 'ACSS' || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR') || name.includes('AIRTAG') || name.includes('TRACKPAD') || name.includes('MAGSAFE') || name.includes('ADAPTADOR') || name.includes('FOLIO') || name.includes('CAPA') || name.includes('CASE'))) return false;
-          if (sfCurrentCategory === 'IMAC' && !(cat === 'IMAC' || name.includes('IMAC'))) return false;
-        }
-      }
+      if (!exportModalIsAllScope && searchTokens.length === 0 && !matchesCatalogCategory(p, sfCurrentCategory)) return false;
 
       if (searchTokens.length > 0) {
         if (!matchSearchTokens(p, searchTokens)) return false;
@@ -4508,11 +4451,6 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
 
 // Exporta a lista COMPLETA de todos os produtos do catálogo para o WhatsApp (somente quando logado)
 window.exportAllStorefrontWhatsApp = async function(btn) {
-  if (!currentUser) {
-    alert('Você precisa estar conectado a uma conta para exportar a lista de produtos.');
-    return;
-  }
-
   // Filtrar todos os produtos válidos do catálogo inteiro (sem restrição de categoria ou busca)
   const validProducts = (allProducts || []).filter(p => {
     if (isDisallowedProduct(p)) return false;
@@ -4925,28 +4863,29 @@ async function checkAuthSession() {
         window.IS_CATALOG_SHIELDED = true;
       }
       currentUser = null;
+      window.IS_CATALOG_SHIELDED = true;
       pricingVersion = 0;
       syncDfuButtons();
       updateCatalogPresentation();
       localStorage.removeItem('logged_username');
-      window.DFU_ACTIVE = true;
+      window.DFU_ACTIVE = false;
       if (window.PricingCore && typeof window.PricingCore.setDfuActive === 'function') {
-        window.PricingCore.setDfuActive(true);
+        window.PricingCore.setDfuActive(false);
       }
       const tabQuotes = document.getElementById('tabQuotes');
       if (tabQuotes) tabQuotes.style.display = 'none';
       if (tabPricesDay) tabPricesDay.style.display = 'none';
-      if (btnOpenCalculator) btnOpenCalculator.style.display = 'none';
-      if (btnExportTopHeader) btnExportTopHeader.style.display = 'none';
-      if (btnExportSfWhatsapp) btnExportSfWhatsapp.style.display = 'none';
-      if (btnExportAllSfWhatsapp) btnExportAllSfWhatsapp.style.display = 'none';
+      if (btnOpenCalculator) btnOpenCalculator.style.display = 'inline-flex';
+      if (btnExportTopHeader) btnExportTopHeader.style.display = 'inline-flex';
+      if (btnExportSfWhatsapp) btnExportSfWhatsapp.style.display = 'inline-flex';
+      if (btnExportAllSfWhatsapp) btnExportAllSfWhatsapp.style.display = 'inline-flex';
       if (publicAdminTopBtn) publicAdminTopBtn.style.display = 'none';
       if (userSessionInfo) userSessionInfo.style.display = 'none';
 
       const brandLogoLink = document.getElementById('brandLogoLink');
       if (brandLogoLink) {
-        brandLogoLink.href = '/login.html';
-        brandLogoLink.title = 'Entrar no Sistema';
+        brandLogoLink.href = '/';
+        brandLogoLink.title = 'Início';
       }
 
       // Sincroniza gaveta mobile: esconde Preços do Dia, Calculadora e Acesso Admin para visitantes
@@ -4960,9 +4899,9 @@ async function checkAuthSession() {
       const mobileDrawerQuotesBtn = document.getElementById('mobileDrawerQuotesBtn');
       if (mobileDrawerQuotesBtn) mobileDrawerQuotesBtn.style.display = 'none';
       if (mobileDrawerPricesDayBtn) mobileDrawerPricesDayBtn.style.display = 'none';
-      if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'none';
-      if (mobileDrawerExportBtn) mobileDrawerExportBtn.style.display = 'none';
-      if (mobileDrawerExportAllBtn) mobileDrawerExportAllBtn.style.display = 'none';
+      if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'flex';
+      if (mobileDrawerExportBtn) mobileDrawerExportBtn.style.display = 'flex';
+      if (mobileDrawerExportAllBtn) mobileDrawerExportAllBtn.style.display = 'flex';
       if (mobileDrawerLogoutBtn) mobileDrawerLogoutBtn.style.display = 'none';
 
       // Garante que o visitante fica exclusivamente na Loja Física
@@ -5193,12 +5132,6 @@ function ensureMobileDrawerMounted() {
           </svg>
           <span>Exportar Tudo (WhatsApp)</span>
         </button>
-        <button class="mobile-drawer-item" id="mobileDrawerSyncBtn" onclick="triggerStorefrontSyncPrices(this)" style="display: none; color: #3b82f6;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-          </svg>
-          <span id="mobileDrawerSyncText">Atualizar Preços PXT</span>
-        </button>
         <button class="mobile-drawer-item" id="mobileDrawerCalcBtn" onclick="closeMobileMenu(); openFreeCalculator();" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <rect width="16" height="20" x="4" y="2" rx="2"/>
@@ -5343,7 +5276,7 @@ function syncMobileDrawerActions() {
     'mobileDrawerExportAllBtn', 'mobileDrawerCalcBtn'];
   storeActions.forEach(id => {
     const button = document.getElementById(id);
-    if (button) button.style.display = currentUser && !isClientMode ? 'flex' : 'none';
+    if (button) button.style.display = ['mobileDrawerExportBtn', 'mobileDrawerExportAllBtn', 'mobileDrawerCalcBtn'].includes(id) ? 'flex' : 'none';
   });
   const logout = document.getElementById('mobileDrawerLogoutBtn');
   if (logout) logout.style.display = currentUser ? 'flex' : 'none';
@@ -5486,7 +5419,7 @@ window.toggleThemeFromDrawer = function() {
     themeBtn.click();
   } else {
     const isLight = document.body.classList.toggle('light-theme');
-    localStorage.setItem('apple_pxt_theme', isLight ? 'light' : 'dark');
+    localStorage.setItem('mundo_apple_theme', isLight ? 'light' : 'dark');
     updateThemeUI(isLight);
   }
 };
@@ -5527,6 +5460,21 @@ let isClientMode = window.location.pathname.includes('/catalogo') || window.loca
 
 function updateCatalogPresentation() {
   syncDfuButtons();
+  if (IS_COST_PAGE) {
+    document.title = '\u200b';
+    const heading = document.getElementById('catalogHeading');
+    const description = document.getElementById('catalogDescription');
+    const label = document.getElementById('catalogModeLabel');
+    const link = document.getElementById('priceCostLink');
+    const tab = document.getElementById('tabStoreFront');
+    if (heading) heading.textContent = 'Preço de custo';
+    if (description) description.textContent = 'Valores com DFU ativo, sem margem de venda.';
+    if (label) label.textContent = 'CUSTO + DFU';
+    if (tab) tab.textContent = 'Preço de custo';
+    if (link) { link.href = '/'; link.textContent = 'Preço real'; }
+    syncMobileDrawerActions();
+    return;
+  }
   const authenticated = Boolean(currentUser);
   const customerView = !authenticated || isClientMode;
   document.body.classList.toggle('session-authenticated', authenticated);

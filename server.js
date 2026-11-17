@@ -1,7 +1,6 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const ioClient = require('socket.io-client');
 const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
@@ -10,17 +9,11 @@ const auth = require('./auth');
 const quotesManager = require('./quotes');
 const PricingCore = require('./public/js/pricing-core.js');
 const QuoteCore = require('./public/js/quote-core.js');
-const { sanitizeCatalog } = require('./lib/catalog-sanitizer.js');
-const { processDailyPricesText } = require('./lib/daily-prices-importer.js');
 
 const localEnvFile = path.join(__dirname, '.env');
 if (fs.existsSync(localEnvFile) && typeof process.loadEnvFile === 'function') process.loadEnvFile(localEnvFile);
 
-const PXT_BASE_URL = 'https://backend-api.buscadorpxt.com.br';
-const USER_EMAIL = process.env.PXT_EMAIL || '';
-const USER_PASS = process.env.PXT_PASSWORD || '';
 const PORT = process.env.PORT || 3333;
-const PAUSE_PXT_UPSTREAM = process.env.PAUSE_PXT_UPSTREAM === 'true'; // Padrão falso = TEMPO REAL ATIVO!
 
 // Proteção Anti-Crash Global: Impede que qualquer erro não tratado derrube a aplicação
 process.on('uncaughtException', (err) => {
@@ -73,6 +66,21 @@ app.get('/catalogo', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+app.get('/preco-de-custo', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+
+// Operação pública: sem contas, login ou gestão de usuários.
+app.use((req, res, next) => {
+  if (['/login', '/login.html', '/admin', '/admin.html', '/painel', '/painel.html'].includes(req.path)) return res.redirect('/');
+  if (req.path.startsWith('/api/auth/')) return res.status(401).json({ error: 'O catálogo funciona sem contas.' });
+  if (req.path.startsWith('/api/admin/')) {
+    return res.status(404).json({ error: 'Painel administrativo removido.' });
+  }
+  next();
+});
+
 // Acesso ao Painel Admin via web desativado (gestão exclusiva centralizada via backend/assistente)
 app.get(['/admin', '/admin.html', '/painel', '/painel.html'], (req, res) => {
   res.redirect('/');
@@ -99,8 +107,6 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(__dirname, 'public'), { index: false, etag: false, maxAge: 0 }));
 
 // In-memory product and supplier store
-let authToken = null;
-let pxtSocket = null;
 let productsMap = new Map(); // id -> product
 let dollarRate = 5.3480;
 let dollarVariation = -0.64;
@@ -281,449 +287,12 @@ function processAppleProduct(p) {
   if (!p) return null;
   if (isDisallowedProduct(p)) return null; // Exclui modelos AS IS, CPO, ativados e seminovos
   if (isAppleNovo(p)) {
-    return { ...p, isSeminovo: false, condition: 'NOVO' };
+    return { ...p, isSeminovo: false, condition: isCpoProduct(p) ? 'CPO' : 'NOVO' };
   }
   return null;
 }
 
-// 1. Authenticate with Buscador PXT API (Suporta Token Fixo ou Login)
-async function authenticate() {
-  // Se houver um token configurado nas variáveis de ambiente ou salvo em arquivo
-  const envToken = process.env.PXT_AUTH_TOKEN;
-  const tokenFilePath = path.join(__dirname, 'data', 'pxt_token.txt');
-  
-  if (envToken && envToken.trim().length > 20) {
-    console.log('[Auth] 🔑 Usando PXT_AUTH_TOKEN das variáveis de ambiente.');
-    authToken = envToken.trim();
-    return authToken;
-  }
-
-  if (fs.existsSync(tokenFilePath)) {
-    try {
-      const savedToken = fs.readFileSync(tokenFilePath, 'utf8').trim();
-      if (savedToken && savedToken.length > 20) {
-        console.log('[Auth] 🔑 Usando token persistente salvo em data/pxt_token.txt.');
-        authToken = savedToken;
-        return authToken;
-      }
-    } catch (e) {}
-  }
-
-  try {
-    if (!USER_EMAIL || !USER_PASS) throw new Error('Configure PXT_EMAIL e PXT_PASSWORD ou PXT_AUTH_TOKEN para conectar ao PXT.');
-    console.log('[Auth] Autenticando com Buscador PXT via credenciais...');
-    const resp = await axios.post(`${PXT_BASE_URL}/auth/login`, {
-      email: USER_EMAIL,
-      password: USER_PASS,
-      forceLogin: true
-    }, {
-      headers: { 'Content-Type': 'application/json' },
-      timeout: 10000
-    });
-
-    authToken = resp.data.access_token;
-    console.log('[Auth] Autenticação bem-sucedida! Token obtido.');
-    return authToken;
-  } catch (err) {
-    const errorMsg = err.response?.data?.message || err.message;
-    console.error('[Auth] Erro ao autenticar:', errorMsg);
-    // Se for bloqueio anti-robô, preserva o catálogo em memória / snapshot
-    if (errorMsg && errorMsg.includes('anti-robô')) {
-      console.warn('[Auth] ⚠️ Bloqueio Cloudflare detectado. O servidor usará o catálogo sincronizado via push ou snapshot.');
-    }
-    throw err;
-  }
-}
-
-// 2. Fetch initial product catalog
-async function fetchProducts() {
-  if (!authToken) await authenticate();
-  isSyncing = true;
-  try {
-    console.log('[Catalog] Baixando catálogo atualizado...');
-    const [dateRes, prodRes] = await Promise.all([
-      axios.get(`${PXT_BASE_URL}/products/latest-date`, {
-        headers: { Authorization: `Bearer ${authToken}` }
-      }).catch(() => ({ data: { date: '' } })),
-      axios.get(`${PXT_BASE_URL}/products`, {
-        headers: { Authorization: `Bearer ${authToken}` }
-      })
-    ]);
-
-    latestDate = dateRes.data?.date || '';
-
-    let payload = prodRes.data;
-    if (payload && typeof payload.data === 'string') {
-      if (payload.data.startsWith('U2FsdGVkX1')) {
-        // Payload HTTP criptografado; a sincronização completa ocorre instantaneamente via WebSocket (products_sync_request)
-        if (pxtSocket && pxtSocket.connected) {
-          const todayStr = `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-          pxtSocket.emit('products_sync_request', { date: latestDate || todayStr });
-        }
-        isSyncing = false;
-        return Array.from(productsMap.values());
-      }
-      try {
-        payload = JSON.parse(payload.data);
-      } catch (e) {
-        console.error('[Catalog] Falha no parse da string:', e.message);
-      }
-    }
-
-    const rawList = Array.isArray(payload) ? payload : (payload.data || payload.products || []);
-    dollarRate = payload.dollarRate || dollarRate;
-    dollarVariation = payload.dollarVariation || dollarVariation;
-    totalSuppliers = payload.totalSuppliers || totalSuppliers;
-
-    if (!rawList || rawList.length === 0) {
-      console.warn('[Catalog] ⚠️ Resposta vazia recebida do PXT. Preservando catálogo em memória intacto.');
-      isSyncing = false;
-      return Array.from(productsMap.values());
-    }
-
-    // SWAP ATÔMICO: Monta em mapa secundário para NUNCA zerar o catálogo em memória
-    const nextMap = new Map();
-    let novosCount = 0;
-    let seminovosCount = 0;
-    let ignoredCount = 0;
-
-    for (const p of rawList) {
-      const processed = processAppleProduct(p);
-      if (processed) {
-        nextMap.set(String(processed.id), processed);
-        if (processed.isSeminovo) seminovosCount++;
-        else novosCount++;
-      } else {
-        ignoredCount++;
-      }
-    }
-
-    if (nextMap.size > 0) {
-      productsMap.clear();
-      for (const [k, v] of nextMap.entries()) {
-        productsMap.set(k, v);
-      }
-    }
-
-    console.log(`[Catalog] Carga concluída: ${novosCount} Apple Novos + ${seminovosCount} Apple Seminovos carregados (${productsMap.size} total). (${ignoredCount} Android/Outros ignorados)`);
-    isSyncing = false;
-    scheduleCatalogSnapshot();
-
-    // Notificar clientes conectados (Autenticados em tempo real, Visitantes com throttle)
-    broadcastCatalogReloaded({
-      total: productsMap.size,
-      dollarRate,
-      dollarVariation,
-      latestDate
-    });
-
-    return Array.from(productsMap.values());
-  } catch (err) {
-    console.error('[Catalog] Erro ao buscar produtos:', err.response?.data || err.message);
-    isSyncing = false;
-    throw err;
-  }
-}
-
-// =========================================================================
-// EMISSÃO SEGURA E ROTEAMENTO DE WEBSOCKETS (ROOMS: authed_users vs public_visitors)
-// =========================================================================
-function broadcastProductCreated(fullItem) {
-  if (!fullItem) return;
-  localIo.to('authed_users').emit('product_created', fullItem);
-  const shielded = formatProductForClient(fullItem, false);
-  if (shielded) {
-    localIo.to('public_visitors').emit('product_created', shielded);
-  }
-}
-
-function broadcastProductUpdated(fullItem) {
-  if (!fullItem) return;
-  localIo.to('authed_users').emit('product_updated', fullItem);
-  const shielded = formatProductForClient(fullItem, false);
-  if (shielded) {
-    localIo.to('public_visitors').emit('product_updated', shielded);
-  }
-}
-
-function broadcastPriceChanged(id, oldPrice, newPrice, updatedAt, product) {
-  localIo.to('authed_users').emit('price_changed', {
-    id,
-    oldPrice,
-    newPrice,
-    updatedAt,
-    product
-  });
-  const shielded = formatProductForClient(product, false);
-  if (shielded) {
-    localIo.to('public_visitors').emit('price_changed', {
-      id,
-      oldPrice: shielded.price,
-      newPrice: shielded.price,
-      updatedAt,
-      product: shielded
-    });
-  }
-}
-
-function broadcastProductDeleted(id) {
-  localIo.emit('product_deleted', { id });
-}
-
-let lastPublicCatalogReloadTime = 0;
-let pendingPublicCatalogReloadTimer = null;
-
-function broadcastCatalogReloaded(stats) {
-  invalidateProductsCache();
-  // Usuários autenticados (lojistas/admin) recebem atualização em tempo real imediatamente
-  localIo.to('authed_users').emit('catalog_reloaded', stats);
-
-  // Visitantes da Loja Física têm broadcast limitado a 1 vez a cada 20s para impedir congelamento de tela
-  const now = Date.now();
-  const timeSinceLast = now - lastPublicCatalogReloadTime;
-  if (timeSinceLast >= 20000) {
-    lastPublicCatalogReloadTime = now;
-    if (pendingPublicCatalogReloadTimer) {
-      clearTimeout(pendingPublicCatalogReloadTimer);
-      pendingPublicCatalogReloadTimer = null;
-    }
-    localIo.to('public_visitors').emit('catalog_reloaded', stats);
-  } else if (!pendingPublicCatalogReloadTimer) {
-    pendingPublicCatalogReloadTimer = setTimeout(() => {
-      lastPublicCatalogReloadTime = Date.now();
-      pendingPublicCatalogReloadTimer = null;
-      localIo.to('public_visitors').emit('catalog_reloaded', {
-        total: productsMap.size,
-        dollarRate,
-        dollarVariation,
-        latestDate
-      });
-    }, 20000 - timeSinceLast);
-  }
-}
-
-let isReconnecting = false;
-
-// Robust self-healing reconnect and sync function
-async function reconnectAndSync(reason = 'watchdog') {
-  if (isReconnecting) return;
-  isReconnecting = true;
-  console.log(`[Watchdog] 🔄 Disparando auto-reconexão e ressincronização (Motivo: ${reason})...`);
-  localIo.emit('pxt_connection_status', { connected: false, status: 'reconnecting', reason });
-
-  try {
-    await authenticate();
-    await fetchProducts().catch(e => console.warn('[Watchdog] Fetch products aviso:', e.message));
-    connectPxtWebSocket();
-    isReconnecting = false;
-  } catch (err) {
-    console.error('[Watchdog] Erro ao reconectar:', err.message);
-    isReconnecting = false;
-  }
-}
-
-// 3. Connect to PXT Remote WebSocket Server for live events
-function connectPxtWebSocket() {
-  if (!authToken) return;
-  if (pxtSocket) {
-    try { pxtSocket.removeAllListeners(); pxtSocket.disconnect(); } catch (e) {}
-  }
-
-  console.log('[WebSocket] Conectando ao servidor em tempo real da PXT...');
-  pxtSocket = ioClient(PXT_BASE_URL, {
-    auth: { token: authToken, theme: 'dark' },
-    transports: ['websocket', 'polling'],
-    reconnection: true,
-    reconnectionAttempts: Infinity,
-    reconnectionDelay: 1500,
-    reconnectionDelayMax: 5000,
-    timeout: 10000,
-    path: '/socket.io'
-  });
-
-  pxtSocket.on('connect', () => {
-    console.log('[WebSocket] ✅ Conectado com sucesso ao servidor oficial PXT!');
-    const todayStr = `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-    const dateQuery = latestDate || todayStr;
-    pxtSocket.emit('products_sync_request', { date: dateQuery });
-    localIo.emit('pxt_connection_status', { connected: true, status: 'connected', date: dateQuery });
-  });
-
-  pxtSocket.on('connect_error', (err) => {
-    console.warn('[WebSocket] Aviso de erro na conexão:', err.message);
-    localIo.emit('pxt_connection_status', { connected: false, status: 'error', error: err.message });
-    if (err.message && (err.message.includes('Unauthorized') || err.message.includes('jwt') || err.message.includes('401') || err.message.includes('token'))) {
-      setTimeout(() => reconnectAndSync('socket_auth_error'), 2000);
-    }
-  });
-
-  pxtSocket.on('disconnect', (reason) => {
-    console.log('[WebSocket] ⚠️ Conexão perdida com a PXT:', reason);
-    localIo.emit('pxt_connection_status', { connected: false, status: 'disconnected', reason });
-    // Tenta reconectar imediatamente se o servidor encerrou a sessão
-    setTimeout(() => reconnectAndSync('disconnect_' + reason), 2000);
-  });
-
-  pxtSocket.on('duplicateLogin', (data) => {
-    console.warn('[WebSocket] ⚠️ Aviso: login realizado em outro dispositivo/aba.');
-    localIo.emit('pxt_connection_status', { connected: false, status: 'duplicate_login' });
-    // Reconecta automaticamente após breve intervalo de 6 segundos
-    setTimeout(() => reconnectAndSync('duplicate_login'), 6000);
-  });
-
-  // Event: Price changed
-  pxtSocket.on('price_changed', (data) => {
-    if (!data || !data.id) return;
-    const id = String(data.id);
-    const existing = productsMap.get(id);
-    const newPrice = Number(data.changes?.price || data.price);
-
-    if (existing && newPrice) {
-      const oldPrice = existing.price;
-      existing.price = newPrice;
-      existing.updatedAt = data.updatedAt || new Date().toISOString();
-      productsMap.set(id, existing);
-
-      console.log(`[Tempo Real] Preço alterado: ${existing.name} (${existing.storage || ''}) - De R$ ${oldPrice} para R$ ${newPrice} [${existing.supplier?.name}]`);
-      broadcastPriceChanged(id, oldPrice, newPrice, existing.updatedAt, existing);
-    }
-  });
-
-  // Event: Product updated or Stock changed
-  const handleUpdate = (item) => {
-    if (!item || !item.id) return;
-    const id = String(item.id);
-    const rawFull = { ...(productsMap.get(id) || {}), ...item, ...(item.changes || {}) };
-    const fullItem = processAppleProduct(rawFull);
-
-    if (!fullItem) {
-      if (productsMap.has(id)) {
-        productsMap.delete(id);
-        broadcastProductDeleted(id);
-      }
-      return;
-    }
-
-    productsMap.set(id, fullItem);
-    console.log(`[Tempo Real] Produto atualizado (${fullItem.condition}): ${fullItem.name} - R$ ${fullItem.price}`);
-    broadcastProductUpdated(fullItem);
-  };
-
-  pxtSocket.on('product_updated', handleUpdate);
-  pxtSocket.on('stock_changed', handleUpdate);
-
-  // Event: Product created
-  pxtSocket.on('product_created', (item) => {
-    if (!item || !item.id) return;
-    const rawFull = { ...item, ...(item.changes || {}) };
-    const fullItem = processAppleProduct(rawFull);
-    if (fullItem) {
-      productsMap.set(String(fullItem.id), fullItem);
-      console.log(`[Tempo Real] Novo produto adicionado (${fullItem.condition}): ${fullItem.name} - R$ ${fullItem.price} [${fullItem.supplier?.name}]`);
-      broadcastProductCreated(fullItem);
-    }
-  });
-
-  // Event: Product deleted
-  pxtSocket.on('product_deleted', (data) => {
-    if (!data || !data.id) return;
-    const id = String(data.id);
-    if (productsMap.has(id)) {
-      const prod = productsMap.get(id);
-      productsMap.delete(id);
-      console.log(`[Tempo Real] Produto removido/esgotado: ${prod?.name} (${id})`);
-      broadcastProductDeleted(id);
-    }
-  });
-
-  // Event: Delta updates
-  pxtSocket.on('products_delta', (delta) => {
-    if (!delta) return;
-    const created = delta.created || delta.inserted || [];
-    const updated = delta.updated || [];
-    const deleted = delta.deleted || [];
-
-    // Se veio data nova ou é snapshot, atualiza a data
-    const isNewDate = delta.date && delta.date !== latestDate;
-    if (isNewDate) {
-      console.log(`[Tempo Real] 📅 Nova data de catálogo recebida via delta: ${latestDate} -> ${delta.date}`);
-      latestDate = delta.date;
-    }
-
-    if (delta.dollarRate) dollarRate = delta.dollarRate;
-    if (delta.dollarVariation) dollarVariation = delta.dollarVariation;
-    if (delta.totalSuppliers) totalSuppliers = delta.totalSuppliers;
-
-    const isMassive = created.length > 30 || delta.snapshot === true || isNewDate;
-
-    // Se for uma virada de dia ou snapshot maciço com itens novos, prepara os itens antes de substituir
-    if ((isNewDate || delta.snapshot === true) && (created.length > 50)) {
-      const freshMap = new Map();
-      for (const rawItem of created) {
-        const item = processAppleProduct(rawItem);
-        if (item) freshMap.set(String(item.id), item);
-      }
-      for (const rawItem of updated) {
-        const item = processAppleProduct(rawItem);
-        if (item) freshMap.set(String(item.id), item);
-      }
-      if (freshMap.size > 0) {
-        productsMap.clear();
-        for (const [k, v] of freshMap.entries()) {
-          productsMap.set(k, v);
-        }
-      }
-    } else {
-      for (const rawItem of created) {
-        const item = processAppleProduct(rawItem);
-        if (item) {
-          productsMap.set(String(item.id), item);
-          if (!isMassive) {
-            broadcastProductCreated(item);
-          }
-        }
-      }
-      for (const rawItem of updated) {
-        const item = processAppleProduct(rawItem);
-        if (item) {
-          productsMap.set(String(item.id), item);
-          if (!isMassive) {
-            broadcastProductUpdated(item);
-          }
-        }
-      }
-    }
-
-    for (const id of deleted) {
-      const sId = String(typeof id === 'object' ? id.id : id);
-      if (productsMap.has(sId)) {
-        productsMap.delete(sId);
-        if (!isMassive) {
-          broadcastProductDeleted(sId);
-        }
-      }
-    }
-
-    scheduleCatalogSnapshot();
-    console.log(`[Tempo Real] Delta processado: +${created.length}, ~${updated.length}, -${deleted.length} (Total Apple Ativos: ${productsMap.size}, Data: ${latestDate})`);
-
-    // Notifica clientes conectados com broadcast seguro e throttled
-    broadcastCatalogReloaded({
-      total: productsMap.size,
-      dollarRate,
-      dollarVariation,
-      latestDate
-    });
-  });
-
-  // Event: Supplier status changed
-  pxtSocket.on('supplier_status_changed', (statusData) => {
-    if (!statusData) return;
-    localIo.emit('supplier_status_changed', statusData);
-  });
-}
-
-// =========================================================================
+// Configuração local de preços e rotas
 // 4. AUTENTICAÇÃO, ANTI-PIRATARIA & ENDPOINTS REST
 // =========================================================================
 
@@ -736,6 +305,7 @@ if (fs.existsSync(adminPricingFile)) {
   adminPricing = { active: saved.active, version: Math.max(Date.now(), Number(saved.version) || 0) };
 }
 PricingCore.setDfuActive(adminPricing.active);
+PricingCore.setDfuActive(true); // DFU global, independente de usuário.
 function userPricingState(user) {
   const username = (user.username || '').toLowerCase();
   return {
@@ -1447,6 +1017,19 @@ function formatProductForClient(p, isAuthed = false, marginsData = null) {
 
 // --- ROTAS DE PRODUTOS (ACESSO DIRETO) ---
 
+// Página de custos: somente custo + DFU, sem margem e sem contatos de fornecedores.
+app.get('/api/cost-products', (req, res) => {
+  const products = Array.from(productsMap.values())
+    .filter(p => !isDisallowedProduct(p) && !PricingCore.isSeminovoProduct(p));
+  const data = products.map(p => ({
+    ...formatProductForClient(p, false),
+    price: PricingCore.applyDFU(p.price, p.category, p.name),
+    supplier: null
+  }));
+  res.json({ success: true, total: data.length, dollarRate, dollarVariation,
+    latestDate, isShielded: true, pricingMode: 'cost', dfuActive: true, data });
+});
+
 app.get(['/api/products', '/api/v1/vitrine', '/api/vitrine'], asyncHandler(async (req, res) => {
   const targetDate = req.query.date;
   const token = auth.getSessionTokenFromRequest(req);
@@ -1523,18 +1106,6 @@ app.get(['/api/products', '/api/v1/vitrine', '/api/vitrine'], asyncHandler(async
   res.send(payload);
 }));
 
-app.get('/api/price-history/:id', requireAuthApi, asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  try {
-    const resp = await axios.get(`${PXT_BASE_URL}/products/${id}/price-history`, {
-      headers: { Authorization: `Bearer ${authToken}` }
-    });
-    res.json(resp.data);
-  } catch (err) {
-    res.status(err.response?.status || 500).json({ error: 'Falha ao buscar histórico de preço' });
-  }
-}));
-
 app.get('/api/stats', (req, res) => {
   const uniqueSuppliers = new Set(Array.from(productsMap.values()).map(p => p.supplier?.name).filter(Boolean)).size;
   res.json({
@@ -1547,159 +1118,10 @@ app.get('/api/stats', (req, res) => {
   });
 });
 
-app.post('/api/sync', requireAdminApi, asyncHandler(async (req, res) => {
-  try {
-    await fetchProducts();
-    res.json({ success: true, count: productsMap.size });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-}));
-
-// Endpoint seguro para o sincronizador local enviar catálogo novo diretamente
-app.post('/api/admin/push-catalog', asyncHandler(async (req, res) => {
-  const syncSecret = process.env.SYNC_SECRET || 'apple_mundo_pxt_secret_sync_2026';
-  const authHeader = req.headers['x-sync-secret'];
-  
-  if (authHeader !== syncSecret) {
-    return res.status(403).json({ error: 'Acesso negado: segredo de sincronização inválido.' });
-  }
-
-  const { products, date, dollarRate: newDollar, dollarVariation: newVar } = req.body;
-  if (!Array.isArray(products) || products.length === 0) {
-    return res.status(400).json({ error: 'Lista de produtos vazia ou inválida.' });
-  }
-
-  // Validação e Auto-Correção Rigorosa com o Guardião de Integridade
-  const { cleanProducts, auditReport } = sanitizeCatalog(products, { todayDateStr: date });
-
-  if (cleanProducts.length > 0) {
-    productsMap.clear();
-    cleanProducts.forEach(p => {
-      productsMap.set(String(p.id), p);
-    });
-  }
-
-  if (date) latestDate = date;
-  if (newDollar) dollarRate = newDollar;
-  if (newVar !== undefined) dollarVariation = newVar;
-
-  invalidateProductsCache();
-
-  // Salvar snapshot e relatório de auditoria em disco
-  scheduleCatalogSnapshot();
-  const auditPath = path.join(__dirname, 'data', 'audit_latest.json');
-  try {
-    fs.writeFileSync(auditPath, JSON.stringify(auditReport, null, 2), 'utf8');
-  } catch (e) {}
-
-  // Notificar clientes conectados via WebSocket com roteamento e throttle
-  broadcastCatalogReloaded({
-    total: productsMap.size,
-    latestDate,
-    dollarRate,
-    dollarVariation
-  });
-
-  console.log(`[Push Sync] ✅ Catálogo atualizado com sucesso! ${productsMap.size} produtos recebidos. Data: ${latestDate}`);
-  res.json({ success: true, count: productsMap.size, date: latestDate, audit: auditReport });
-}));
-
-// Endpoint do Painel Admin para Importar / Adicionar Preços do Dia diretamente
-app.post('/api/admin/daily-prices', requireAdminApi, asyncHandler(async (req, res) => {
-  const { rawText, date, mode = 'replace', dollarRate: newDollar, dollarVariation: newVar } = req.body || {};
-  if (!rawText || typeof rawText !== 'string' || !rawText.trim()) {
-    return res.status(400).json({ error: 'Nenhum texto de produtos fornecido.' });
-  }
-
-  const targetDate = date || `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-
-  // 1. Processar texto e filtrar Hotwav / Seminovos
-  const importResult = processDailyPricesText(rawText, { dateStr: targetDate });
-  if (!importResult.success || importResult.products.length === 0) {
-    return res.status(400).json({
-      error: 'Nenhum produto válido encontrado para importação.',
-      stats: importResult.stats
-    });
-  }
-
-  // 2. Passar pelo Sanitizer / Guardião de Integridade
-  const { cleanProducts, auditReport } = sanitizeCatalog(importResult.products, { todayDateStr: targetDate });
-
-  if (cleanProducts.length === 0) {
-    return res.status(400).json({
-      error: 'Todos os produtos foram filtrados pelo sistema anti-erros.',
-      stats: importResult.stats,
-      audit: auditReport
-    });
-  }
-
-  if (mode === 'append') {
-    cleanProducts.forEach(p => {
-      productsMap.set(String(p.id), p);
-    });
-  } else {
-    productsMap.clear();
-    cleanProducts.forEach(p => {
-      productsMap.set(String(p.id), p);
-    });
-  }
-
-  latestDate = targetDate;
-  if (newDollar) dollarRate = newDollar;
-  if (newVar !== undefined) dollarVariation = newVar;
-
-  invalidateProductsCache();
-  scheduleCatalogSnapshot();
-
-  const auditPath = path.join(__dirname, 'data', 'audit_latest.json');
-  try {
-    fs.writeFileSync(auditPath, JSON.stringify(auditReport, null, 2), 'utf8');
-  } catch (e) {}
-
-  broadcastCatalogReloaded({
-    total: productsMap.size,
-    latestDate,
-    dollarRate,
-    dollarVariation
-  });
-
-  console.log(`[Admin Daily Prices] ✅ ${cleanProducts.length} produtos adicionados com sucesso pelo painel admin. Total no catálogo: ${productsMap.size}`);
-  res.json({
-    success: true,
-    totalCatalog: productsMap.size,
-    added: cleanProducts.length,
-    date: latestDate,
-    stats: importResult.stats,
-    audit: auditReport
-  });
-}));
-
-// Endpoint de Saúde e Diagnóstico da Auditoria Anti-Erros
-app.get(['/api/health', '/api/v1/health', '/api/audit'], asyncHandler(async (req, res) => {
-  const auditPath = path.join(__dirname, 'data', 'audit_latest.json');
-  let audit = null;
-  if (fs.existsSync(auditPath)) {
-    try { audit = JSON.parse(fs.readFileSync(auditPath, 'utf8')); } catch (e) {}
-  }
-
-  const total = productsMap.size;
-  const isHealthy = total > 50 && (!audit || audit.passed !== false);
-
-  res.json({
-    status: isHealthy ? 'HEALTHY' : 'WARNING',
-    totalProducts: total,
-    latestDate,
-    dollarRate,
-    dollarVariation,
-    auditReport: audit,
-    antiAtivadosActive: true,
-    antiAndroidActive: true,
-    antiSeminovoActive: true,
-    zeroErrors: true,
-    timestamp: new Date().toISOString()
-  });
-}));
+// Estado básico do catálogo manual, sem certificações de auditoria.
+app.get(['/api/health', '/api/v1/health'], (req, res) => {
+  res.json({ status: 'OK', mode: 'manual', totalProducts: productsMap.size, latestDate });
+});
 
 // Local client socket connection com Anti-Pirataria e segregação de salas
 localIo.on('connection', async (clientSocket) => {
@@ -1759,96 +1181,29 @@ function loadOfflineCatalog() {
       items.forEach(p => productsMap.set(String(p.id), p));
       totalSuppliers = new Set(items.map(p => p.supplier?.name).filter(Boolean)).size;
       latestDate = '10-09';
-      console.log(`[PXT Cache] ✅ ${items.length} produtos carregados do cache offline.`);
+      console.log(`[Catálogo local] ✅ ${items.length} produtos carregados do cache offline.`);
     }
   } catch (err) {
-    console.warn('[PXT Cache] Falha ao carregar cache offline:', err.message);
+    console.warn('[Catálogo local] Falha ao carregar cache offline:', err.message);
   }
 }
 
 // Start service
 async function start() {
   await auth.initAuth();
-
-  server.listen(PORT, async () => {
-    // Cotação do dólar ao vivo imediatamente e a cada 1 minuto
+  const savedProducts = getHistoricalCatalog('latest');
+  for (const p of savedProducts) {
+    if (p && p.id && !isDisallowedProduct(p)) productsMap.set(String(p.id), p);
+  }
+  latestDate = savedProducts.map(p => p.priceDate || p.sheetDate || '')
+    .filter(date => /^\d{2}-\d{2}$/.test(date))
+    .sort((a, b) => (b.slice(3) + b.slice(0, 2)).localeCompare(a.slice(3) + a.slice(0, 2)))[0] || '';
+  loadOfflineCatalog();
+  server.listen(PORT, () => {
+    console.log(`[Catálogo manual] ${productsMap.size} produtos disponíveis na porta ${PORT}.`);
     if (process.env.DISABLE_LIVE_DOLLAR !== 'true') {
       fetchLiveDollar();
       setInterval(fetchLiveDollar, 60 * 1000);
-    }
-
-    console.log(`\n======================================================`);
-    console.log(`🚀 BUSCADOR APPLE PRO ONLINE!`);
-    console.log(`👉 Acesse no navegador: http://localhost:${PORT}`);
-    console.log(`======================================================\n`);
-
-    try {
-      // Pré-carregamento de Snapshot de Segurança para Garantia Instantânea de Produtos na Nuvem
-      const initialSnapshot = getHistoricalCatalog('latest');
-      if (initialSnapshot && initialSnapshot.length > 0) {
-        initialSnapshot.forEach(p => {
-          if (p && p.id) {
-            if (isDisallowedProduct(p)) return;
-            productsMap.set(String(p.id), p);
-            if (!latestDate && p.priceDate) latestDate = p.priceDate;
-          }
-        });
-        if (!latestDate) {
-          latestDate = `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-        }
-        console.log(`[Startup] 📦 ${productsMap.size} produtos pré-carregados instantaneamente do snapshot. Data: ${latestDate}`);
-      }
-
-      if (PAUSE_PXT_UPSTREAM) {
-        console.log(`[PXT] ⏸️ CONEXÃO COM O BUSCADOR OFICIAL PAUSADA!`);
-        console.log(`[PXT] 🔒 O servidor local NÃO fará login no PXT para não derrubar sua sessão original.`);
-        console.log(`[PXT] 📦 Carregando catálogo em modo offline / desenvolvimento...`);
-        loadOfflineCatalog();
-      } else {
-        await authenticate();
-        await fetchProducts();
-        connectPxtWebSocket();
-
-        // 1. WATCHDOG ATIVO: Verifica a cada 15 segundos se a conexão WebSocket está 100% viva
-        setInterval(() => {
-          if (!pxtSocket || !pxtSocket.connected) {
-            console.log('[Watchdog] ⚠️ Conexão caiu ou inativa. Iniciando auto-recuperação imediata...');
-            reconnectAndSync('watchdog_heartbeat_failed');
-          }
-        }, 15000);
-
-        // 2. Auto-Sync Ativo & Detecção de virada de dia a cada 1 minuto (60s)
-        setInterval(async () => {
-          try {
-            const todayStr = `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-            if ((latestDate && latestDate !== todayStr) || productsMap.size === 0) {
-              console.log(`[Auto-Sync] 📅 Virada de dia ou catálogo zerado (${latestDate} -> ${todayStr}). Atualizando catálogo...`);
-              await fetchProducts().catch(e => console.warn('[Auto-Sync] Erro no fetch:', e.message));
-            }
-            if (pxtSocket && pxtSocket.connected) {
-              const dateQuery = latestDate || todayStr;
-              pxtSocket.emit('products_sync_request', { date: dateQuery });
-            }
-          } catch (e) {
-            console.warn('[Auto-Sync] Erro no ciclo de sync:', e.message);
-          }
-        }, 60 * 1000);
-
-        // 3. Re-sincronização preventiva total a cada 10 minutos (garantia 100% à prova de falhas)
-        setInterval(async () => {
-          try {
-            console.log('[Auto-Sync] 🔄 Sincronização periódica preventiva de integridade (10m)...');
-            await fetchProducts().catch(e => console.warn('[Auto-Sync] Fetch periódico aviso:', e.message));
-          } catch (e) {}
-        }, 10 * 60 * 1000);
-      }
-    } catch (err) {
-      console.error('Falha na inicialização do serviço:', err.message);
-      if (!PAUSE_PXT_UPSTREAM) {
-        setInterval(() => {
-          if (!pxtSocket || !pxtSocket.connected) reconnectAndSync('startup_recovery');
-        }, 15000);
-      }
     }
   });
 }

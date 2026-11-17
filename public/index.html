@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Preços do Dia em Tempo Real</title>
+  <title>&#8203;</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -11,7 +11,8 @@
   <link rel="stylesheet" href="/css/quotes.css?v=1.3">
   <link rel="stylesheet" href="/css/catalog-layout.css?v=1.6">
   <link rel="stylesheet" href="/css/mobile.css?v=2.0">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310b981'%3E%3Cpath d='M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 1.01-2.85-.92.04-2.02.62-2.67 1.37-.58.66-1.09 1.73-1.02 2.76 1.03.08 2.07-.53 2.68-1.28z'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/css/price-access.css?v=card-cost-2">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000000'%3E%3Cpath d='M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 1.01-2.85-.92.04-2.02.62-2.67 1.37-.58.66-1.09 1.73-1.02 2.76 1.03.08 2.07-.53 2.68-1.28z'/%3E%3C/svg%3E">
   <script src="/socket.io/socket.io.js"></script>
   <style>
     /* GARANTIA ABSOLUTA: Oculta gaveta e menu mobile no Desktop */
@@ -47,7 +48,7 @@
     <div class="header-inner">
       
       <div class="header-left-group">
-        <a href="/login.html" class="brand-logo-btn" id="brandLogoLink" title="Acesso ao sistema" aria-label="Acesso ao sistema">
+        <a href="/" class="brand-logo-btn" id="brandLogoLink" title="Início" aria-label="Início">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 1.01-2.85-.92.04-2.02.62-2.67 1.37-.58.66-1.09 1.73-1.02 2.76 1.03.08 2.07-.53 2.68-1.28z"/>
           </svg>
@@ -69,16 +70,15 @@
 
       <!-- Live metrics & Actions -->
       <div class="header-right-group">
+        <div class="price-page-access">
+          <span class="price-live-label"><span class="price-live-dot" aria-hidden="true"></span>Ao vivo</span>
+          <a class="price-cost-link" id="priceCostLink" href="/preco-de-custo">Preço de custo</a>
+        </div>
 <!-- Cotação do Dólar Ao Vivo -->
         <div class="header-dollar-badge" id="headerDollarBadge" title="Cotação do Dólar Comercial em Tempo Real">
           <span class="dollar-symbol-tag">USD</span>
           <span class="dollar-rate-val" id="topHeaderDollarRate">R$ 5,34</span>
           <span class="dollar-var-badge" id="topHeaderDollarVar">-0,6%</span>
-        </div>
-
-        <div class="header-live-badge" title="Atualização em tempo real">
-          <span class="live-dot-pulse"></span>
-          <span class="live-badge-label">AO VIVO</span>
         </div>
 <button class="header-action-btn" id="btnOpenCalculator" onclick="openFreeCalculator()" title="Calculadora de Taxas da Maquininha" style="display: none;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -146,6 +146,7 @@
           <span>iPhone</span>
           <span class="pod-cat-count" id="countCatIPH">0</span>
         </button>
+        <button class="pod-cat-pill" data-category="IPH_CPO"><span>iPhone CPO</span><span class="pod-cat-count" id="countCatIPH_CPO">0</span></button>
         <button class="pod-cat-pill" data-category="MCB">
           <span class="cat-icon-svg">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -157,6 +158,7 @@
           <span>Mac</span>
           <span class="pod-cat-count" id="countCatMCB">0</span>
         </button>
+        <button class="pod-cat-pill" data-category="MCB_CPO"><span>Mac CPO</span><span class="pod-cat-count" id="countCatMCB_CPO">0</span></button>
         <button class="pod-cat-pill" data-category="IPAD">
           <span class="cat-icon-svg">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -167,6 +169,7 @@
           <span>iPad</span>
           <span class="pod-cat-count" id="countCatIPAD">0</span>
         </button>
+        <button class="pod-cat-pill" data-category="IPAD_CPO"><span>iPad CPO</span><span class="pod-cat-count" id="countCatIPAD_CPO">0</span></button>
         <button class="pod-cat-pill" data-category="RLG">
           <span class="cat-icon-svg">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -178,6 +181,7 @@
           <span>Apple Watch</span>
           <span class="pod-cat-count" id="countCatRLG">0</span>
         </button>
+        <button class="pod-cat-pill" data-category="RLG_CPO"><span>Apple Watch CPO</span><span class="pod-cat-count" id="countCatRLG_CPO">0</span></button>
         <button class="pod-cat-pill" data-category="PODS">
           <span class="cat-icon-svg">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -187,6 +191,7 @@
           <span>AirPods</span>
           <span class="pod-cat-count" id="countCatPODS">0</span>
         </button>
+        <button class="pod-cat-pill" data-category="PODS_CPO"><span>AirPods CPO</span><span class="pod-cat-count" id="countCatPODS_CPO">0</span></button>
         <button class="pod-cat-pill" data-category="ACSS">
           <span class="cat-icon-svg">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -197,6 +202,7 @@
           <span>Acessórios</span>
           <span class="pod-cat-count" id="countCatACSS">0</span>
         </button>
+        <button class="pod-cat-pill" data-category="ACSS_CPO"><span>Acessórios CPO</span><span class="pod-cat-count" id="countCatACSS_CPO">0</span></button>
         <button class="pod-cat-pill" data-category="IMAC">
           <span class="cat-icon-svg">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -208,6 +214,7 @@
           <span>iMac</span>
           <span class="pod-cat-count" id="countCatIMAC">0</span>
         </button>
+        <button class="pod-cat-pill" data-category="IMAC_CPO"><span>iMac CPO</span><span class="pod-cat-count" id="countCatIMAC_CPO">0</span></button>
       </div>
     </section>
 
@@ -215,7 +222,7 @@
     <main class="pod-matrix-container" id="podMatrixGrid">
       <div class="app-catalog-loader">
         <div class="app-spinner"></div>
-        <p style="color: var(--text-primary, #fff); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Sincronizando cotações Apple em tempo real...</p>
+        <p style="color: var(--text-primary, #fff); font-weight: 600; font-size: 1rem; margin-bottom: 6px;">Carregando a lista de produtos...</p>
         <span style="color: var(--text-muted, #888); font-size: 0.85rem;">Carregando modelos, cores e melhores preços dos fornecedores</span>
       </div>
     </main>
@@ -228,12 +235,19 @@
     <!-- Category Nav Pills (iPhone, Mac, iPad, Apple Watch, AirPods, Acessórios, iMac) -->
     <div class="category-pills-row" id="sfCategoryNav">
       <button class="cat-pill active" data-sf-category="IPH">iPhone</button>
+        <button class="cat-pill" data-sf-category="IPH_CPO"><span>iPhone CPO</span></button>
       <button class="cat-pill" data-sf-category="MCB">Mac</button>
+        <button class="cat-pill" data-sf-category="MCB_CPO"><span>Mac CPO</span></button>
       <button class="cat-pill" data-sf-category="IPAD">iPad</button>
+        <button class="cat-pill" data-sf-category="IPAD_CPO"><span>iPad CPO</span></button>
       <button class="cat-pill" data-sf-category="RLG">Apple Watch</button>
+        <button class="cat-pill" data-sf-category="RLG_CPO"><span>Apple Watch CPO</span></button>
       <button class="cat-pill" data-sf-category="PODS">AirPods</button>
+        <button class="cat-pill" data-sf-category="PODS_CPO"><span>AirPods CPO</span></button>
       <button class="cat-pill" data-sf-category="ACSS">Acessórios</button>
+        <button class="cat-pill" data-sf-category="ACSS_CPO"><span>Acessórios CPO</span></button>
       <button class="cat-pill" data-sf-category="IMAC">iMac</button>
+        <button class="cat-pill" data-sf-category="IMAC_CPO"><span>iMac CPO</span></button>
     </div>
 
     <!-- Filtros da vitrine (ocultados conforme solicitado) -->
@@ -700,11 +714,11 @@
     </div>
   </div>
 
-  <script src="/js/pricing-core.js?v=3.1"></script>
+  <script src="/js/pricing-core.js?v=cpo-6"></script>
   <script src="/js/quote-core.js?v=1.0"></script>
   <script src="/js/jspdf.umd.min.js"></script>
   <script src="/js/jspdf.plugin.autotable.min.js"></script>
   <script src="/js/quotes-module.js?v=1.2"></script>
-  <script src="/js/app.js?v=88.0"></script>
+  <script src="/js/app.js?v=cpo-categories-7"></script>
 </body>
 </html>

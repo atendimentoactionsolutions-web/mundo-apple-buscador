@@ -2,150 +2,105 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { once } = require('node:events');
-const { io } = require('socket.io-client');
 const { platform, temporaryProject, isolatedModules } = require('./helpers/platform');
+const { importCatalog } = require('../scripts/import-catalog');
 
-function quote() {
-  return { customer: { name: 'Test Customer' }, items: [
-    { name: 'iPhone', quantity: 2, unitPrice: 1000.55, discountType: 'FIXED', discountValue: 10, subtotal: 1 }
-  ], totals: { netTotal: 1 }, totalAmount: 1, paymentTerms: { selectedInstallmentCount: 12 } };
-}
+const list = 'IPHONE 17 PRO • 256GB • BLUE • Custo R$ 6.000,00\n' +
+  'HOTWAV A18 PRO MAX • 128/4 • BLACK • Custo R$ 880,00\n' +
+  'IPHONE 16 CPO • 128GB • WHITE • Custo R$ 4.199,00';
 
-test('API regression: sessions, store isolation, calculations and realtime updates', async t => {
-  const app = await platform(t);
-  await t.test('invalid, expired and blocked sessions cannot use authenticated APIs', async () => {
-    for (const token of ['', 'invalid', 'test-expired', 'test-blocked']) {
-      assert.equal((await app.request('/api/auth/me', token)).status, 401);
-      assert.equal((await app.request('/api/quotes', token)).status, 401);
-      const catalog = await app.request('/api/products', token);
-      assert.equal(catalog.body.isShielded, true);
-      assert.equal(catalog.body.data[0].supplier, null);
-    }
-    const response = await app.request('/api/auth/login', '', 'POST', { username: {}, password: [] });
-    assert.equal(response.status, 401);
-  });
-  await t.test('each store sees only its proposals, with totals recalculated on the server', async () => {
-    const created = await app.request('/api/quotes', 'test-a', 'POST', quote());
-    assert.equal(created.status, 200);
-    const saved = created.body.quote;
-    assert.equal(saved.items[0].subtotal, 1981.1);
-    assert.equal(saved.totalAmount, 1981.1);
-    assert.equal(saved.paymentTerms.installmentOptions[11].totalAmount, 1981.1);
-    assert.equal((await app.request(`/api/quotes/${saved.id}`, 'test-b')).status, 404);
-    assert.equal((await app.request(`/api/quotes/${saved.id}`, 'test-b', 'PUT', quote())).status, 404);
-    assert.equal((await app.request(`/api/quotes/${saved.id}`, 'test-b', 'DELETE')).status, 404);
-    assert.equal((await app.request(`/api/quotes/${saved.id}/duplicate`, 'test-b', 'POST', {})).status, 404);
-    const otherStore = await app.request('/api/quotes', 'test-b');
-    assert.equal(otherStore.body.quotes.length, 0);
-    assert.equal(otherStore.body.stats.totalQuotes, 0);
-    assert.equal((await app.request('/api/quotes', 'test-admin')).body.quotes.length, 1);
-    const ownerUpdate = await app.request(`/api/quotes/${saved.id}`, 'test-a', 'PUT', { ...quote(), createdBy: { id: 'store-b' } });
-    assert.equal(ownerUpdate.body.quote.createdBy.id, 'store-a');
-    const invalid = quote(); invalid.items[0].unitPrice = -1;
-    assert.equal((await app.request('/api/quotes', 'test-a', 'POST', invalid)).status, 400);
-    assert.equal((await app.request(`/api/quotes/${saved.id}/status`, 'test-a', 'PATCH', { status: '<script>' })).status, 400);
-    const history = await app.request('/api/products?date=yesterday', 'test-admin');
-    assert.equal(history.body.data.length, 0, 'Missing history never masquerades as today catalog');
-  });
-  await t.test('configuration updates preserve a zero fee and do not broadcast secret margins', async () => {
-    const socket = io(app.origin, { transports: ['websocket'], reconnection: false });
-    t.after(() => socket.disconnect());
-    await once(socket, 'init_stats');
-    const event = once(socket, 'margins_updated');
-    assert.equal((await app.request('/api/admin/margins', 'test-admin', 'POST', { categories: { IPH: 900 } })).status, 200);
-    assert.equal((await event).length, 0);
-    assert.equal((await app.request('/api/margins', 'test-a')).body.margins.categories.IPH, 400);
-    assert.equal((await app.request('/api/admin/card-rates', 'test-admin', 'POST', { baseRate: '0' })).status, 200);
-    assert.equal((await app.request('/api/admin/card-rates', 'test-admin')).body.rates.baseRate, 0);
-    assert.equal((await app.request('/api/admin/card-rates', 'test-admin', 'POST', { baseRate: 100 })).status, 400);
-  });
-  await t.test('logout disconnects only the matching authenticated socket', async () => {
-    const socket = io(app.origin, { transports: ['websocket'], reconnection: false, extraHeaders: { cookie: 'fornecedor_session=test-a' } });
-    t.after(() => socket.disconnect());
-    await once(socket, 'init_stats');
-    const disconnected = once(socket, 'disconnect');
-    assert.equal((await app.request('/api/auth/logout', 'test-a', 'POST', {})).status, 200);
-    await disconnected;
-    assert.equal((await app.request('/api/auth/me', 'test-a')).status, 401);
-    assert.equal((await app.request('/api/auth/me', 'test-admin')).status, 200);
-  });
-  await t.test('damaged data returns an error without replacing the existing records', async () => {
-    const file = path.join(app.root, 'data/users.json');
-    const backup = fs.readFileSync(file);
-    fs.writeFileSync(file, '{damaged');
-    assert.equal((await app.request('/api/auth/me', 'test-admin')).status, 500);
-    assert.equal(fs.readFileSync(file, 'utf8'), '{damaged');
-    fs.writeFileSync(file, backup);
-    const quotesFile = path.join(app.root, 'data/quotes.json');
-    fs.writeFileSync(quotesFile, '{damaged');
-    assert.equal((await app.request('/api/quotes', 'test-admin')).status, 500);
-    assert.equal(fs.readFileSync(quotesFile, 'utf8'), '{damaged');
-  });
-});
-
-test('a fresh installation cannot silently create an admin with a shared default password', async t => {
+test('manual import blocks unwanted products and never replaces the catalog with invalid input', t => {
   const root = temporaryProject(t);
-  const modules = isolatedModules(root, { BOOTSTRAP_ADMIN_PASSWORD: '' });
-  t.after(modules.close);
-  await assert.rejects(() => modules.load('auth.js').initAuth(), /preservados/);
-  assert.equal(fs.existsSync(path.join(root, 'data/users.json')), false);
+  const result = importCatalog(list, { root, date: '2026-11-12' });
+  assert.equal(result.total, 2);
+  assert.equal(result.blocked.blockedHotwav, 1);
+  assert.equal(result.blocked.blockedOthers, 0);
+  const file = path.join(root, 'data/snapshot_latest.json');
+  const before = fs.readFileSync(file, 'utf8');
+  assert.equal(JSON.parse(before)[0].supplier, null);
+  for (const raw of ['', 'unrecognized input', 'HOTWAV A17 • 128/4 • BLACK • Custo R$ 660,00']) {
+    assert.throws(() => importCatalog(raw, { root, date: '2026-11-12' }));
+    assert.equal(fs.readFileSync(file, 'utf8'), before);
+  }
+  assert.throws(() => importCatalog(list, { root, date: '2026-02-30' }), /Data inválida/);
 });
 
-test('a failed initial upstream connection keeps the cached catalog and schedules recovery', async t => {
-  const app = await platform(t, { PAUSE_PXT_UPSTREAM: 'false', PXT_EMAIL: '', PXT_PASSWORD: '', PXT_AUTH_TOKEN: '' });
+test('public API uses saved products and DFU without accounts or automatic collection', async t => {
+  const app = await platform(t);
   const catalog = await app.request('/api/products');
   assert.equal(catalog.status, 200);
-  assert.equal(catalog.body.data.length, 1);
-  assert.ok(app.intervals.includes(15000));
+  assert.equal(catalog.body.total, 1);
+  assert.equal(catalog.body.isShielded, true);
+  const p = catalog.body.data[0];
+  assert.equal(p.price, 6850, '6000 cost + 100 DFU + 750 margin');
+  assert.equal(p.supplier, null);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(app.root, 'data/users.json'))), []);
+  assert.equal((await app.request('/api/auth/me', 'test-admin')).status, 401);
+  assert.equal((await app.request('/api/auth/login', '', 'POST', { username: 'admin', password: 'anything' })).status, 401);
+  const health = await app.request('/api/health');
+  assert.equal(health.body.mode, 'manual');
+  assert.equal(health.body.auditReport, undefined);
+  assert.equal(app.intervals.length, 0, 'No background product collection or recovery loop');
+  for (const route of ['/api/sync', '/api/admin/push-catalog', '/api/price-history/id', '/api/audit']) {
+    const response = await fetch(app.origin + route, { method: route.includes('sync') || route.includes('push') ? 'POST' : 'GET' });
+    assert.equal(response.status, 404);
+  }
+});
+
+test('an imported list survives restart with its original date and final selling prices', async t => {
+  const root = temporaryProject(t);
+  importCatalog(list, { root, date: '2026-11-12' });
+  for (let i = 0; i < 2; i++) {
+    const modules = isolatedModules(root);
+    const service = modules.load('server.js');
+    await service.start();
+    if (!service.server.listening) await require('node:events').once(service.server, 'listening');
+    const response = await fetch(`http://127.0.0.1:${service.server.address().port}/api/products`);
+    const catalog = await response.json();
+    assert.equal(catalog.latestDate, '12-11');
+    assert.equal(catalog.data.length, 2);
+    assert.equal(catalog.data.find(p => p.name.includes('CPO')).condition, 'CPO');
+    assert.equal(catalog.data[0].price, 6850);
+    modules.close();
+    await new Promise(resolve => service.localIo.close(resolve));
+  }
 });
 
 
-test('only Cledson controls persisted admin pricing and updates reach authenticated sessions', async t => {
+test('cost API includes DFU once without retail margin or supplier contacts', async t => {
   const app = await platform(t);
-  const connect = async token => {
-    const socket = io(app.origin, { transports: ['websocket'], reconnection: false,
-      ...(token ? { extraHeaders: { cookie: `fornecedor_session=${token}` } } : {}) });
-    t.after(() => socket.disconnect());
-    await once(socket, 'init_stats');
-    return socket;
-  };
-  const admin = await connect('test-admin');
-  const controller = await connect('test-cledson');
-  const visitor = await connect('');
-  let publicEvents = 0;
-  visitor.on('pricing_updated', () => publicEvents++);
-  for (const token of ['', 'invalid', 'test-admin', 'test-a', 'test-blocked']) {
-    const denied = await app.request('/api/pricing/admin-dfu', token, 'POST', { active: false });
-    assert.ok([401, 403].includes(denied.status));
-  }
-  assert.equal((await app.request('/api/pricing/admin-dfu', 'test-cledson', 'POST', { active: 'false' })).status, 400);
-  for (const active of [false, true, false]) {
-    const adminEvent = once(admin, 'pricing_updated');
-    const controllerEvent = once(controller, 'pricing_updated');
-    const result = await app.request('/api/pricing/admin-dfu', 'test-cledson', 'POST', { active });
-    assert.equal(result.status, 200);
-    assert.equal(result.body.dfuActive, false);
-    assert.equal(result.body.adminDfuActive, active);
-    const [adminState] = await adminEvent;
-    const [controllerState] = await controllerEvent;
-    assert.equal(adminState.dfuActive, active);
-    assert.equal(adminState.adminDfuActive, undefined);
-    assert.equal(controllerState.dfuActive, false);
-    assert.equal(controllerState.adminDfuActive, active);
-    assert.equal((await app.request('/api/auth/me', 'test-admin')).body.dfuActive, active);
-    assert.equal((await app.request('/api/auth/me', 'test-cledson')).body.dfuActive, false);
-    assert.equal(JSON.parse(fs.readFileSync(path.join(app.root, 'data/admin-pricing.json'))).active, active);
-    assert.equal((await app.request('/api/products', 'test-cledson')).body.data[0].price, 6000);
-  }
-  assert.equal(publicEvents, 0);
-  const restarted = isolatedModules(app.root);
-  const server = restarted.load('server.js');
-  await server.start();
-  if (!server.server.listening) await once(server.server, 'listening');
-  t.after(async () => { restarted.close(); await new Promise(resolve => server.localIo.close(resolve)); });
-  const response = await fetch(`http://127.0.0.1:${server.server.address().port}/api/auth/me`, {
-    headers: { cookie: 'fornecedor_session=test-admin' }
+  const cost = await app.request('/api/cost-products');
+  const retail = await app.request('/api/products');
+  assert.equal(cost.status, 200);
+  assert.equal(cost.body.pricingMode, 'cost');
+  assert.equal(cost.body.dfuActive, true);
+  assert.equal(cost.body.isShielded, true);
+  assert.equal(cost.body.data[0].price, 6100);
+  assert.equal(cost.body.data[0].supplier, null);
+  assert.equal(retail.body.data[0].price, 6850);
+  assert.equal((await app.request('/api/products')).body.data[0].price, 6850);
+});
+
+
+test('partial catalog updates report the newest date regardless of product order', async t => {
+  const root = temporaryProject(t);
+  importCatalog(list, { root, date: '2026-11-12' });
+  const file = path.join(root, 'data/snapshot_latest.json');
+  const products = JSON.parse(fs.readFileSync(file, 'utf8'));
+  products[1].priceDate = '14-11';
+  products[1].sheetDate = '14-11';
+  fs.writeFileSync(file, JSON.stringify(products));
+  const modules = isolatedModules(root);
+  const service = modules.load('server.js');
+  await service.start();
+  if (!service.server.listening) await require('node:events').once(service.server, 'listening');
+  t.after(async () => {
+    modules.close();
+    await new Promise(resolve => service.localIo.close(resolve));
   });
-  assert.equal((await response.json()).dfuActive, false);
+  const origin = `http://127.0.0.1:${service.server.address().port}`;
+  for (const route of ['/api/health', '/api/products', '/api/cost-products']) {
+    const result = await (await fetch(origin + route)).json();
+    assert.equal(result.latestDate, '14-11');
+  }
 });

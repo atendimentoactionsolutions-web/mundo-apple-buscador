@@ -13,7 +13,7 @@ function setup(user, pathname = '/') {
     'txtClientModeBtn'].map(id => [id, { textContent: '', style: {}, attributes: {},
     setAttribute(name, value) { this.attributes[name] = value; }
   }]));
-  const context = vm.createContext({ currentUser: user,
+  const context = vm.createContext({ currentUser: user, IS_COST_PAGE: pathname === "/preco-de-custo",
     syncDfuButtons() {},
     syncMobileDrawerActions() {},
     location: { pathname, search: '' },

@@ -42,7 +42,7 @@ if not exist ".env" (
 )
 
 echo [OK] Node.js detectado!
-echo [OK] Iniciando Guardião Auto-Healer e Servidor Local...
+echo [OK] Iniciando catálogo manual...
 echo.
 echo ======================================================================
 echo 🌐 Painel da Loja: http://localhost:3333
@@ -53,7 +53,7 @@ echo.
 :: Abre o navegador automaticamente após 2 segundos
 start "" cmd /c "timeout /t 2 /nobreak >nul & start http://localhost:3333"
 
-:: Executa o Guardião (que mantém o servidor e a sincronização vivos)
-node scripts/auto-healer.js
+:: Inicia o servidor do catálogo manual
+node server.js
 
 pause

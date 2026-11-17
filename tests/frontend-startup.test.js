@@ -14,8 +14,8 @@ function element() {
     appendChild() {}, focus() {}, blur() {}, parentElement: { style: {} }
   };
 }
-async function setup(user = null, products = [], failure = false) {
-  const ids = ['viewStoreFront', 'viewPricesDay', 'viewQuotes', 'storefrontGrid', 'podMatrixGrid', 'sfShownCountText',
+async function setup(user = null, products = [], failure = false, pathname = "/") {
+  const ids = ['clientShowcaseModal', 'showcaseModelTitle', 'showcaseModelSubtitle', 'clientShowcaseBody', 'priceCostLink', 'tabStoreFront', 'btnOpenCalculator', 'btnExportTopHeader', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp', 'mobileDrawerCalcBtn', 'mobileDrawerExportBtn', 'mobileDrawerExportAllBtn', 'brandLogoLink', 'viewStoreFront', 'viewPricesDay', 'viewQuotes', 'storefrontGrid', 'podMatrixGrid', 'sfShownCountText',
     'catalogHeading', 'catalogDescription', 'catalogModeLabel', 'btnClientMode', 'txtClientModeBtn', 'sfSearchInput',
     'sfSearchClearBtn', 'qbItemsList', 'qbCatalogDropdown', 'qbCatalogSearchInput'];
   const elements = new Map(ids.map(id => [id, element()]));
@@ -31,7 +31,7 @@ async function setup(user = null, products = [], failure = false) {
       body: element(), cookie: '', addEventListener() {} },
     localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
     io: () => ({ on: (event, handler) => events.set(event, handler), emit() {} }),
-    location: { pathname: '/', search: '', origin: 'http://localhost' }, navigator: {}, innerWidth: 1440,
+    location: { pathname, search: '', origin: 'http://localhost' }, navigator: {}, innerWidth: 1440,
     addEventListener() {}, setInterval() {}, setTimeout: () => 1, requestAnimationFrame: fn => { queueMicrotask(fn); return 1; },
     console: { log() {}, warn() {}, error: (...args) => errors.push(args) },
     fetch: async (url, options) => {
@@ -170,4 +170,154 @@ test('admin receives DFU changes in both catalogs and open simulator without acc
     assert.equal(app.read('currentSimData.cashPrice'), 19100);
   }
   assert.equal(app.errors.length, 0);
+});
+
+
+test('public catalog keeps calculator and exports available without adding DFU twice', async () => {
+  const app = await setup(null, [{ id: 'public-phone', name: 'IPHONE 17 PRO', category: 'IPH', price: 6850 }]);
+  assert.equal(app.errors.length, 0);
+  assert.equal(app.read('currentUser'), null);
+  assert.equal(app.context.IS_CATALOG_SHIELDED, true);
+  assert.equal(app.read('applyDFU(6850, "IPH", "IPHONE 17 PRO")'), 6850);
+  for (const id of ['btnOpenCalculator', 'btnExportTopHeader', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp']) {
+    assert.equal(app.elements.get(id).style.display, 'inline-flex');
+  }
+  app.context.syncMobileDrawerActions();
+  for (const id of ['mobileDrawerCalcBtn', 'mobileDrawerExportBtn', 'mobileDrawerExportAllBtn']) {
+    assert.equal(app.elements.get(id).style.display, 'flex');
+  }
+  assert.equal(app.elements.get('brandLogoLink').href, '/');
+  let scope;
+  app.context.openExportSelectionModal = value => { scope = value; };
+  app.context.openStorefrontExportModal();
+  assert.equal(scope, 'SF');
+});
+
+
+test('cost page loads a separate price list and cache with no extra DFU or margin', async () => {
+  const app = await setup(null, [{ id: 'cost-phone', name: 'IPHONE 17 PRO', category: 'IPH', price: 6100 }], false, '/preco-de-custo');
+  assert.equal(app.errors.length, 0);
+  assert.ok(app.requests.some(url => url.startsWith('/api/cost-products')));
+  assert.ok(!app.requests.some(url => url.startsWith('/api/products')));
+  assert.equal(app.read('getCatalogCacheKey()'), 'cost_products_dfu');
+  assert.equal(app.read('getProductRetailPrice(allProducts[0])'), 6100);
+  assert.equal(app.elements.get('catalogHeading').textContent, 'Preço de custo');
+  assert.equal(app.elements.get('priceCostLink').href, '/');
+  assert.equal(app.elements.get('priceCostLink').textContent, 'Preço real');
+});
+
+
+test('each card opens its own costs by ID without changing sale prices or mixing Mac RAM', async () => {
+  const products = [
+    { id: 'mac-16', name: 'MACBOOK AIR M5 13"', category: 'MCB', storage: '512GB', ram: '16GB', region: '16GB', color: 'SILVER', price: 9000 },
+    { id: 'mac-24', name: 'MACBOOK AIR M5 13"', category: 'MCB', storage: '512GB', ram: '24GB', region: '24GB', color: 'SILVER', price: 11000 }
+  ];
+  const app = await setup(null, products);
+  app.read("sfCurrentCategory = 'MCB'; renderStoreFront();");
+  assert.match(app.elements.get('storefrontGrid').innerHTML, /mock-card-actions[\s\S]*?<span>Ver<\/span>[\s\S]*?openCardCostModal/);
+  const [key, card] = Array.from(app.context.storefrontCardMap).find(([, c]) => c.productIds.includes('mac-16'));
+  let requested;
+  app.context.fetch = async (url, options) => {
+    requested = { url, options };
+    return { ok: true, json: async () => ({ success: true, dfuActive: true, data: [
+      { id: 'mac-16', color: 'SILVER', price: 8000 },
+      { id: 'mac-24', color: 'SILVER', price: 10000 }
+    ] }) };
+  };
+  const button = { innerHTML: 'Custo', disabled: false };
+  await app.context.openCardCostModal(key, button);
+  assert.equal(requested.url, '/api/cost-products');
+  assert.equal(requested.options.cache, 'no-store');
+  assert.equal(button.disabled, false);
+  assert.equal(button.innerHTML, 'Custo');
+  assert.match(app.elements.get('showcaseModelSubtitle').textContent, /DFU ativo.*Sem margem/);
+  const modal = app.elements.get('clientShowcaseBody').innerHTML;
+  assert.match(modal, /8\.000/);
+  assert.doesNotMatch(modal, /10\.000/);
+  assert.equal(app.read('allProducts[0].price'), 9000);
+  app.context.openClientShowcaseModal(key);
+  assert.doesNotMatch(app.elements.get('showcaseModelSubtitle').textContent, /Sem margem/);
+  assert.match(app.elements.get('clientShowcaseBody').innerHTML, /9\.000/);
+});
+
+test('Apple TV capacities appear in accessories in both catalogs', async () => {
+  const products = [
+    { id: 'tv128', name: 'APPLE TV 4K', category: 'APPLE_TV', storage: '128GB', color: 'SEM COR', price: 1499 },
+    { id: 'tv64', name: 'APPLE TV 4K', category: 'APPLE_TV', storage: '64GB', color: 'SEM COR', price: 1399 }
+  ];
+  for (const pathname of ['/', '/preco-de-custo']) {
+    const app = await setup(null, products, false, pathname);
+    app.read("sfCurrentCategory = 'ACSS'; renderStoreFront(); podCurrentCategory = 'ACSS'; renderPricesOfTheDay();");
+    for (const id of ['storefrontGrid', 'podMatrixGrid']) {
+      const html = app.elements.get(id).innerHTML;
+      assert.match(html, /APPLE TV 4K/i);
+      assert.match(html, /128GB/);
+      assert.match(html, /64GB/);
+    }
+    assert.equal(app.errors.length, 0);
+  }
+});
+
+test('every current catalog offer is visible in its category, all products and model search', async () => {
+  const file = path.join(__dirname, '../data/snapshot_latest.json');
+  if (!fs.existsSync(file)) return;
+  const products = JSON.parse(fs.readFileSync(file, 'utf8'));
+  for (const pathname of ['/', '/preco-de-custo']) {
+    const app = await setup(null, [], false, pathname);
+    for (const p of products) {
+      app.context.auditProduct = p;
+      const category = (p.category === 'APPLE_TV' ? 'ACSS' : p.category) + (p.condition === 'CPO' ? '_CPO' : '');
+      app.read('allProducts = [auditProduct];');
+      for (const cat of ['ALL', category]) {
+        app.read(`sfCurrentCategory = ${JSON.stringify(cat)}; podCurrentCategory = ${JSON.stringify(cat)}; renderStoreFront(); renderPricesOfTheDay();`);
+        assert.ok(Array.from(app.context.storefrontCardMap.values()).some(c => c.productIds.includes(p.id)), `${pathname} ${cat}: ${p.name} ${p.storage} ${p.color}`);
+        assert.doesNotMatch(app.elements.get('podMatrixGrid').innerHTML, /Nenhum produto encontrado/, `${pathname}: ${p.name}`);
+      }
+      app.elements.get('sfSearchInput').value = p.name;
+      app.read('renderStoreFront();');
+      assert.ok(Array.from(app.context.storefrontCardMap.values()).some(c => c.productIds.includes(p.id)), `search: ${p.name}`);
+      app.elements.get('sfSearchInput').value = '';
+    }
+    assert.equal(app.errors.length, 0);
+  }
+});
+
+test('grouping the full current catalog preserves every offer ID', async () => {
+  const file = path.join(__dirname, '../data/snapshot_latest.json');
+  if (!fs.existsSync(file)) return;
+  const products = JSON.parse(fs.readFileSync(file, 'utf8'));
+  for (const pathname of ['/', '/preco-de-custo']) {
+    const app = await setup(null, products, false, pathname);
+    const visible = new Set();
+    for (const cat of ['IPH', 'MCB', 'IPAD', 'RLG', 'PODS', 'ACSS', 'IMAC', 'IPH_CPO', 'MCB_CPO', 'IPAD_CPO', 'RLG_CPO', 'PODS_CPO', 'ACSS_CPO', 'IMAC_CPO']) {
+      app.read(`sfCurrentCategory = ${JSON.stringify(cat)}; renderStoreFront();`);
+      for (const card of app.context.storefrontCardMap.values()) for (const id of card.productIds) visible.add(id);
+    }
+    assert.deepEqual([...visible].sort(), products.map(p => p.id).sort());
+    assert.equal(app.errors.length, 0);
+  }
+});
+
+test('CPO categories separate phones, Macs and iPads from sealed products', async () => {
+  const products = ['IPH', 'MCB', 'IPAD', 'RLG'].flatMap(category => [
+    { id: category, name: category, category, price: 1000, condition: 'NOVO' },
+    { id: category + '-cpo', name: category + ' CPO', category, price: 900, condition: 'CPO' }
+  ]);
+  for (const pathname of ['/', '/preco-de-custo']) {
+    const app = await setup(null, products, false, pathname);
+    for (const category of ['IPH', 'MCB', 'IPAD', 'RLG']) {
+      for (const suffix of ['', '_CPO']) {
+        app.read(`sfCurrentCategory = '${category}${suffix}'; podCurrentCategory = '${category}${suffix}'; renderStoreFront(); renderPricesOfTheDay();`);
+        const ids = Array.from(app.context.storefrontCardMap.values()).flatMap(c => Array.from(c.productIds));
+        assert.deepEqual(ids, [category + (suffix ? '-cpo' : '')]);
+        const html = app.elements.get('podMatrixGrid').innerHTML;
+        if (suffix) assert.match(html, /CPO/); else assert.doesNotMatch(html, /CPO/);
+      }
+    }
+  }
+  const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+  for (const attr of ['data-category', 'data-sf-category']) {
+    assert.ok(html.indexOf(`${attr}="IPH"`) < html.indexOf(`${attr}="IPH_CPO"`));
+    assert.ok(html.indexOf(`${attr}="IPH_CPO"`) < html.indexOf(`${attr}="MCB"`));
+  }
 });

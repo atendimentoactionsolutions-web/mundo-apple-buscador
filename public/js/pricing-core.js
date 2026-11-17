@@ -198,7 +198,7 @@
 
   // Regiões/Fornecedores Bloqueados (Tatuapé, Brás, Guarulhos)
   function isDisallowedSupplierRegion(p) {
-    // Todos os fornecedores oficiais da PXT são permitidos para garantir 100% de paridade de preços
+    // A validação de produtos é independente do fornecedor
     return false;
   }
 
@@ -206,7 +206,7 @@
     if (!p) return true;
     if (isAtivadoProduct(p)) return true;
     if (isDisallowedSupplierRegion(p)) return true;
-    if (isCpoProduct(p)) return true;
+
     if (isAsIsProduct(p)) return true;
     const cat = (p.category || '').toUpperCase().trim();
     const name = (p.name || '').toUpperCase();
