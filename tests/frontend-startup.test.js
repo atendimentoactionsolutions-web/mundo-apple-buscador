@@ -173,7 +173,7 @@ test('admin receives DFU changes in both catalogs and open simulator without acc
 });
 
 
-test('public catalog keeps calculator and exports available without adding DFU twice', async () => {
+test('public catalog keeps calculator and exports available without adding DFU twice or showing costs', async () => {
   const app = await setup(null, [{ id: 'public-phone', name: 'IPHONE 17 PRO', category: 'IPH', price: 6850 }]);
   assert.equal(app.errors.length, 0);
   assert.equal(app.read('currentUser'), null);
@@ -186,7 +186,9 @@ test('public catalog keeps calculator and exports available without adding DFU t
   for (const id of ['mobileDrawerCalcBtn', 'mobileDrawerExportBtn', 'mobileDrawerExportAllBtn']) {
     assert.equal(app.elements.get(id).style.display, 'flex');
   }
-  assert.equal(app.elements.get('brandLogoLink').href, '/');
+  assert.equal(app.elements.get('brandLogoLink').href, '/login.html');
+  assert.equal(app.elements.get('priceCostLink').style.display, 'none');
+  assert.doesNotMatch(app.elements.get('storefrontGrid').innerHTML, /mock-card-cost-btn|openCardCostModal/);
   let scope;
   app.context.openExportSelectionModal = value => { scope = value; };
   app.context.openStorefrontExportModal();
@@ -194,8 +196,12 @@ test('public catalog keeps calculator and exports available without adding DFU t
 });
 
 
-test('cost page loads a separate price list and cache with no extra DFU or margin', async () => {
-  const app = await setup(null, [{ id: 'cost-phone', name: 'IPHONE 17 PRO', category: 'IPH', price: 6100 }], false, '/preco-de-custo');
+test('cost page requires admin login and loads a separate price list without extra DFU or margin', async () => {
+  const visitorApp = await setup(null, [{ id: 'cost-phone', name: 'IPHONE 17 PRO', category: 'IPH', price: 6100 }], false, '/preco-de-custo');
+  assert.ok(!visitorApp.requests.some(url => url.startsWith('/api/cost-products')));
+  assert.equal(visitorApp.elements.get('priceCostLink').style.display, 'none');
+
+  const app = await setup({ id: 'admin-felipe', username: 'felipe', role: 'admin' }, [{ id: 'cost-phone', name: 'IPHONE 17 PRO', category: 'IPH', price: 6100 }], false, '/preco-de-custo');
   assert.equal(app.errors.length, 0);
   assert.ok(app.requests.some(url => url.startsWith('/api/cost-products')));
   assert.ok(!app.requests.some(url => url.startsWith('/api/products')));
@@ -204,24 +210,32 @@ test('cost page loads a separate price list and cache with no extra DFU or margi
   assert.equal(app.elements.get('catalogHeading').textContent, 'Preço de custo');
   assert.equal(app.elements.get('priceCostLink').href, '/');
   assert.equal(app.elements.get('priceCostLink').textContent, 'Preço real');
+  assert.equal(app.elements.get('priceCostLink').style.display, 'inline-flex');
+  assert.equal(app.elements.get('brandLogoLink').href, '/admin.html');
 });
 
 
-test('each card opens its own costs by ID without changing sale prices or mixing Mac RAM', async () => {
+test('admin cards open their own costs by ID while hiding costs for visitors and client mode', async () => {
   const products = [
-    { id: 'mac-16', name: 'MACBOOK AIR M5 13"', category: 'MCB', storage: '512GB', ram: '16GB', region: '16GB', color: 'SILVER', price: 9000 },
-    { id: 'mac-24', name: 'MACBOOK AIR M5 13"', category: 'MCB', storage: '512GB', ram: '24GB', region: '24GB', color: 'SILVER', price: 11000 }
+    { id: 'mac-16', name: 'MACBOOK AIR M5 13"', category: 'MCB', storage: '512GB', ram: '16GB', region: '16GB', color: 'SILVER', price: 8000 },
+    { id: 'mac-24', name: 'MACBOOK AIR M5 13"', category: 'MCB', storage: '512GB', ram: '24GB', region: '24GB', color: 'SILVER', price: 10000 }
   ];
-  const app = await setup(null, products);
+  const visitor = await setup(null, products);
+  visitor.read("sfCurrentCategory = 'MCB'; renderStoreFront();");
+  assert.doesNotMatch(visitor.elements.get('storefrontGrid').innerHTML, /mock-card-cost-btn|openCardCostModal/);
+
+  const app = await setup({ id: 'admin-felipe', username: 'felipe', role: 'admin' }, products);
+  assert.equal(app.elements.get('brandLogoLink').href, '/admin.html');
+  assert.equal(app.elements.get('priceCostLink').style.display, 'inline-flex');
   app.read("sfCurrentCategory = 'MCB'; renderStoreFront();");
   assert.match(app.elements.get('storefrontGrid').innerHTML, /mock-card-actions[\s\S]*?<span>Ver<\/span>[\s\S]*?openCardCostModal/);
-  const [key, card] = Array.from(app.context.storefrontCardMap).find(([, c]) => c.productIds.includes('mac-16'));
+  const [key] = Array.from(app.context.storefrontCardMap).find(([, c]) => c.productIds.includes('mac-16'));
   let requested;
   app.context.fetch = async (url, options) => {
     requested = { url, options };
     return { ok: true, json: async () => ({ success: true, dfuActive: true, data: [
-      { id: 'mac-16', color: 'SILVER', price: 8000 },
-      { id: 'mac-24', color: 'SILVER', price: 10000 }
+      { id: 'mac-16', color: 'SILVER', price: 8200 },
+      { id: 'mac-24', color: 'SILVER', price: 10200 }
     ] }) };
   };
   const button = { innerHTML: 'Custo', disabled: false };
@@ -232,12 +246,13 @@ test('each card opens its own costs by ID without changing sale prices or mixing
   assert.equal(button.innerHTML, 'Custo');
   assert.match(app.elements.get('showcaseModelSubtitle').textContent, /DFU ativo.*Sem margem/);
   const modal = app.elements.get('clientShowcaseBody').innerHTML;
-  assert.match(modal, /8\.000/);
-  assert.doesNotMatch(modal, /10\.000/);
-  assert.equal(app.read('allProducts[0].price'), 9000);
+  assert.match(modal, /8\.200/);
+  assert.doesNotMatch(modal, /10\.200/);
   app.context.openClientShowcaseModal(key);
   assert.doesNotMatch(app.elements.get('showcaseModelSubtitle').textContent, /Sem margem/);
-  assert.match(app.elements.get('clientShowcaseBody').innerHTML, /9\.000/);
+  app.context.toggleClientMode();
+  assert.equal(app.elements.get('priceCostLink').style.display, 'none');
+  assert.doesNotMatch(app.elements.get('storefrontGrid').innerHTML, /mock-card-cost-btn|openCardCostModal/);
 });
 
 test('Apple TV capacities appear in accessories in both catalogs', async () => {
@@ -245,8 +260,8 @@ test('Apple TV capacities appear in accessories in both catalogs', async () => {
     { id: 'tv128', name: 'APPLE TV 4K', category: 'APPLE_TV', storage: '128GB', color: 'SEM COR', price: 1499 },
     { id: 'tv64', name: 'APPLE TV 4K', category: 'APPLE_TV', storage: '64GB', color: 'SEM COR', price: 1399 }
   ];
-  for (const pathname of ['/', '/preco-de-custo']) {
-    const app = await setup(null, products, false, pathname);
+  for (const [pathname, user] of [['/', null], ['/preco-de-custo', { id: 'admin-felipe', username: 'felipe', role: 'admin' }]]) {
+    const app = await setup(user, products, false, pathname);
     app.read("sfCurrentCategory = 'ACSS'; renderStoreFront(); podCurrentCategory = 'ACSS'; renderPricesOfTheDay();");
     for (const id of ['storefrontGrid', 'podMatrixGrid']) {
       const html = app.elements.get(id).innerHTML;
@@ -262,8 +277,8 @@ test('every current catalog offer is visible in its category, all products and m
   const file = path.join(__dirname, '../data/snapshot_latest.json');
   if (!fs.existsSync(file)) return;
   const products = JSON.parse(fs.readFileSync(file, 'utf8'));
-  for (const pathname of ['/', '/preco-de-custo']) {
-    const app = await setup(null, [], false, pathname);
+  for (const [pathname, user] of [['/', null], ['/preco-de-custo', { id: 'admin-felipe', username: 'felipe', role: 'admin' }]]) {
+    const app = await setup(user, [], false, pathname);
     for (const p of products) {
       app.context.auditProduct = p;
       const category = (p.category === 'APPLE_TV' ? 'ACSS' : p.category) + (p.condition === 'CPO' ? '_CPO' : '');
@@ -286,8 +301,8 @@ test('grouping the full current catalog preserves every offer ID', async () => {
   const file = path.join(__dirname, '../data/snapshot_latest.json');
   if (!fs.existsSync(file)) return;
   const products = JSON.parse(fs.readFileSync(file, 'utf8'));
-  for (const pathname of ['/', '/preco-de-custo']) {
-    const app = await setup(null, products, false, pathname);
+  for (const [pathname, user] of [['/', null], ['/preco-de-custo', { id: 'admin-felipe', username: 'felipe', role: 'admin' }]]) {
+    const app = await setup(user, products, false, pathname);
     const visible = new Set();
     for (const cat of ['IPH', 'MCB', 'IPAD', 'RLG', 'PODS', 'ACSS', 'IMAC', 'IPH_CPO', 'MCB_CPO', 'IPAD_CPO', 'RLG_CPO', 'PODS_CPO', 'ACSS_CPO', 'IMAC_CPO']) {
       app.read(`sfCurrentCategory = ${JSON.stringify(cat)}; renderStoreFront();`);
@@ -303,8 +318,8 @@ test('CPO categories separate phones, Macs and iPads from sealed products', asyn
     { id: category, name: category, category, price: 1000, condition: 'NOVO' },
     { id: category + '-cpo', name: category + ' CPO', category, price: 900, condition: 'CPO' }
   ]);
-  for (const pathname of ['/', '/preco-de-custo']) {
-    const app = await setup(null, products, false, pathname);
+  for (const [pathname, user] of [['/', null], ['/preco-de-custo', { id: 'admin-felipe', username: 'felipe', role: 'admin' }]]) {
+    const app = await setup(user, products, false, pathname);
     for (const category of ['IPH', 'MCB', 'IPAD', 'RLG']) {
       for (const suffix of ['', '_CPO']) {
         app.read(`sfCurrentCategory = '${category}${suffix}'; podCurrentCategory = '${category}${suffix}'; renderStoreFront(); renderPricesOfTheDay();`);

@@ -339,6 +339,12 @@ let selectedDateMode = 'today';
 // 1. Fetch initial dataset from backend API (suporta alternar entre Hoje e Ontem)
 async function loadProducts(dateParam) {
   if (!authSessionChecked) return;
+  if (IS_COST_PAGE && (!currentUser || currentUser.role !== 'admin')) {
+    allProducts = [];
+    catalogStatus = 'ready';
+    refreshCurrentView();
+    return;
+  }
   const requestId = ++catalogRequestId;
   const cacheKey = getCatalogCacheKey();
   try {
@@ -1769,7 +1775,7 @@ function getProductMargin(rawModel, category, isSemi = false) {
 
 function getProductRetailPrice(p) {
   if (!p || !p.price) return 0;
-  if (window.IS_CATALOG_SHIELDED) return Number(p.price) || 0;
+  if (IS_COST_PAGE || window.IS_CATALOG_SHIELDED) return Number(p.price) || 0;
   const isSemi = isSeminovoProduct(p);
   if (window.PricingCore && typeof window.PricingCore.calculateRetailPrice === 'function') {
     return window.PricingCore.calculateRetailPrice(p.price, p.category, p.name, isSemi, margins);
@@ -2112,6 +2118,8 @@ function renderStoreFront() {
       `;
     }).join('');
 
+    const canShowCardCost = Boolean(currentUser && currentUser.role === 'admin' && !isClientMode && !IS_COST_PAGE);
+
     html += `
       <article class="mock-card">
         <div class="mock-card-header">
@@ -2124,10 +2132,10 @@ function renderStoreFront() {
                 <circle cx="12" cy="12" r="3"/>
               </svg>
               <span>Ver</span>
-            </button>
+            </button>${canShowCardCost ? `
               <button type="button" class="mock-card-ver-btn mock-card-cost-btn" onclick="openCardCostModal('${cardKey}', this)" title="Ver preço de custo com DFU" aria-label="${escapeHtml(`Ver custo com DFU de ${card.displayName} ${card.storage}${card.ram ? ` ${card.ram} RAM` : ''}`)}">
                 <span aria-hidden="true">R$</span><span>Custo</span>
-              </button>
+              </button>` : ''}
             </div>
           </div>
           <div class="mock-card-badges-row">
@@ -2168,6 +2176,7 @@ function formatModelTitleForCopy(model, storage, ram) {
 
 // Consulta os custos por ID para preservar modelo, capacidade, RAM e cores do card.
 window.openCardCostModal = async function(cardKey, button) {
+  if (!currentUser || currentUser.role !== 'admin') return;
   const card = window.storefrontCardMap?.get(cardKey);
   if (!card) return;
   const original = button?.innerHTML;
@@ -4880,12 +4889,20 @@ async function checkAuthSession() {
       if (btnExportSfWhatsapp) btnExportSfWhatsapp.style.display = 'inline-flex';
       if (btnExportAllSfWhatsapp) btnExportAllSfWhatsapp.style.display = 'inline-flex';
       if (publicAdminTopBtn) publicAdminTopBtn.style.display = 'none';
+      if (adminHeaderBtn) adminHeaderBtn.style.display = 'none';
       if (userSessionInfo) userSessionInfo.style.display = 'none';
+      const priceCostLink = document.getElementById('priceCostLink');
+      if (priceCostLink) priceCostLink.style.display = 'none';
 
       const brandLogoLink = document.getElementById('brandLogoLink');
       if (brandLogoLink) {
-        brandLogoLink.href = '/';
-        brandLogoLink.title = 'Início';
+        brandLogoLink.href = '/login.html';
+        brandLogoLink.title = 'Acesso administrativo';
+      }
+
+      if (IS_COST_PAGE && typeof window.location?.replace === 'function') {
+        window.location.replace('/login.html?next=/preco-de-custo');
+        return;
       }
 
       // Sincroniza gaveta mobile: esconde Preços do Dia, Calculadora e Acesso Admin para visitantes
@@ -4967,20 +4984,30 @@ async function checkAuthSession() {
     const mobileDrawerCalcBtn = document.getElementById('mobileDrawerCalcBtn');
     const mobileDrawerLogoutBtn = document.getElementById('mobileDrawerLogoutBtn');
 
+    const isAdminUser = user.role === 'admin';
+    if (IS_COST_PAGE && !isAdminUser && typeof window.location?.replace === 'function') {
+      window.location.replace('/');
+      return;
+    }
+
     if (userSessionInfo && userStoreBadge) {
       userSessionInfo.style.display = 'flex';
-      if (adminHeaderBtn) adminHeaderBtn.style.display = 'none';
+      if (adminHeaderBtn) adminHeaderBtn.style.display = (isAdminUser && !isClientMode) ? 'inline-flex' : 'none';
       userStoreBadge.style.display = 'none'; // REMOVIDO A PEDIDO DO USUARIO
+    }
+    const priceCostLink = document.getElementById('priceCostLink');
+    if (priceCostLink) {
+      priceCostLink.style.display = (isAdminUser && !isClientMode) ? 'inline-flex' : 'none';
     }
 
     const brandLogoLink = document.getElementById('brandLogoLink');
     if (brandLogoLink) {
-      brandLogoLink.href = '/';
-      brandLogoLink.title = 'Início';
+      brandLogoLink.href = isAdminUser ? '/admin.html' : '/';
+      brandLogoLink.title = isAdminUser ? 'Painel Administrativo' : 'Início';
     }
 
     // Atualiza drawer mobile logado
-    if (mobileDrawerAdminBtn) mobileDrawerAdminBtn.style.display = 'none';
+    if (mobileDrawerAdminBtn) mobileDrawerAdminBtn.style.display = (isAdminUser && !isClientMode) ? 'flex' : 'none';
     if (mobileDrawerUser && mobileDrawerUserBadge) {
       mobileDrawerUser.style.display = 'block';
       mobileDrawerUserBadge.style.display = 'none'; // REMOVIDO A PEDIDO DO USUARIO
@@ -5118,6 +5145,19 @@ function ensureMobileDrawerMounted() {
           </svg>
           <span>Preços do dia</span>
         </button>
+        <a class="mobile-drawer-item" id="mobileDrawerCostBtn" href="/preco-de-custo" onclick="closeMobileMenu();" style="display: none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+          <span>Preço de custo</span>
+        </a>
+        <a class="mobile-drawer-item" id="mobileDrawerAdminBtn" href="/admin.html" onclick="closeMobileMenu();" style="display: none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+          </svg>
+          <span id="mobileDrawerAdminLabel">Painel Administrativo</span>
+        </a>
         <button class="mobile-drawer-item" id="mobileDrawerExportBtn" onclick="closeMobileMenu(); openStorefrontExportModal();" style="display: none; color: var(--accent-green);">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
@@ -5214,7 +5254,7 @@ function applyRemotePricingState(state) {
   if (typeof state.adminDfuActive === 'boolean' && currentUser.username.toLowerCase() === 'cledson') {
     adminDfuEnabled = state.adminDfuActive;
   }
-  const active = currentUser.username.toLowerCase() === 'admin' && state.dfuActive === true;
+  const active = (currentUser.role === 'admin' && currentUser.username.toLowerCase() !== 'cledson') && state.dfuActive === true;
   const changed = window.DFU_ACTIVE !== active;
   const previousPrices = changed ? new Map(getSimCatalogOptions().map(item => [item.key, item.unitPrice])) : null;
   window.DFU_ACTIVE = active;
@@ -5272,11 +5312,22 @@ function syncMobileDrawerActions() {
     if (currentView === view) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');
   });
+  const isAdmin = Boolean(currentUser && currentUser.role === 'admin');
+  const showAdminActions = isAdmin && !isClientMode;
   const storeActions = ['mobileDrawerQuotesBtn', 'mobileDrawerPricesDayBtn', 'mobileDrawerExportBtn',
     'mobileDrawerExportAllBtn', 'mobileDrawerCalcBtn'];
   storeActions.forEach(id => {
     const button = document.getElementById(id);
-    if (button) button.style.display = ['mobileDrawerExportBtn', 'mobileDrawerExportAllBtn', 'mobileDrawerCalcBtn'].includes(id) ? 'flex' : 'none';
+    if (!button) return;
+    if (['mobileDrawerExportBtn', 'mobileDrawerExportAllBtn', 'mobileDrawerCalcBtn'].includes(id)) {
+      button.style.display = 'flex';
+    } else {
+      button.style.display = (currentUser && !isClientMode) ? 'flex' : 'none';
+    }
+  });
+  ['mobileDrawerAdminBtn', 'mobileDrawerCostBtn'].forEach(id => {
+    const button = document.getElementById(id);
+    if (button) button.style.display = showAdminActions ? 'flex' : 'none';
   });
   const logout = document.getElementById('mobileDrawerLogoutBtn');
   if (logout) logout.style.display = currentUser ? 'flex' : 'none';
@@ -5460,6 +5511,11 @@ let isClientMode = window.location.pathname.includes('/catalogo') || window.loca
 
 function updateCatalogPresentation() {
   syncDfuButtons();
+  const authenticated = Boolean(currentUser);
+  const isAdmin = Boolean(currentUser && currentUser.role === 'admin');
+  const showCostAccess = isAdmin && !isClientMode;
+  const adminBtn = document.getElementById('adminHeaderBtn');
+  if (adminBtn) adminBtn.style.display = showCostAccess ? 'inline-flex' : 'none';
   if (IS_COST_PAGE) {
     document.title = '\u200b';
     const heading = document.getElementById('catalogHeading');
@@ -5471,15 +5527,24 @@ function updateCatalogPresentation() {
     if (description) description.textContent = 'Valores com DFU ativo, sem margem de venda.';
     if (label) label.textContent = 'CUSTO + DFU';
     if (tab) tab.textContent = 'Preço de custo';
-    if (link) { link.href = '/'; link.textContent = 'Preço real'; }
+    if (link) {
+      link.href = '/';
+      link.textContent = 'Preço real';
+      link.style.display = isAdmin ? 'inline-flex' : 'none';
+    }
     syncMobileDrawerActions();
     return;
   }
-  const authenticated = Boolean(currentUser);
   const customerView = !authenticated || isClientMode;
   document.body.classList.toggle('session-authenticated', authenticated);
   document.body.classList.toggle('client-mode-active', isClientMode);
   syncMobileDrawerActions();
+  const priceCostLink = document.getElementById('priceCostLink');
+  if (priceCostLink) {
+    priceCostLink.href = '/preco-de-custo';
+    priceCostLink.textContent = 'Preço de custo';
+    priceCostLink.style.display = showCostAccess ? 'inline-flex' : 'none';
+  }
   const heading = document.getElementById('catalogHeading');
   const description = document.getElementById('catalogDescription');
   const label = document.getElementById('catalogModeLabel');

@@ -9,6 +9,8 @@ const auth = require('./auth');
 const quotesManager = require('./quotes');
 const PricingCore = require('./public/js/pricing-core.js');
 const QuoteCore = require('./public/js/quote-core.js');
+const { sanitizeCatalog } = require('./lib/catalog-sanitizer.js');
+const { processDailyPricesText } = require('./lib/daily-prices-importer.js');
 
 const localEnvFile = path.join(__dirname, '.env');
 if (fs.existsSync(localEnvFile) && typeof process.loadEnvFile === 'function') process.loadEnvFile(localEnvFile);
@@ -66,42 +68,45 @@ app.get('/catalogo', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.get('/preco-de-custo', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-
-// Operação pública: sem contas, login ou gestão de usuários.
-app.use((req, res, next) => {
-  if (['/login', '/login.html', '/admin', '/admin.html', '/painel', '/painel.html'].includes(req.path)) return res.redirect('/');
-  if (req.path.startsWith('/api/auth/')) return res.status(401).json({ error: 'O catálogo funciona sem contas.' });
-  if (req.path.startsWith('/api/admin/')) {
-    return res.status(404).json({ error: 'Painel administrativo removido.' });
+app.get('/preco-de-custo', asyncHandler(async (req, res) => {
+  const token = auth.getSessionTokenFromRequest(req);
+  const user = token ? await auth.findUserBySessionToken(token) : null;
+  if (!user || user.role !== 'admin') {
+    return res.redirect('/login.html?next=/preco-de-custo');
   }
-  next();
-});
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+}));
 
-// Acesso ao Painel Admin via web desativado (gestão exclusiva centralizada via backend/assistente)
-app.get(['/admin', '/admin.html', '/painel', '/painel.html'], (req, res) => {
-  res.redirect('/');
-});
+// Painel Administrativo (restrito a administradores autenticados)
+app.get(['/admin', '/admin.html', '/painel', '/painel.html'], asyncHandler(async (req, res) => {
+  const token = auth.getSessionTokenFromRequest(req);
+  const user = token ? await auth.findUserBySessionToken(token) : null;
+  if (!user || user.role !== 'admin') {
+    return res.redirect('/login.html');
+  }
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+}));
 
 app.get('/login', (req, res) => res.redirect('/login.html'));
 
 app.get('/login.html', asyncHandler(async (req, res, next) => {
   const token = auth.getSessionTokenFromRequest(req);
-  const user = await auth.findUserBySessionToken(token);
-  if (user) return res.redirect('/');
+  const user = token ? await auth.findUserBySessionToken(token) : null;
+  if (user) return res.redirect(user.role === 'admin' ? '/admin.html' : '/');
   next();
 }));
 
-// Bloqueia qualquer acesso direto a arquivos de painel administrativo
-app.use((req, res, next) => {
+// Impede que o static sirva painéis administrativos sem sessão válida
+app.use(asyncHandler(async (req, res, next) => {
   if (req.path === '/admin.html' || req.path === '/painel.html') {
-    return res.redirect('/');
+    const token = auth.getSessionTokenFromRequest(req);
+    const user = token ? await auth.findUserBySessionToken(token) : null;
+    if (!user || user.role !== 'admin') {
+      return res.redirect('/login.html');
+    }
   }
   next();
-});
+}));
 
 // Arquivos estáticos (CSS, JS, Imagens, login.html)
 app.use(express.static(path.join(__dirname, 'public'), { index: false, etag: false, maxAge: 0 }));
@@ -308,8 +313,9 @@ PricingCore.setDfuActive(adminPricing.active);
 PricingCore.setDfuActive(true); // DFU global, independente de usuário.
 function userPricingState(user) {
   const username = (user.username || '').toLowerCase();
+  const isAdminDfuUser = user.role === 'admin' && username !== 'cledson';
   return {
-    dfuActive: username === 'admin' && adminPricing.active,
+    dfuActive: isAdminDfuUser && adminPricing.active,
     pricingVersion: adminPricing.version,
     ...(username === 'cledson' ? { adminDfuActive: adminPricing.active } : {})
   };
@@ -342,7 +348,8 @@ const requireAdminApi = asyncHandler(async (req, res, next) => {
   const token = auth.getSessionTokenFromRequest(req);
   if (!token) return res.status(401).json({ error: 'Não autenticado' });
   const user = await auth.findUserBySessionToken(token);
-  if (!user || user.role !== 'admin') {
+  if (!user) return res.status(401).json({ error: 'Sessão inválida ou expirada.' });
+  if (user.role !== 'admin') {
     return res.status(403).json({ error: 'Acesso restrito ao administrador.' });
   }
   req.user = user;
@@ -577,14 +584,16 @@ function scheduleCatalogSnapshot() {
   }, 20000); // Debounce de 20 segundos
 }
 
-async function performCatalogSnapshotAsync() {
+async function performCatalogSnapshotAsync(isoDateOverride = null) {
   if (isWritingSnapshot) return;
   isWritingSnapshot = true;
   try {
     const dataDir = path.join(__dirname, 'data');
     await fs.promises.mkdir(dataDir, { recursive: true });
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = isoDateOverride || new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(new Date());
     const todayPath = path.join(dataDir, `snapshot_${todayStr}.json`);
     const latestPath = path.join(dataDir, `snapshot_latest.json`);
     const tempPath = path.join(dataDir, `snapshot_temp_${Date.now()}.json`);
@@ -592,7 +601,7 @@ async function performCatalogSnapshotAsync() {
     const productsList = Array.from(productsMap.values()).filter(p => !isDisallowedProduct(p));
     if (productsList.length > 0) {
       const jsonContent = JSON.stringify(productsList);
-      await fs.promises.writeFile(tempPath, jsonContent, 'utf-8');
+      await fs.promises.writeFile(tempPath, jsonContent, { encoding: 'utf-8', mode: 0o600 });
       await fs.promises.copyFile(tempPath, todayPath);
       await fs.promises.rename(tempPath, latestPath);
       console.log(`[Snapshot] 💾 Snapshot atualizado com sucesso (${productsList.length} itens).`);
@@ -602,6 +611,33 @@ async function performCatalogSnapshotAsync() {
   } finally {
     isWritingSnapshot = false;
   }
+}
+
+function resolveCatalogDates(rawDate) {
+  const spNow = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(new Date());
+  const trimmed = typeof rawDate === 'string' ? rawDate.trim() : '';
+  if (!trimmed) {
+    const [, month, day] = spNow.split('-');
+    return { isoDate: spNow, dateStr: `${day}-${month}` };
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed) && Number.isFinite(Date.parse(trimmed)) &&
+      new Date(trimmed).toISOString().slice(0, 10) === trimmed) {
+    const [, month, day] = trimmed.split('-');
+    return { isoDate: trimmed, dateStr: `${day}-${month}` };
+  }
+  if (/^\d{2}-\d{2}$/.test(trimmed)) {
+    const [day, month] = trimmed.split('-');
+    const year = spNow.slice(0, 4);
+    const isoCandidate = `${year}-${month}-${day}`;
+    if (Number.isFinite(Date.parse(isoCandidate)) && new Date(isoCandidate).toISOString().slice(0, 10) === isoCandidate) {
+      return { isoDate: isoCandidate, dateStr: trimmed };
+    }
+  }
+  const error = new Error('Data inválida. Use DD-MM ou AAAA-MM-DD.');
+  error.status = 400;
+  throw error;
 }
 
 function saveCatalogSnapshot(options = {}) {
@@ -1017,8 +1053,8 @@ function formatProductForClient(p, isAuthed = false, marginsData = null) {
 
 // --- ROTAS DE PRODUTOS (ACESSO DIRETO) ---
 
-// Página de custos: somente custo + DFU, sem margem e sem contatos de fornecedores.
-app.get('/api/cost-products', (req, res) => {
+// Página de custos: somente custo + DFU, sem margem e restrita ao administrador logado.
+app.get('/api/cost-products', requireAdminApi, (req, res) => {
   const products = Array.from(productsMap.values())
     .filter(p => !isDisallowedProduct(p) && !PricingCore.isSeminovoProduct(p));
   const data = products.map(p => ({
@@ -1029,6 +1065,60 @@ app.get('/api/cost-products', (req, res) => {
   res.json({ success: true, total: data.length, dollarRate, dollarVariation,
     latestDate, isShielded: true, pricingMode: 'cost', dfuActive: true, data });
 });
+
+// Importação manual de lista de preços do dia pelo Painel Administrativo
+app.post('/api/admin/daily-prices', requireAdminApi, asyncHandler(async (req, res) => {
+  const { rawText, date, mode = 'replace' } = req.body || {};
+  if (!rawText || typeof rawText !== 'string' || !rawText.trim()) {
+    return res.status(400).json({ error: 'Nenhum texto de produtos fornecido.' });
+  }
+  const { isoDate, dateStr } = resolveCatalogDates(date);
+  const parsed = processDailyPricesText(rawText, { dateStr });
+  if (!parsed.success || parsed.stats.failedLines > 0 || parsed.products.length === 0) {
+    return res.status(400).json({
+      error: 'A lista contém linhas inválidas ou nenhum produto permitido. O catálogo anterior foi preservado.',
+      stats: parsed.stats
+    });
+  }
+  const { cleanProducts, auditReport } = sanitizeCatalog(parsed.products, { todayDateStr: dateStr });
+  if (!cleanProducts.length) {
+    return res.status(400).json({
+      error: 'Nenhum produto permitido após validação. O catálogo anterior foi preservado.',
+      stats: parsed.stats,
+      audit: auditReport
+    });
+  }
+
+  const normalized = cleanProducts.map(product => ({ ...product, supplier: null }));
+  if (mode === 'append') {
+    normalized.forEach(p => productsMap.set(String(p.id), p));
+  } else {
+    productsMap.clear();
+    normalized.forEach(p => productsMap.set(String(p.id), p));
+  }
+
+  latestDate = Array.from(productsMap.values())
+    .map(p => p.priceDate || p.sheetDate || '')
+    .filter(d => /^\d{2}-\d{2}$/.test(d))
+    .sort((a, b) => (b.slice(3) + b.slice(0, 2)).localeCompare(a.slice(3) + a.slice(0, 2)))[0] || dateStr;
+
+  invalidateProductsCache();
+  await performCatalogSnapshotAsync(isoDate);
+  localIo.emit('catalog_reloaded', {
+    total: productsMap.size,
+    dollarRate,
+    dollarVariation,
+    latestDate
+  });
+
+  res.json({
+    success: true,
+    date: latestDate,
+    added: normalized.length,
+    totalCatalog: productsMap.size,
+    stats: parsed.stats
+  });
+}));
 
 app.get(['/api/products', '/api/v1/vitrine', '/api/vitrine'], asyncHandler(async (req, res) => {
   const targetDate = req.query.date;
@@ -1134,7 +1224,7 @@ localIo.on('connection', async (clientSocket) => {
     clientSocket.join(`user_${user.id}`);
     clientSocket.join(`session_${token}`);
     const pricingUsername = (user.username || '').toLowerCase();
-    if (pricingUsername === 'admin') clientSocket.join('pricing_admin');
+    if (user.role === 'admin' && pricingUsername !== 'cledson') clientSocket.join('pricing_admin');
     if (pricingUsername === 'cledson') clientSocket.join('pricing_controller');
     clientSocket.emit('pricing_updated', userPricingState(user));
     clientSocket.userId = user.id;

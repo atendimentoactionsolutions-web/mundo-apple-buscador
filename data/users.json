@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "id": "admin-felipe",
+    "store_name": "Administração Mundo Apple",
+    "owner_name": "Felipe",
+    "whatsapp": "",
+    "username": "felipe",
+    "password_hash": "scrypt:545c2dd7451bbde10da29aacf0037a0c:c8b77e6c6f7fb333fa04fdada4b87dc901f34fc9c96cca6bad2dc209d1c654086a6be1e1f5ef29ceec3c0359702cd98684310a4d9a4351fc9cee349d4ee4aa07",
+    "role": "admin",
+    "status": "active",
+    "expires_at": null,
+    "current_session_token": null,
+    "active_session_tokens": [],
+    "created_at": "2026-11-17T13:05:49.171Z"
+  }
+]

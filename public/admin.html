@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <title>Painel Administrativo • Mundo Apple</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #080b11;
+      --bg-card: #0f172a;
+      --bg-subtle: #1e293b;
+      --bg-input: #111827;
+      --border-color: rgba(255, 255, 255, 0.1);
+      --border-subtle: rgba(255, 255, 255, 0.05);
+      --accent-green: #10b981;
+      --accent-green-hover: #059669;
+      --accent-yellow: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-blue: #3b82f6;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+      --radius-full: 9999px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+    }
+
+    body.light-theme {
+      --bg-base: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-subtle: #f8fafc;
+      --bg-input: #ffffff;
+      --border-color: #cbd5e1;
+      --border-subtle: #e2e8f0;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+    }
+
+    body.light-theme .admin-header {
+      background: rgba(255, 255, 255, 0.92);
+      border-bottom-color: #e2e8f0;
+    }
+
+    body.light-theme .metric-card,
+    body.light-theme .table-container {
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+    }
+
+    body.light-theme th {
+      background: #f8fafc;
+    }
+
+    body.light-theme .modal-box {
+      background: #ffffff;
+      border-color: #cbd5e1;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.15);
+    }
+
+    body.light-theme input,
+    body.light-theme select,
+    body.light-theme textarea {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100dvh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .admin-header {
+      background: rgba(15, 23, 42, 0.85);
+      border-bottom: 1px solid var(--border-color);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: max(14px, var(--safe-top)) max(20px, var(--safe-right)) 14px max(20px, var(--safe-left));
+    }
+
+    .admin-header-inner {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .admin-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-badge {
+      width: 38px;
+      height: 38px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-primary);
+    }
+
+    .admin-tag {
+      font-size: 0.68rem;
+      font-weight: 800;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 3px 9px;
+      border-radius: var(--radius-full);
+      letter-spacing: 0.5px;
+    }
+
+    .admin-nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-catalog {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 14px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-full);
+      color: var(--text-primary);
+      text-decoration: none;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .btn-catalog:hover {
+      border-color: var(--accent-green);
+    }
+
+    .btn-catalog.cost-highlight {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.35);
+      color: var(--accent-green);
+    }
+
+    .btn-catalog.primary-action {
+      background: rgba(0, 113, 227, 0.14);
+      border-color: rgba(0, 113, 227, 0.4);
+      color: #0071e3;
+    }
+
+    .btn-logout {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: var(--radius-full);
+      color: #ef4444;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-logout:hover {
+      background: var(--accent-red);
+      color: #ffffff;
+    }
+
+    .main-container {
+      max-width: 1300px;
+      width: 100%;
+      margin: 24px auto;
+      padding: 0 20px 48px;
+      flex: 1;
+    }
+
+    .hero-admin-card {
+      margin-bottom: 24px;
+      padding: 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+    }
+
+    .hero-admin-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn-primary-blue {
+      padding: 10px 18px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      background: #0071e3;
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .btn-primary-blue:hover {
+      background: #0062c4;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .metric-icon-wrap {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .metric-icon-wrap.green { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+    .metric-icon-wrap.yellow { background: rgba(245, 158, 11, 0.15); color: var(--accent-yellow); }
+    .metric-icon-wrap.red { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+
+    .metric-data h3 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .metric-data p {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .section-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .section-title h2 {
+      font-size: 1.3rem;
+      font-weight: 800;
+    }
+
+    .section-title p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .btn-create-lojista {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-green-hover) 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    }
+
+    .toolbar-filter {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+    }
+
+    .search-input-wrap {
+      flex: 1;
+      min-width: 220px;
+      display: flex;
+      align-items: center;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0 12px;
+      height: 40px;
+    }
+
+    .search-input-wrap input {
+      flex: 1;
+      background: transparent;
+      border: none !important;
+      outline: none;
+      color: var(--text-primary);
+      font-size: 0.88rem;
+    }
+
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      background: rgba(15, 23, 42, 0.95);
+      padding: 14px 16px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    td {
+      padding: 14px 16px;
+      font-size: 0.88rem;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .status-badge.active { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .status-badge.expiring { background: rgba(245, 158, 11, 0.15); color: var(--accent-yellow); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .status-badge.expired { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.3); }
+    .status-badge.blocked { background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.3); }
+
+    .table-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .act-btn {
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      font-weight: 600;
+      border: 1px solid var(--border-color);
+      background: var(--bg-subtle);
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .act-btn.renew {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: var(--accent-green);
+    }
+
+    .act-btn.block {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.25);
+      color: #ef4444;
+    }
+
+    .margin-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 12px;
+    }
+
+    .margin-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .margin-field label {
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .modal-input {
+      width: 100%;
+      height: 40px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0 12px;
+      color: var(--text-primary);
+      font-size: 0.88rem;
+      font-weight: 600;
+      outline: none;
+    }
+
+    .modal-input:focus {
+      border-color: var(--accent-green);
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(8px);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 520px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      max-height: 92dvh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    .modal-form-group {
+      margin-bottom: 14px;
+    }
+
+    .modal-form-label {
+      display: block;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .period-options-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .period-btn {
+      padding: 8px 6px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .period-btn.active,
+    .period-btn:hover {
+      background: var(--accent-green);
+      border-color: var(--accent-green);
+      color: #ffffff;
+    }
+
+    .modal-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .btn-cancel {
+      padding: 10px 16px;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-save {
+      padding: 10px 20px;
+      background: var(--accent-green);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: #ffffff;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .empty-state {
+      padding: 32px 16px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 768px) {
+      .admin-header { padding: 10px 14px; }
+      .main-container { padding: 0 12px 32px; margin: 14px auto; }
+      .margin-grid { grid-template-columns: 1fr 1fr; }
+      .desktop-only-text { display: none; }
+      input, select, textarea { font-size: 16px !important; }
+    }
+  </style>
+</head>
+<body class="light-theme">
+  <header class="admin-header">
+    <div class="admin-header-inner">
+      <div class="admin-brand">
+        <a href="/" class="logo-badge" title="Voltar ao catálogo">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 1.01-2.85-.92.04-2.02.62-2.67 1.37-.58.66-1.09 1.73-1.02 2.76 1.03.08 2.07-.53 2.68-1.28z"/>
+          </svg>
+        </a>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-weight: 800; font-size: 1.05rem;">Mundo Apple</span>
+          <span class="admin-tag" id="adminHeaderRoleTag">PAINEL ADMINISTRATIVO</span>
+        </div>
+      </div>
+
+      <div class="admin-nav-actions">
+        <a href="/preco-de-custo" class="btn-catalog cost-highlight" title="Abrir página exclusiva de preço de custo">
+          <span>Preço de Custo</span>
+        </a>
+        <button type="button" class="btn-catalog primary-action" id="btnHeaderDailyPrices" onclick="openDailyPricesModal()" title="Colar lista de custos da PXT">
+          <span>+ Lista PXT</span>
+        </button>
+        <button type="button" class="btn-catalog" onclick="openAdminExportModal()" title="Exportar catálogo">
+          <span>Exportar</span>
+        </button>
+        <a href="/" class="btn-catalog" title="Ir para a vitrine principal">
+          <span>Catálogo</span>
+        </a>
+        <button type="button" class="btn-catalog" id="adminThemeBtn" onclick="toggleAdminTheme()" title="Alternar tema">
+          <span id="adminThemeLabel" class="desktop-only-text">Modo Escuro</span>
+        </button>
+        <button type="button" class="btn-logout" onclick="handleLogout()" title="Sair do painel">
+          <span>Sair</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <div id="sectionAdminOnly">
+      <div class="hero-admin-card">
+        <div>
+          <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 6px;">Preços de Custo e Atualização da Lista PXT</h3>
+          <p id="catalogSummaryText" style="font-size: 0.86rem; color: var(--text-secondary); max-width: 680px;">
+            Consulte os custos com DFU ou cole a nova lista PXT para atualizar o catálogo instantaneamente (produtos Hotwav, Android, ativados e seminovos são bloqueados automaticamente).
+          </p>
+        </div>
+        <div class="hero-admin-actions">
+          <a href="/preco-de-custo" class="btn-catalog cost-highlight" style="padding: 10px 18px; border-radius: 10px; font-weight: 700;">Ver Preço de Custo</a>
+          <button type="button" class="btn-primary-blue" onclick="openDailyPricesModal()">+ Importar Lista PXT</button>
+        </div>
+      </div>
+
+      <section class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon-wrap green">✓</div>
+          <div class="metric-data">
+            <h3 id="statCatalogCount">-</h3>
+            <p id="statCatalogDate">Produtos Ativos</p>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon-wrap green">👥</div>
+          <div class="metric-data">
+            <h3 id="statTotal">0</h3>
+            <p>Usuários Cadastrados</p>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon-wrap yellow">!</div>
+          <div class="metric-data">
+            <h3 id="statExpiring" style="color: var(--accent-yellow);">0</h3>
+            <p>Vencendo em até 5 dias</p>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon-wrap red">✕</div>
+          <div class="metric-data">
+            <h3 id="statExpired" style="color: var(--accent-red);">0</h3>
+            <p>Vencidos / Bloqueados</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-header">
+        <div class="section-title">
+          <h2>Gestão de Acessos</h2>
+          <p>Gerencie acessos adicionais caso deseje liberar outros usuários</p>
+        </div>
+        <button type="button" class="btn-create-lojista" onclick="openCreateModal()">+ Novo Usuário</button>
+      </div>
+
+      <div class="toolbar-filter">
+        <div class="search-input-wrap">
+          <input type="text" id="searchInput" placeholder="Buscar por loja, usuário ou telefone..." oninput="filterLojistas()">
+        </div>
+      </div>
+
+      <div class="table-container" style="margin-bottom: 32px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Loja / Nome</th>
+              <th>Usuário</th>
+              <th>Contato</th>
+              <th>Status / Validade</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="lojistasTableBody">
+            <tr><td colspan="5" class="empty-state">Carregando usuários...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">
+        <h2>Margens de Lucro</h2>
+        <p>Valores somados sobre custo + DFU para o preço de venda público</p>
+      </div>
+      <button type="button" class="btn-create-lojista" onclick="saveAdminMargins()">Salvar Margens</button>
+    </div>
+
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 18px; margin-bottom: 24px;">
+      <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 14px;">Margem Padrão por Categoria (R$)</h3>
+      <div class="margin-grid">
+        <div class="margin-field"><label>Seminovos (SEMINOVOS)</label><input type="number" id="margin_SEMINOVOS" value="600" class="modal-input"></div>
+        <div class="margin-field"><label>iPhone Duo (IPH_DUO)</label><input type="number" id="margin_IPH_DUO" value="2300" class="modal-input"></div>
+        <div class="margin-field"><label>iPhone 18 (IPH18)</label><input type="number" id="margin_IPH18" value="1300" class="modal-input"></div>
+        <div class="margin-field"><label>iPhone Novo (IPH)</label><input type="number" id="margin_IPH" value="750" class="modal-input"></div>
+        <div class="margin-field"><label>MacBook Air (MCB_AIR)</label><input type="number" id="margin_MCB_AIR" value="1000" class="modal-input"></div>
+        <div class="margin-field"><label>Outros Macs (MCB_PRO)</label><input type="number" id="margin_MCB_PRO" value="1300" class="modal-input"></div>
+        <div class="margin-field"><label>MacBook Pro Max (MCB_MAX)</label><input type="number" id="margin_MCB_MAX" value="2500" class="modal-input"></div>
+        <div class="margin-field"><label>iPad (IPAD)</label><input type="number" id="margin_IPAD" value="500" class="modal-input"></div>
+        <div class="margin-field"><label>iPad Pro e Air (IPAD_PRO_AIR)</label><input type="number" id="margin_IPAD_PRO_AIR" value="750" class="modal-input"></div>
+        <div class="margin-field"><label>Apple Watch (RLG)</label><input type="number" id="margin_RLG" value="500" class="modal-input"></div>
+        <div class="margin-field"><label>Apple Watch Ultra e S12 (RLG_ULTRA_S12)</label><input type="number" id="margin_RLG_ULTRA_S12" value="800" class="modal-input"></div>
+        <div class="margin-field"><label>iMac (IMAC)</label><input type="number" id="margin_IMAC" value="1500" class="modal-input"></div>
+        <div class="margin-field"><label>AirPods (PODS)</label><input type="number" id="margin_PODS" value="400" class="modal-input"></div>
+        <div class="margin-field"><label>Smart Folio</label><input type="number" id="margin_FOLIO" value="400" class="modal-input"></div>
+        <div class="margin-field"><label>Apple Pencil</label><input type="number" id="margin_PENCIL" value="200" class="modal-input"></div>
+        <div class="margin-field"><label>AirTag (Avulso)</label><input type="number" id="margin_AIRTAG_UNIT" value="100" class="modal-input"></div>
+        <div class="margin-field"><label>AirTag (4-Pack)</label><input type="number" id="margin_AIRTAG_PACK" value="350" class="modal-input"></div>
+        <div class="margin-field"><label>Magic Keyboard</label><input type="number" id="margin_MAGIC_KEY" value="400" class="modal-input"></div>
+        <div class="margin-field"><label>Magic Mouse</label><input type="number" id="margin_MAGIC_MOUSE" value="430" class="modal-input"></div>
+        <div class="margin-field"><label>Apple TV</label><input type="number" id="margin_APPLE_TV" value="500" class="modal-input"></div>
+        <div class="margin-field"><label>Outros Acessórios</label><input type="number" id="margin_ACSS" value="100" class="modal-input"></div>
+      </div>
+    </div>
+
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 32px;">
+      <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 6px; color: var(--accent-yellow);">Exceção por Modelo Específico</h3>
+      <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 14px;">Defina uma margem individual para um modelo específico</p>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
+        <input type="text" id="newProdName" list="availableModelsList" placeholder="Nome do Modelo (ex: IPHONE 17 PRO MAX)..." class="modal-input" style="flex: 2; min-width: 220px;">
+        <datalist id="availableModelsList"></datalist>
+        <input type="number" id="newProdMargin" placeholder="Margem em R$" class="modal-input" style="flex: 1; min-width: 130px;">
+        <button type="button" class="act-btn renew" onclick="addProductMarginOverride()" style="padding: 10px 16px; font-weight: 700;">+ Adicionar Exceção</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Modelo Específico</th>
+              <th>Margem Adicional (R$)</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="productMarginsTableBody">
+            <tr><td colspan="3" class="empty-state">Nenhuma exceção cadastrada.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">
+        <h2>Taxas da Maquininha de Cartão</h2>
+        <p>Configure as taxas utilizadas no simulador de parcelamento (1x a 18x)</p>
+      </div>
+      <button type="button" class="btn-create-lojista" onclick="saveAdminCardRates()">Salvar Taxas</button>
+    </div>
+
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 20px;">
+      <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
+        <div style="flex: 1; min-width: 200px;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 6px;">Taxa Base (%)</label>
+          <input type="number" step="0.01" id="rate_base" value="2.69" class="modal-input" oninput="updateRateTotalsPreview()" style="max-width: 180px;">
+        </div>
+        <div style="flex: 2; min-width: 240px; font-size: 0.82rem; color: var(--text-secondary); background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-md); padding: 12px 16px;">
+          Taxa Total = Taxa Base + Taxa da Parcela. O simulador repassa a taxa para manter o líquido à vista.
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;" id="cardRatesGridContainer"></div>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="createModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Cadastrar Novo Usuário</h3>
+        <button type="button" class="modal-close-btn" onclick="closeCreateModal()">✕</button>
+      </div>
+      <form onsubmit="handleCreateLojista(event)">
+        <div class="modal-form-group"><label class="modal-form-label">Nome da Loja *</label><input type="text" id="newStoreName" class="modal-input" required></div>
+        <div class="modal-form-group"><label class="modal-form-label">Responsável</label><input type="text" id="newOwnerName" class="modal-input"></div>
+        <div class="modal-form-group"><label class="modal-form-label">WhatsApp</label><input type="text" id="newWhatsapp" class="modal-input"></div>
+        <div class="modal-form-group"><label class="modal-form-label">Usuário *</label><input type="text" id="newUsername" class="modal-input" required autocomplete="off"></div>
+        <div class="modal-form-group"><label class="modal-form-label">Senha *</label><input type="text" id="newPassword" class="modal-input" required></div>
+        <div class="modal-form-group">
+          <label class="modal-form-label">Validade</label>
+          <div class="period-options-row">
+            <button type="button" class="period-btn active" onclick="selectPeriod(30, this)">30 dias</button>
+            <button type="button" class="period-btn" onclick="selectPeriod(60, this)">60 dias</button>
+            <button type="button" class="period-btn" onclick="selectPeriod(90, this)">90 dias</button>
+            <button type="button" class="period-btn" onclick="selectPeriod(365, this)">1 ano</button>
+          </div>
+          <input type="hidden" id="newDays" value="30">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" onclick="closeCreateModal()">Cancelar</button>
+          <button type="submit" class="btn-save" id="btnSaveLojista">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="passwordModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Alterar Senha</h3>
+        <button type="button" class="modal-close-btn" onclick="closePasswordModal()">✕</button>
+      </div>
+      <form onsubmit="handleUpdatePassword(event)">
+        <input type="hidden" id="editUserId">
+        <p id="editUserLabel" style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;"></p>
+        <div class="modal-form-group"><label class="modal-form-label">Nova Senha *</label><input type="text" id="editPasswordInput" class="modal-input" required></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" onclick="closePasswordModal()">Cancelar</button>
+          <button type="submit" class="btn-save">Atualizar Senha</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="adminExportModal">
+    <div class="modal-box" style="max-width: 580px;">
+      <div class="modal-header">
+        <div>
+          <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800;">Exportar Catálogo</h3>
+          <p id="exportProductsCountSubtitle" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;"></p>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closeAdminExportModal()">✕</button>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;" id="exportCategoryFilterPills">
+        <button type="button" class="period-btn active" onclick="selectExportCategory('ALL', this)">Todos</button>
+        <button type="button" class="period-btn" onclick="selectExportCategory('IPH', this)">iPhone</button>
+        <button type="button" class="period-btn" onclick="selectExportCategory('MCB', this)">Mac</button>
+        <button type="button" class="period-btn" onclick="selectExportCategory('IPAD', this)">iPad</button>
+        <button type="button" class="period-btn" onclick="selectExportCategory('RLG', this)">Watch</button>
+        <button type="button" class="period-btn" onclick="selectExportCategory('PODS', this)">AirPods</button>
+        <button type="button" class="period-btn" onclick="selectExportCategory('ACSS', this)">Acessórios</button>
+      </div>
+      <p id="exportFilteredCount" style="font-size: 0.85rem; font-weight: 700; margin-bottom: 6px;"></p>
+      <p id="exportPreviewDesc" style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 16px;"></p>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button type="button" class="btn-save" onclick="executeAdminWhatsAppExport(this)" style="flex: 1;"><span id="btnAdminCopyWhatsAppText">Copiar para WhatsApp</span></button>
+        <button type="button" class="btn-primary-blue" onclick="executeAdminCsvExport(this)" style="flex: 1; justify-content: center;"><span id="btnAdminDownloadCsvText">Baixar CSV / Excel</span></button>
+      </div>
+      <div class="modal-actions"><button type="button" class="btn-cancel" onclick="closeAdminExportModal()">Fechar</button></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalDailyPrices" role="dialog" aria-modal="true">
+    <div class="modal-box" style="max-width: 680px;">
+      <div class="modal-header">
+        <div>
+          <h3 style="font-size: 1.2rem; font-weight: 800;">Atualizar Lista de Preços PXT</h3>
+          <span style="font-size: 0.82rem; color: var(--text-secondary);">Cole a lista de custos para atualizar o catálogo e os preços de custo</span>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closeDailyPricesModal()">✕</button>
+      </div>
+
+      <div style="display: flex; gap: 14px; margin-bottom: 14px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 160px;">
+          <label class="modal-form-label" for="dailyPricesDate">Data do Catálogo (DD-MM):</label>
+          <input type="text" id="dailyPricesDate" class="modal-input" placeholder="Ex: 17-11">
+        </div>
+        <div style="flex: 1.5; min-width: 220px;">
+          <label class="modal-form-label" for="dailyPricesMode">Modo de Atualização:</label>
+          <select id="dailyPricesMode" class="modal-input">
+            <option value="replace">Substituir catálogo do dia (Recomendado)</option>
+            <option value="append">Acrescentar / Mesclar aos produtos existentes</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label class="modal-form-label" for="dailyPricesRawText" style="margin-bottom: 0;">Lista de Produtos (PXT):</label>
+          <button type="button" onclick="clearDailyPricesInput()" style="background: none; border: none; color: #ef4444; font-size: 0.78rem; font-weight: 600; cursor: pointer;">Limpar texto</button>
+        </div>
+        <textarea id="dailyPricesRawText" rows="10" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); font-family: monospace; font-size: 0.84rem; line-height: 1.45; resize: vertical;" placeholder="Cole aqui a lista da PXT..."></textarea>
+      </div>
+
+      <div id="dailyPricesFeedback" style="display: none; padding: 12px; border-radius: 10px; margin-bottom: 14px; font-size: 0.86rem; line-height: 1.5;"></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="closeDailyPricesModal()">Cancelar</button>
+        <button type="button" class="btn-primary-blue" id="btnSubmitDailyPrices" onclick="submitDailyPrices()"><span>Processar e Atualizar</span></button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let allLojistas = [];
+    let adminMargins = {
+      categories: {
+        SEMINOVOS: 600, IPH_DUO: 2300, IPH18: 1300, IPH: 750, MCB_AIR: 1000, MCB_PRO: 1300, MCB_MAX: 2500,
+        IPAD: 500, IPAD_PRO_AIR: 750, RLG: 500, RLG_ULTRA_S12: 800, IMAC: 1500, PODS: 400, ACSS: 100,
+        FOLIO: 400, PENCIL: 200, AIRTAG_UNIT: 100, AIRTAG_PACK: 350, MAGIC_KEY: 400, MAGIC_MOUSE: 430, APPLE_TV: 500
+      },
+      products: {}
+    };
+    let adminCardRates = {
+      baseRate: 2.69,
+      calculationMode: 'factor',
+      installmentRates: {
+        "1": 3.05, "2": 1.50, "3": 2.25, "4": 3.00, "5": 3.75, "6": 4.50,
+        "7": 5.25, "8": 6.00, "9": 6.75, "10": 7.50, "11": 8.25, "12": 9.00,
+        "13": 9.75, "14": 10.50, "15": 11.25, "16": 12.00, "17": 12.75, "18": 13.50
+      }
+    };
+    let adminProductsCache = [];
+    let adminExportActiveCategory = 'ALL';
+    let adminExportDate = '';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      initAdminTheme();
+      await checkAdminSession();
+      loadCatalogHealth();
+      fetchMargins();
+      fetchCardRates();
+      loadAvailableModelsDatalist();
+    });
+
+    async function checkAdminSession() {
+      try {
+        const resp = await fetch('/api/auth/me');
+        if (!resp.ok) {
+          window.location.href = '/login.html';
+          return;
+        }
+        currentUser = await resp.json();
+        if (currentUser.role !== 'admin') {
+          window.location.href = '/';
+          return;
+        }
+        const roleTag = document.getElementById('adminHeaderRoleTag');
+        if (roleTag) roleTag.textContent = `ADMIN • ${(currentUser.ownerName || currentUser.username || '').toUpperCase()}`;
+        fetchLojistas();
+      } catch (e) {
+        window.location.href = '/login.html';
+      }
+    }
+
+    async function loadCatalogHealth() {
+      try {
+        const resp = await fetch('/api/health');
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const countEl = document.getElementById('statCatalogCount');
+        const dateEl = document.getElementById('statCatalogDate');
+        if (countEl) countEl.textContent = (data.totalProducts || 0).toLocaleString('pt-BR');
+        if (dateEl) dateEl.textContent = data.latestDate ? `Produtos Ativos (${data.latestDate})` : 'Produtos Ativos';
+      } catch (e) {}
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+
+    async function fetchLojistas() {
+      try {
+        const resp = await fetch('/api/admin/lojistas');
+        if (!resp.ok) return;
+        allLojistas = await resp.json();
+        updateMetrics();
+        renderTable(allLojistas);
+      } catch (err) {}
+    }
+
+    function updateMetrics() {
+      const total = allLojistas.length;
+      let expiring = 0;
+      let expired = 0;
+      allLojistas.forEach(u => {
+        if (u.status === 'blocked' || u.status === 'expired') expired++;
+        else if (u.daysRemaining !== null && u.daysRemaining <= 5 && u.daysRemaining > 0) expiring++;
+      });
+      document.getElementById('statTotal').textContent = total;
+      document.getElementById('statExpiring').textContent = expiring;
+      document.getElementById('statExpired').textContent = expired;
+    }
+
+    function renderTable(list) {
+      const tbody = document.getElementById('lojistasTableBody');
+      if (!tbody) return;
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Nenhum usuário encontrado.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(u => {
+        const statusClass = u.status === 'blocked' ? 'blocked' : u.status === 'expired' ? 'expired' : (u.daysRemaining !== null && u.daysRemaining <= 5 ? 'expiring' : 'active');
+        const statusLabel = u.role === 'admin' ? 'Administrador' : u.status === 'blocked' ? 'Bloqueado' : u.status === 'expired' ? 'Vencido' : (u.daysRemaining !== null ? `${u.daysRemaining}d restantes` : 'Ativo');
+        const actions = u.role === 'admin'
+          ? `<button type="button" class="act-btn" onclick="openPasswordModal('${escapeHtml(u.id)}', '${escapeHtml(u.username)}')">Alterar Senha</button>`
+          : `<button type="button" class="act-btn renew" onclick="renewLojista('${escapeHtml(u.id)}', 30)">+30d</button>
+             <button type="button" class="act-btn" onclick="openPasswordModal('${escapeHtml(u.id)}', '${escapeHtml(u.username)}')">Senha</button>
+             <button type="button" class="act-btn block" onclick="toggleBlock('${escapeHtml(u.id)}')">${u.status === 'blocked' ? 'Desbloquear' : 'Bloquear'}</button>
+             <button type="button" class="act-btn block" onclick="deleteLojista('${escapeHtml(u.id)}', '${escapeHtml(u.storeName || u.username)}')">Excluir</button>`;
+        return `<tr>
+          <td><strong>${escapeHtml(u.storeName || u.username)}</strong><br><span style="font-size:0.78rem;color:var(--text-secondary)">${escapeHtml(u.ownerName || '')}</span></td>
+          <td><code>${escapeHtml(u.username)}</code></td>
+          <td>${escapeHtml(u.whatsapp || '-')}</td>
+          <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+          <td><div class="table-actions">${actions}</div></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function filterLojistas() {
+      const term = (document.getElementById('searchInput')?.value || '').toLowerCase();
+      if (!term) return renderTable(allLojistas);
+      renderTable(allLojistas.filter(u =>
+        (u.storeName || '').toLowerCase().includes(term) ||
+        (u.username || '').toLowerCase().includes(term) ||
+        (u.whatsapp || '').toLowerCase().includes(term)
+      ));
+    }
+
+    function openCreateModal() { document.getElementById('createModal').classList.add('open'); }
+    function closeCreateModal() { document.getElementById('createModal').classList.remove('open'); }
+    function selectPeriod(days, btn) {
+      document.getElementById('newDays').value = days;
+      document.querySelectorAll('#createModal .period-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+    }
+
+    async function handleCreateLojista(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btnSaveLojista');
+      btn.disabled = true;
+      try {
+        const resp = await fetch('/api/admin/lojistas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            storeName: document.getElementById('newStoreName').value,
+            ownerName: document.getElementById('newOwnerName').value,
+            whatsapp: document.getElementById('newWhatsapp').value,
+            username: document.getElementById('newUsername').value,
+            password: document.getElementById('newPassword').value,
+            days: document.getElementById('newDays').value
+          })
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.success) throw new Error(data.error || 'Erro ao cadastrar.');
+        closeCreateModal();
+        e.target.reset();
+        await fetchLojistas();
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function renewLojista(id, days) {
+      const resp = await fetch(`/api/admin/lojistas/${id}/renew`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days })
+      });
+      if (resp.ok) fetchLojistas();
+    }
+
+    async function toggleBlock(id) {
+      const resp = await fetch(`/api/admin/lojistas/${id}/block`, { method: 'POST' });
+      if (resp.ok) fetchLojistas();
+    }
+
+    function openPasswordModal(id, username) {
+      document.getElementById('editUserId').value = id;
+      document.getElementById('editUserLabel').textContent = `Definindo nova senha para "${username}":`;
+      document.getElementById('editPasswordInput').value = '';
+      document.getElementById('passwordModal').classList.add('open');
+      document.getElementById('editPasswordInput').focus();
+    }
+    function closePasswordModal() { document.getElementById('passwordModal').classList.remove('open'); }
+
+    async function handleUpdatePassword(e) {
+      e.preventDefault();
+      const id = document.getElementById('editUserId').value;
+      const newPassword = document.getElementById('editPasswordInput').value;
+      const resp = await fetch(`/api/admin/lojistas/${id}/password`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword })
+      });
+      const data = await resp.json();
+      if (resp.ok && data.success) {
+        alert('Senha atualizada com sucesso!');
+        closePasswordModal();
+      } else {
+        alert(data.error || 'Erro ao atualizar senha.');
+      }
+    }
+
+    async function deleteLojista(id, name) {
+      if (!confirm(`Excluir permanentemente "${name}"?`)) return;
+      const resp = await fetch(`/api/admin/lojistas/${id}`, { method: 'DELETE' });
+      if (resp.ok) fetchLojistas();
+    }
+
+    async function handleLogout() {
+      try {
+        localStorage.removeItem('logged_username');
+        await fetch('/api/auth/logout', { method: 'POST' });
+      } finally {
+        window.location.href = '/';
+      }
+    }
+
+    async function fetchMargins() {
+      try {
+        const resp = await fetch('/api/admin/margins');
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data.success && data.margins) {
+          adminMargins = data.margins;
+          populateMarginsForm();
+        }
+      } catch (e) {}
+    }
+
+    function populateMarginsForm() {
+      const cats = adminMargins.categories || {};
+      Object.keys(cats).forEach(cat => {
+        const input = document.getElementById(`margin_${cat}`);
+        if (input && cats[cat] !== undefined) input.value = cats[cat];
+      });
+      renderProductMarginsTable();
+    }
+
+    function renderProductMarginsTable() {
+      const tbody = document.getElementById('productMarginsTableBody');
+      if (!tbody) return;
+      const prods = adminMargins.products || {};
+      const keys = Object.keys(prods);
+      if (!keys.length) {
+        tbody.innerHTML = '<tr><td colspan="3" class="empty-state">Nenhuma exceção cadastrada.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = keys.map(k => `<tr>
+        <td><strong>${escapeHtml(k)}</strong></td>
+        <td><span style="color: var(--accent-green); font-weight: 700;">+ R$ ${Number(prods[k]).toLocaleString('pt-BR')}</span></td>
+        <td><button type="button" class="act-btn block" onclick="removeProductMarginOverride('${escapeHtml(k)}')">Remover</button></td>
+      </tr>`).join('');
+    }
+
+    function addProductMarginOverride() {
+      const name = (document.getElementById('newProdName').value || '').trim().toUpperCase();
+      const marginVal = parseFloat(document.getElementById('newProdMargin').value);
+      if (!name || isNaN(marginVal)) return alert('Informe o modelo e o valor numérico da margem.');
+      if (!adminMargins.products) adminMargins.products = {};
+      adminMargins.products[name] = marginVal;
+      document.getElementById('newProdName').value = '';
+      document.getElementById('newProdMargin').value = '';
+      renderProductMarginsTable();
+    }
+
+    function removeProductMarginOverride(key) {
+      if (adminMargins.products) {
+        delete adminMargins.products[key];
+        renderProductMarginsTable();
+      }
+    }
+
+    async function saveAdminMargins() {
+      ['SEMINOVOS', 'IPH_DUO', 'IPH18', 'IPH', 'MCB_AIR', 'MCB_PRO', 'MCB_MAX', 'IPAD', 'IPAD_PRO_AIR', 'RLG', 'RLG_ULTRA_S12', 'IMAC', 'PODS', 'ACSS', 'FOLIO', 'PENCIL', 'AIRTAG_UNIT', 'AIRTAG_PACK', 'MAGIC_KEY', 'MAGIC_MOUSE', 'APPLE_TV'].forEach(cat => {
+        const input = document.getElementById(`margin_${cat}`);
+        if (input) adminMargins.categories[cat] = parseFloat(input.value) || 0;
+      });
+      const resp = await fetch('/api/admin/margins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(adminMargins)
+      });
+      const data = await resp.json();
+      alert(resp.ok && data.success ? 'Margens salvas com sucesso!' : (data.error || 'Erro ao salvar margens.'));
+    }
+
+    async function loadAvailableModelsDatalist() {
+      try {
+        const resp = await fetch('/api/products');
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const datalist = document.getElementById('availableModelsList');
+        const list = Array.isArray(data) ? data : (data.data || []);
+        if (!datalist) return;
+        const unique = new Set(list.map(p => (p.name || '').trim().toUpperCase()).filter(Boolean));
+        datalist.innerHTML = Array.from(unique).sort().map(m => `<option value="${escapeHtml(m)}"></option>`).join('');
+      } catch (e) {}
+    }
+
+    async function fetchCardRates() {
+      try {
+        const resp = await fetch('/api/card-rates');
+        const data = await resp.json();
+        if (data.success && data.rates) adminCardRates = data.rates;
+      } catch (e) {}
+      renderCardRatesGrid();
+    }
+
+    function renderCardRatesGrid() {
+      const container = document.getElementById('cardRatesGridContainer');
+      const baseInput = document.getElementById('rate_base');
+      if (baseInput && adminCardRates.baseRate !== undefined) baseInput.value = adminCardRates.baseRate;
+      if (!container) return;
+      const base = parseFloat(baseInput?.value) || 0;
+      let html = '';
+      for (let i = 1; i <= 18; i++) {
+        const parcelRate = adminCardRates.installmentRates?.[String(i)] ?? (i * 0.75);
+        const totalRate = (base + parcelRate).toFixed(2);
+        html += `<div style="background: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.85rem; font-weight: 800;">${i === 1 ? 'À vista (1x)' : `${i}x`}</span>
+            <span id="rate_badge_${i}" style="font-size: 0.75rem; font-weight: 800; color: var(--accent-green);">Total: ${totalRate}%</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Taxa:</span>
+            <input type="number" step="0.01" id="rate_parcel_${i}" value="${parcelRate}" class="modal-input" style="height: 34px; padding: 4px 8px;" oninput="updateRateTotalsPreview()">
+            <span style="font-size: 0.75rem; color: var(--text-muted);">%</span>
+          </div>
+        </div>`;
+      }
+      container.innerHTML = html;
+    }
+
+    function updateRateTotalsPreview() {
+      const base = parseFloat(document.getElementById('rate_base')?.value) || 0;
+      for (let i = 1; i <= 18; i++) {
+        const input = document.getElementById(`rate_parcel_${i}`);
+        const badge = document.getElementById(`rate_badge_${i}`);
+        if (input && badge) badge.textContent = `Total: ${(base + (parseFloat(input.value) || 0)).toFixed(2)}%`;
+      }
+    }
+
+    async function saveAdminCardRates() {
+      const baseRate = parseFloat(document.getElementById('rate_base')?.value) || 0;
+      const installmentRates = {};
+      for (let i = 1; i <= 18; i++) installmentRates[String(i)] = parseFloat(document.getElementById(`rate_parcel_${i}`)?.value) || 0;
+      const resp = await fetch('/api/admin/card-rates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ baseRate, calculationMode: 'factor', installmentRates })
+      });
+      const data = await resp.json();
+      alert(resp.ok && data.success ? 'Taxas da maquininha salvas com sucesso!' : (data.error || 'Erro ao salvar taxas.'));
+    }
+
+    function updateAdminThemeUI(isLight) {
+      const label = document.getElementById('adminThemeLabel');
+      if (label) label.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
+    }
+
+    function initAdminTheme() {
+      const savedTheme = localStorage.getItem('mundo_apple_theme') || 'light';
+      const isLight = savedTheme !== 'dark';
+      document.body.classList.toggle('light-theme', isLight);
+      updateAdminThemeUI(isLight);
+    }
+
+    function toggleAdminTheme() {
+      const isLight = document.body.classList.toggle('light-theme');
+      localStorage.setItem('mundo_apple_theme', isLight ? 'light' : 'dark');
+      updateAdminThemeUI(isLight);
+    }
+
+    async function openAdminExportModal() {
+      document.getElementById('adminExportModal').classList.add('open');
+      const resp = await fetch('/api/products');
+      const data = await resp.json();
+      if (data && data.success && Array.isArray(data.data)) {
+        adminProductsCache = data.data;
+        adminExportDate = data.latestDate || '';
+      }
+      updateAdminExportSummary();
+    }
+
+    function closeAdminExportModal() {
+      document.getElementById('adminExportModal').classList.remove('open');
+    }
+
+    function selectExportCategory(cat, btn) {
+      adminExportActiveCategory = cat;
+      document.querySelectorAll('#exportCategoryFilterPills .period-btn').forEach(p => p.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      updateAdminExportSummary();
+    }
+
+    function filterAdminExportProducts() {
+      return adminProductsCache.filter(p => {
+        if (!p || !p.price || p.price <= 0) return false;
+        if (adminExportActiveCategory === 'ALL') return true;
+        const cat = (p.category || '').toUpperCase();
+        const name = (p.name || '').toUpperCase();
+        if (adminExportActiveCategory === 'IPH') return cat === 'IPH' || name.includes('IPHONE');
+        if (adminExportActiveCategory === 'MCB') return cat === 'MCB' || cat === 'IMAC' || name.includes('MAC') || name.includes('IMAC');
+        if (adminExportActiveCategory === 'IPAD') return cat === 'IPAD' || name.includes('IPAD');
+        if (adminExportActiveCategory === 'RLG') return cat === 'RLG' || name.includes('WATCH');
+        if (adminExportActiveCategory === 'PODS') return cat === 'PODS' || name.includes('AIRPOD');
+        if (adminExportActiveCategory === 'ACSS') return cat === 'ACSS' || cat === 'APPLE_TV' || name.includes('PENCIL') || name.includes('KEYBOARD') || name.includes('AIRTAG') || name.includes('MOUSE');
+        return true;
+      });
+    }
+
+    function updateAdminExportSummary() {
+      const filtered = filterAdminExportProducts();
+      document.getElementById('exportProductsCountSubtitle').textContent = `Data: ${adminExportDate || 'Atual'} • ${adminProductsCache.length} itens`;
+      document.getElementById('exportFilteredCount').textContent = `${filtered.length} ofertas filtradas`;
+      document.getElementById('exportPreviewDesc').textContent = filtered.length ? 'Pronto para copiar ou baixar planilha CSV.' : 'Nenhum produto nesta categoria.';
+    }
+
+    async function executeAdminWhatsAppExport(btn) {
+      const prods = filterAdminExportProducts();
+      if (!prods.length) return alert('Nenhum produto para exportar.');
+      const groups = new Map();
+      prods.forEach(p => {
+        const key = (p.name || '').trim().toUpperCase();
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(p);
+      });
+      const blocks = [`🍏 *TABELA DE CUSTOS (${adminExportDate || 'ATUAL'})*\n`];
+      groups.forEach((items, title) => {
+        items.sort((a, b) => a.price - b.price);
+        const lines = [`📱 *${title}*`];
+        items.forEach(item => {
+          const spec = [item.storage, item.color].filter(Boolean).join(' - ') || 'Padrão';
+          lines.push(`• ${spec}: ${Number(item.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+        });
+        blocks.push(lines.join('\n'));
+      });
+      await navigator.clipboard.writeText(blocks.join('\n\n'));
+      const span = document.getElementById('btnAdminCopyWhatsAppText');
+      if (span) { span.textContent = '✓ Copiado!'; setTimeout(() => { span.textContent = 'Copiar para WhatsApp'; }, 2000); }
+    }
+
+    function executeAdminCsvExport() {
+      const prods = filterAdminExportProducts();
+      if (!prods.length) return alert('Nenhum produto para exportar.');
+      const esc = s => `"${String(s ?? '').replace(/"/g, '""')}"`;
+      const rows = prods.map(p => [esc(p.name), esc(p.category), esc(p.condition || 'NOVO'), esc(p.storage), esc(p.color), esc((Number(p.price) || 0).toFixed(2).replace('.', ',')), esc(adminExportDate)].join(';'));
+      const csv = '\uFEFF' + ['Produto;Categoria;Condição;Capacidade;Cor;Custo (R$);Data', ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Catalogo_${adminExportDate || 'atual'}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function openDailyPricesModal() {
+      const modal = document.getElementById('modalDailyPrices');
+      const dateInput = document.getElementById('dailyPricesDate');
+      if (dateInput && !dateInput.value) {
+        const now = new Date();
+        dateInput.value = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      }
+      document.getElementById('dailyPricesFeedback').style.display = 'none';
+      modal.classList.add('open');
+      document.getElementById('dailyPricesRawText').focus();
+    }
+
+    function closeDailyPricesModal() {
+      document.getElementById('modalDailyPrices').classList.remove('open');
+    }
+
+    function clearDailyPricesInput() {
+      document.getElementById('dailyPricesRawText').value = '';
+      document.getElementById('dailyPricesFeedback').style.display = 'none';
+    }
+
+    async function submitDailyPrices() {
+      const rawText = document.getElementById('dailyPricesRawText').value.trim();
+      if (!rawText) return alert('Cole a lista de produtos antes de atualizar.');
+      const date = document.getElementById('dailyPricesDate').value.trim();
+      const mode = document.getElementById('dailyPricesMode').value;
+      const btn = document.getElementById('btnSubmitDailyPrices');
+      const feedback = document.getElementById('dailyPricesFeedback');
+      btn.disabled = true;
+      btn.textContent = 'Processando...';
+      feedback.style.display = 'block';
+      feedback.style.background = 'rgba(0, 113, 227, 0.12)';
+      feedback.style.border = '1px solid rgba(0, 113, 227, 0.35)';
+      feedback.style.color = '#0071e3';
+      feedback.textContent = 'Validando e atualizando catálogo...';
+      try {
+        const resp = await fetch('/api/admin/daily-prices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rawText, date, mode })
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.success) throw new Error(data.error || 'Erro ao processar lista.');
+        feedback.style.background = 'rgba(16, 185, 129, 0.12)';
+        feedback.style.border = '1px solid rgba(16, 185, 129, 0.35)';
+        feedback.style.color = '#059669';
+        feedback.innerHTML = `<strong>Catálogo atualizado (${escapeHtml(data.date)})!</strong><br>Aceitos: <strong>${data.added}</strong> • Total ativo: <strong>${data.totalCatalog}</strong> • Hotwav bloqueados: <strong>${data.stats?.blockedHotwav || 0}</strong>`;
+        document.getElementById('dailyPricesRawText').value = '';
+        adminProductsCache = [];
+        loadCatalogHealth();
+        loadAvailableModelsDatalist();
+      } catch (err) {
+        feedback.style.background = 'rgba(239, 68, 68, 0.12)';
+        feedback.style.border = '1px solid rgba(239, 68, 68, 0.35)';
+        feedback.style.color = '#dc2626';
+        feedback.textContent = err.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Processar e Atualizar';
+      }
+    }
+  </script>
+</body>
+</html>
