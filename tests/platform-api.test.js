@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 const { platform, temporaryProject, isolatedModules } = require('./helpers/platform');
 const { importCatalog } = require('../scripts/import-catalog');
 
@@ -225,4 +226,147 @@ test('partial catalog updates report the newest date regardless of product order
   const cookie = login.headers.get('set-cookie').split(';')[0];
   const authedCost = await (await fetch(origin + '/api/cost-products', { headers: { cookie } })).json();
   assert.equal(authedCost.latestDate, '14-11');
+});
+
+test('admin split catalog pane renders Preço de Custo and Preço Real side-by-side without exposing DFU', async t => {
+  const app = await platform(t);
+  const adminHtml = fs.readFileSync(path.join(__dirname, '..', 'public/admin.html'), 'utf8');
+  const pricingCoreSource = fs.readFileSync(path.join(__dirname, '..', 'public/js/pricing-core.js'), 'utf8');
+
+  const visibleHtml = adminHtml
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '');
+  assert.equal(/dfu/i.test(visibleHtml), false, 'Admin HTML must not mention DFU visibly');
+  assert.match(adminHtml, /<div class="split-panes-grid mode-split" id="splitCatalogGrid">/);
+  assert.match(adminHtml, /id="tabSplitCost"[\s\S]*?Preço de Custo/);
+  assert.match(adminHtml, /id="tabSplitReal"[\s\S]*?Preço Real/);
+
+  const inlineMatch = adminHtml.match(/<script>\s*([\s\S]*?)<\/script>\s*<\/body>/);
+  assert.ok(inlineMatch, 'Inline script block must exist in admin.html');
+
+  const elements = new Map();
+  const makeClassList = (initial = []) => {
+    const set = new Set(initial);
+    return {
+      add: (...cls) => cls.forEach(c => set.add(c)),
+      remove: (...cls) => cls.forEach(c => set.delete(c)),
+      toggle: (c, force) => (force === undefined ? (set.has(c) ? set.delete(c) : set.add(c)) : (force ? set.add(c) : set.delete(c))),
+      contains: c => set.has(c)
+    };
+  };
+  const getEl = id => {
+    if (!elements.has(id)) {
+      const listeners = {};
+      const initialClasses = id === 'splitCatalogGrid'
+        ? ['split-panes-grid', 'mode-split']
+        : (id === 'btnModeSplit' ? ['split-mode-pill', 'active']
+          : (id === 'tabSplitCost' ? ['split-tab-btn', 'active-cost']
+            : (id === 'tabSplitReal' ? ['split-tab-btn', 'active-real'] : [])));
+      elements.set(id, {
+        id,
+        value: '',
+        textContent: '',
+        innerHTML: '',
+        scrollTop: 0,
+        disabled: false,
+        style: {},
+        dataset: {},
+        classList: makeClassList(initialClasses),
+        addEventListener: (ev, fn) => { (listeners[ev] ||= []).push(fn); },
+        dispatchEvent: ev => { (listeners[ev] || []).forEach(fn => fn({ target: elements.get(id) })); },
+        querySelectorAll: () => [],
+        focus: () => {}
+      });
+    }
+    return elements.get(id);
+  };
+
+  let domLoadedHandler = null;
+  const routeMap = new Map([
+    ['/api/auth/me', await app.request('/api/auth/me', 'test-admin')],
+    ['/api/health', await app.request('/api/health')],
+    ['/api/admin/margins', await app.request('/api/admin/margins', 'test-admin')],
+    ['/api/card-rates', await app.request('/api/card-rates')],
+    ['/api/products', await app.request('/api/products', 'test-admin')],
+    ['/api/cost-products', await app.request('/api/cost-products', 'test-admin')],
+    ['/api/admin/lojistas', await app.request('/api/admin/lojistas', 'test-admin')]
+  ]);
+  const visitorProducts = await app.request('/api/products');
+  const costProducts = routeMap.get('/api/cost-products');
+  assert.equal(costProducts.body.data[0].price, 6100);
+  assert.equal(visitorProducts.body.data[0].price, 6850);
+
+  const windowObj = {
+    location: { href: '/admin.html' },
+    localStorage: { getItem: () => 'light', setItem: () => {}, removeItem: () => {} }
+  };
+  const sandbox = {
+    window: windowObj,
+    document: {
+      body: { classList: makeClassList(['light-theme']), appendChild: () => {}, removeChild: () => {} },
+      getElementById: getEl,
+      querySelectorAll: () => [],
+      addEventListener: (ev, fn) => { if (ev === 'DOMContentLoaded') domLoadedHandler = fn; },
+      createElement: () => ({ click: () => {}, style: {} })
+    },
+    localStorage: windowObj.localStorage,
+    requestAnimationFrame: fn => fn(),
+    alert: () => {},
+    confirm: () => true,
+    CSS: { escape: s => String(s) },
+    fetch: async url => {
+      const hit = routeMap.get(url);
+      assert.ok(hit, `Unexpected fetch to ${url}`);
+      return {
+        ok: hit.status >= 200 && hit.status < 300,
+        status: hit.status,
+        json: async () => hit.body
+      };
+    },
+    URL,
+    Blob,
+    Map,
+    Set,
+    Array,
+    Object,
+    String,
+    Number,
+    Math,
+    Promise,
+    Date,
+    RegExp,
+    JSON,
+    console
+  };
+  sandbox.self = sandbox.window;
+  windowObj.fetch = sandbox.fetch;
+  vm.createContext(sandbox);
+  vm.runInContext(pricingCoreSource, sandbox, { filename: 'pricing-core.js' });
+  vm.runInContext(inlineMatch[1], sandbox, { filename: 'admin-inline.js' });
+
+  assert.equal(typeof domLoadedHandler, 'function');
+  await domLoadedHandler();
+  await new Promise(resolve => setTimeout(resolve, 20));
+
+  const costHtml = getEl('splitCostScroll').innerHTML;
+  const realHtml = getEl('splitRealScroll').innerHTML;
+  assert.match(costHtml, /IPHONE 17 PRO/);
+  assert.match(costHtml, /6\.100,00/);
+  assert.match(realHtml, /6\.850,00/);
+  assert.match(realHtml, /750,00 margem/);
+  assert.equal(/dfu/i.test(costHtml + realHtml), false, 'Rendered split panes must never mention DFU');
+  assert.equal(getEl('splitCostCount').textContent, '1 item');
+  assert.equal(getEl('splitRealCount').textContent, '1 item');
+  assert.equal(getEl('splitCatalogGrid').classList.contains('mode-split'), true);
+
+  sandbox.onSplitTopTabClick('cost');
+  assert.equal(getEl('splitCatalogGrid').classList.contains('mode-cost'), true);
+  sandbox.onSplitTopTabClick('cost');
+  assert.equal(getEl('splitCatalogGrid').classList.contains('mode-split'), true);
+
+  const iphoneMarginInput = getEl('margin_IPH');
+  iphoneMarginInput.value = '950';
+  iphoneMarginInput.dispatchEvent('input');
+  assert.match(getEl('splitCostScroll').innerHTML, /6\.100,00/);
+  assert.match(getEl('splitRealScroll').innerHTML, /7\.050,00/);
 });

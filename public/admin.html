@@ -580,9 +580,278 @@
       cursor: pointer;
     }
 
-    .empty-state {
+      .empty-state {
       padding: 32px 16px;
       text-align: center;
+      color: var(--text-muted);
+    }
+
+    /* Split Screen Catalog Module (Preço de Custo vs Preço Real Lado a Lado) */
+    .split-catalog-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 32px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+    }
+
+    .split-top-tabs {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .split-tab-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      border: 1.5px solid var(--border-color);
+      background: var(--bg-subtle);
+      color: var(--text-primary);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.18s ease;
+    }
+
+    .split-tab-btn.active-cost {
+      border-color: #0071e3;
+      background: rgba(0, 113, 227, 0.08);
+    }
+
+    .split-tab-btn.active-real {
+      border-color: var(--accent-green);
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .split-tab-title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .split-tab-title strong {
+      font-size: 0.96rem;
+      font-weight: 800;
+    }
+
+    .split-tab-title span {
+      font-size: 0.76rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .split-tab-badge {
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      white-space: nowrap;
+    }
+
+    .split-controls-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .split-mode-pills {
+      display: inline-flex;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 3px;
+      gap: 4px;
+    }
+
+    .split-mode-pill {
+      padding: 7px 12px;
+      border: none;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .split-mode-pill.active {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    .split-category-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .split-cat-pill {
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-color);
+      background: var(--bg-subtle);
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .split-cat-pill.active {
+      background: #0f172a;
+      border-color: #0f172a;
+      color: #ffffff;
+    }
+
+    .split-panes-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .split-panes-grid.mode-cost {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .split-panes-grid.mode-cost #splitRealPane {
+      display: none;
+    }
+
+    .split-panes-grid.mode-real {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .split-panes-grid.mode-real #splitCostPane {
+      display: none;
+    }
+
+    .split-pane {
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: var(--bg-base);
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .split-pane-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .split-pane-header strong {
+      font-size: 0.92rem;
+      font-weight: 800;
+    }
+
+    .split-pane-header span {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+
+    .split-pane.cost-pane .split-pane-header {
+      border-top: 3px solid #0071e3;
+    }
+
+    .split-pane.real-pane .split-pane-header {
+      border-top: 3px solid var(--accent-green);
+    }
+
+    .split-pane-scroll {
+      max-height: 540px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+
+    .split-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      transition: background 0.12s ease;
+    }
+
+    .split-row.row-hover {
+      background: var(--bg-subtle);
+    }
+
+    .split-row-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .split-row-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .split-row-sub {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .split-cpo-badge {
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: rgba(245, 158, 11, 0.15);
+      color: #d97706;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+
+    .split-row-price {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .split-row-price strong {
+      display: block;
+      font-size: 0.94rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .split-pane.cost-pane .split-row-price strong {
+      color: #0071e3;
+    }
+
+    .split-pane.real-pane .split-row-price strong {
+      color: var(--accent-green);
+    }
+
+    .split-row-price small {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 600;
       color: var(--text-muted);
     }
 
@@ -591,6 +860,12 @@
       .main-container { padding: 0 12px 32px; margin: 14px auto; }
       .margin-grid { grid-template-columns: 1fr 1fr; }
       .desktop-only-text { display: none; }
+      .split-top-tabs { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .split-tab-btn { padding: 10px 12px; }
+      .split-panes-grid { grid-template-columns: minmax(0, 1fr); }
+      .split-panes-grid.mode-split { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .split-panes-grid.mode-split .split-row { padding: 10px; gap: 6px; flex-direction: column; align-items: flex-start; }
+      .split-panes-grid.mode-split .split-row-price { text-align: left; }
       input, select, textarea { font-size: 16px !important; }
     }
   </style>
@@ -639,7 +914,7 @@
         <div>
           <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 6px;">Preços de Custo e Atualização da Lista PXT</h3>
           <p id="catalogSummaryText" style="font-size: 0.86rem; color: var(--text-secondary); max-width: 680px;">
-            Consulte os custos com DFU ou cole a nova lista PXT para atualizar o catálogo instantaneamente (produtos Hotwav, Android, ativados e seminovos são bloqueados automaticamente).
+            Consulte os valores de custo e venda lado a lado ou cole a nova lista PXT para atualizar o catálogo instantaneamente (produtos Hotwav, Android, ativados e seminovos são bloqueados automaticamente).
           </p>
         </div>
         <div class="hero-admin-actions">
@@ -647,6 +922,70 @@
           <button type="button" class="btn-primary-blue" onclick="openDailyPricesModal()">+ Importar Lista PXT</button>
         </div>
       </div>
+
+      <section class="split-catalog-section" id="splitCatalogSection" aria-label="Comparativo lado a lado Preço de Custo e Preço Real">
+        <div class="split-top-tabs">
+          <button type="button" class="split-tab-btn active-cost" id="tabSplitCost" onclick="onSplitTopTabClick('cost')">
+            <div class="split-tab-title">
+              <strong>Preço de Custo</strong>
+              <span>Lista puxada do catálogo</span>
+            </div>
+            <span class="split-tab-badge" id="splitCostCount">0 itens</span>
+          </button>
+          <button type="button" class="split-tab-btn active-real" id="tabSplitReal" onclick="onSplitTopTabClick('real')">
+            <div class="split-tab-title">
+              <strong>Preço Real</strong>
+              <span>Valor já com a margem</span>
+            </div>
+            <span class="split-tab-badge" id="splitRealCount">0 itens</span>
+          </button>
+        </div>
+
+        <div class="split-controls-bar">
+          <div class="search-input-wrap" style="max-width: 460px;">
+            <input type="text" id="splitCatalogSearch" placeholder="Buscar modelo, capacidade ou cor nas duas listas..." oninput="renderSplitCatalog()">
+          </div>
+          <div class="split-mode-pills" role="group" aria-label="Modo de visualização">
+            <button type="button" class="split-mode-pill active" id="btnModeSplit" onclick="setSplitViewMode('split')">Lado a lado</button>
+            <button type="button" class="split-mode-pill" id="btnModeCost" onclick="setSplitViewMode('cost')">Só Custo</button>
+            <button type="button" class="split-mode-pill" id="btnModeReal" onclick="setSplitViewMode('real')">Só Real</button>
+          </div>
+        </div>
+
+        <div class="split-category-pills" id="splitCategoryPills">
+          <button type="button" class="split-cat-pill active" data-split-cat="ALL" onclick="selectSplitCategory('ALL', this)">Todos</button>
+          <button type="button" class="split-cat-pill" data-split-cat="IPH" onclick="selectSplitCategory('IPH', this)">iPhone</button>
+          <button type="button" class="split-cat-pill" data-split-cat="IPH_CPO" onclick="selectSplitCategory('IPH_CPO', this)">iPhone CPO</button>
+          <button type="button" class="split-cat-pill" data-split-cat="MCB" onclick="selectSplitCategory('MCB', this)">Mac</button>
+          <button type="button" class="split-cat-pill" data-split-cat="MCB_CPO" onclick="selectSplitCategory('MCB_CPO', this)">Mac CPO</button>
+          <button type="button" class="split-cat-pill" data-split-cat="IPAD" onclick="selectSplitCategory('IPAD', this)">iPad</button>
+          <button type="button" class="split-cat-pill" data-split-cat="IPAD_CPO" onclick="selectSplitCategory('IPAD_CPO', this)">iPad CPO</button>
+          <button type="button" class="split-cat-pill" data-split-cat="RLG" onclick="selectSplitCategory('RLG', this)">Apple Watch</button>
+          <button type="button" class="split-cat-pill" data-split-cat="PODS" onclick="selectSplitCategory('PODS', this)">AirPods</button>
+          <button type="button" class="split-cat-pill" data-split-cat="ACSS" onclick="selectSplitCategory('ACSS', this)">Acessórios</button>
+        </div>
+
+        <div class="split-panes-grid mode-split" id="splitCatalogGrid">
+          <section class="split-pane cost-pane" id="splitCostPane" aria-label="Lista Preço de Custo">
+            <div class="split-pane-header">
+              <strong>Preço de Custo</strong>
+              <span id="splitCostPaneMeta">Lista importada</span>
+            </div>
+            <div class="split-pane-scroll" id="splitCostScroll">
+              <div class="empty-state">Carregando lista de custos...</div>
+            </div>
+          </section>
+          <section class="split-pane real-pane" id="splitRealPane" aria-label="Lista Preço Real">
+            <div class="split-pane-header">
+              <strong>Preço Real</strong>
+              <span id="splitRealPaneMeta">Valor com margem</span>
+            </div>
+            <div class="split-pane-scroll" id="splitRealScroll">
+              <div class="empty-state">Carregando lista com margem...</div>
+            </div>
+          </section>
+        </div>
+      </section>
 
       <section class="metrics-grid">
         <div class="metric-card">
@@ -714,7 +1053,7 @@
     <div class="section-header">
       <div class="section-title">
         <h2>Margens de Lucro</h2>
-        <p>Valores somados sobre custo + DFU para o preço de venda público</p>
+        <p>Valores somados sobre o custo para o preço de venda público</p>
       </div>
       <button type="button" class="btn-create-lojista" onclick="saveAdminMargins()">Salvar Margens</button>
     </div>
@@ -910,7 +1249,12 @@
     </div>
   </div>
 
+  <script src="/js/pricing-core.js?v=cpo-6"></script>
   <script>
+    if (window.PricingCore && typeof window.PricingCore.setDfuActive === 'function') {
+      window.PricingCore.setDfuActive(true);
+    }
+
     let currentUser = null;
     let allLojistas = [];
     let adminMargins = {
@@ -933,14 +1277,28 @@
     let adminProductsCache = [];
     let adminExportActiveCategory = 'ALL';
     let adminExportDate = '';
+    let splitRawProducts = [];
+    let splitCostById = new Map();
+    let splitViewMode = 'split';
+    let splitCategory = 'ALL';
+    let isSyncingSplitScroll = false;
+
+    const ADMIN_MARGIN_CATEGORIES = [
+      'SEMINOVOS', 'IPH_DUO', 'IPH18', 'IPH', 'MCB_AIR', 'MCB_PRO', 'MCB_MAX',
+      'IPAD', 'IPAD_PRO_AIR', 'RLG', 'RLG_ULTRA_S12', 'IMAC', 'PODS', 'ACSS',
+      'FOLIO', 'PENCIL', 'AIRTAG_UNIT', 'AIRTAG_PACK', 'MAGIC_KEY', 'MAGIC_MOUSE', 'APPLE_TV'
+    ];
 
     document.addEventListener('DOMContentLoaded', async () => {
       initAdminTheme();
+      bindSplitPaneSync();
+      bindAdminMarginLiveInputs();
       await checkAdminSession();
       loadCatalogHealth();
-      fetchMargins();
+      await fetchMargins();
       fetchCardRates();
       loadAvailableModelsDatalist();
+      loadSplitCatalog();
     });
 
     async function checkAdminSession() {
@@ -1139,6 +1497,7 @@
         if (data.success && data.margins) {
           adminMargins = data.margins;
           populateMarginsForm();
+          renderSplitCatalog();
         }
       } catch (e) {}
     }
@@ -1177,20 +1536,23 @@
       document.getElementById('newProdName').value = '';
       document.getElementById('newProdMargin').value = '';
       renderProductMarginsTable();
+      renderSplitCatalog();
     }
 
     function removeProductMarginOverride(key) {
       if (adminMargins.products) {
         delete adminMargins.products[key];
         renderProductMarginsTable();
+        renderSplitCatalog();
       }
     }
 
     async function saveAdminMargins() {
-      ['SEMINOVOS', 'IPH_DUO', 'IPH18', 'IPH', 'MCB_AIR', 'MCB_PRO', 'MCB_MAX', 'IPAD', 'IPAD_PRO_AIR', 'RLG', 'RLG_ULTRA_S12', 'IMAC', 'PODS', 'ACSS', 'FOLIO', 'PENCIL', 'AIRTAG_UNIT', 'AIRTAG_PACK', 'MAGIC_KEY', 'MAGIC_MOUSE', 'APPLE_TV'].forEach(cat => {
+      ADMIN_MARGIN_CATEGORIES.forEach(cat => {
         const input = document.getElementById(`margin_${cat}`);
         if (input) adminMargins.categories[cat] = parseFloat(input.value) || 0;
       });
+      renderSplitCatalog();
       const resp = await fetch('/api/admin/margins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1198,6 +1560,227 @@
       });
       const data = await resp.json();
       alert(resp.ok && data.success ? 'Margens salvas com sucesso!' : (data.error || 'Erro ao salvar margens.'));
+    }
+
+    function bindAdminMarginLiveInputs() {
+      ADMIN_MARGIN_CATEGORIES.forEach(cat => {
+        const input = document.getElementById(`margin_${cat}`);
+        if (!input || input.dataset.splitBound) return;
+        input.dataset.splitBound = '1';
+        input.addEventListener('input', () => {
+          if (!adminMargins.categories) adminMargins.categories = {};
+          adminMargins.categories[cat] = parseFloat(input.value) || 0;
+          renderSplitCatalog();
+        });
+      });
+    }
+
+    function bindSplitPaneSync() {
+      const costScroll = document.getElementById('splitCostScroll');
+      const realScroll = document.getElementById('splitRealScroll');
+      if (!costScroll || !realScroll || costScroll.dataset.syncBound) return;
+      costScroll.dataset.syncBound = '1';
+      realScroll.dataset.syncBound = '1';
+
+      const syncScroll = (source, target) => {
+        if (isSyncingSplitScroll) return;
+        isSyncingSplitScroll = true;
+        target.scrollTop = source.scrollTop;
+        requestAnimationFrame(() => { isSyncingSplitScroll = false; });
+      };
+      costScroll.addEventListener('scroll', () => syncScroll(costScroll, realScroll));
+      realScroll.addEventListener('scroll', () => syncScroll(realScroll, costScroll));
+    }
+
+    function highlightSplitRow(rowId, active) {
+      if (!rowId) return;
+      const escapedId = (typeof CSS !== 'undefined' && typeof CSS.escape === 'function')
+        ? CSS.escape(rowId)
+        : String(rowId).replace(/"/g, '\\"');
+      document.querySelectorAll(`.split-row[data-row-id="${escapedId}"]`).forEach(el => {
+        el.classList.toggle('row-hover', Boolean(active));
+      });
+    }
+
+    function formatBrl(val) {
+      return (Number(val) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function matchesSplitCategory(p, selected) {
+      if (!p) return false;
+      if (selected === 'ALL') return true;
+      const pc = window.PricingCore;
+      const isSemi = pc ? pc.isSeminovoProduct(p) : false;
+      if (isSemi) return false;
+      const isCpo = (pc ? pc.isCpoProduct(p) : false) || p.condition === 'CPO';
+      const wantsCpo = selected.endsWith('_CPO');
+      if (isCpo !== wantsCpo) return false;
+      const base = selected.replace(/_CPO$/, '');
+      const cat = (p.category || '').toUpperCase().trim();
+      const name = (p.name || '').toUpperCase();
+      if (base === 'IPH') return cat === 'IPH' || name.includes('IPHONE');
+      if (base === 'MCB') return cat === 'MCB' || name.includes('MACBOOK') || name.includes('MAC MINI') || name.includes('MAC STUDIO') || name.includes('MAC PRO') || name.includes('IMAC');
+      if (base === 'IPAD') return cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD');
+      if (base === 'RLG') return cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA');
+      if (base === 'PODS') return cat === 'PODS' || name.includes('AIRPOD');
+      if (base === 'ACSS') return cat === 'ACSS' || cat === 'APPLE_TV' || name.includes('APPLE TV') || name.includes('APPLETV') || name.includes('PENCIL') || name.includes('MAGIC') || name.includes('CABO') || name.includes('FONTE') || name.includes('CARREGADOR') || name.includes('AIRTAG') || name.includes('TRACKPAD') || name.includes('MAGSAFE') || name.includes('ADAPTADOR') || name.includes('FOLIO') || name.includes('CAPA') || name.includes('CASE');
+      return false;
+    }
+
+    function getSortedFilteredSplitRows() {
+      const pc = window.PricingCore;
+      if (pc && typeof pc.setDfuActive === 'function') pc.setDfuActive(true);
+      const query = (document.getElementById('splitCatalogSearch')?.value || '').trim().toUpperCase();
+      const tokens = query ? query.split(/\s+/).filter(Boolean) : [];
+
+      const rows = splitRawProducts
+        .filter(p => {
+          if (!p || !(Number(p.price) > 0)) return false;
+          if (!matchesSplitCategory(p, splitCategory)) return false;
+          if (!tokens.length) return true;
+          const haystack = `${p.name || ''} ${p.storage || ''} ${p.color || ''} ${p.category || ''} ${p.condition || ''}`.toUpperCase();
+          return tokens.every(tok => haystack.includes(tok));
+        })
+        .map((p, idx) => {
+          const isCpo = (pc ? pc.isCpoProduct(p) : false) || p.condition === 'CPO';
+          const isSemi = pc ? pc.isSeminovoProduct(p) : false;
+          const idKey = (p.id !== undefined && p.id !== null) ? String(p.id) : String(idx);
+          const costPrice = splitCostById.has(idKey)
+            ? splitCostById.get(idKey)
+            : (pc ? pc.applyDFU(p.price, p.category, p.name) : Number(p.price) || 0);
+          const realPrice = pc
+            ? pc.calculateRetailPrice(p.price, p.category, p.name, isSemi, adminMargins)
+            : costPrice;
+          const appliedMargin = Math.max(0, realPrice - costPrice);
+          return { product: p, rowId: idKey, isCpo, costPrice, realPrice, appliedMargin };
+        });
+
+      rows.sort((a, b) => {
+        const nameCmp = String(a.product.name || '').localeCompare(String(b.product.name || ''), 'pt-BR');
+        if (nameCmp !== 0) return nameCmp;
+        const storageCmp = String(a.product.storage || '').localeCompare(String(b.product.storage || ''), 'pt-BR');
+        if (storageCmp !== 0) return storageCmp;
+        const colorCmp = String(a.product.color || '').localeCompare(String(b.product.color || ''), 'pt-BR');
+        if (colorCmp !== 0) return colorCmp;
+        return a.costPrice - b.costPrice;
+      });
+      return rows;
+    }
+
+    function renderSplitCatalog() {
+      const costScroll = document.getElementById('splitCostScroll');
+      const realScroll = document.getElementById('splitRealScroll');
+      const costCountEl = document.getElementById('splitCostCount');
+      const realCountEl = document.getElementById('splitRealCount');
+      if (!costScroll || !realScroll) return;
+
+      const rows = getSortedFilteredSplitRows();
+      const countText = `${rows.length} ${rows.length === 1 ? 'item' : 'itens'}`;
+      if (costCountEl) costCountEl.textContent = countText;
+      if (realCountEl) realCountEl.textContent = countText;
+
+      if (!rows.length) {
+        const emptyHtml = '<div class="empty-state">Nenhum produto encontrado para este filtro.</div>';
+        costScroll.innerHTML = emptyHtml;
+        realScroll.innerHTML = emptyHtml;
+        return;
+      }
+
+      const costHtmlParts = [];
+      const realHtmlParts = [];
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const p = r.product;
+        const safeRowId = escapeHtml(r.rowId);
+        const titleHtml = `${escapeHtml(p.name || '')}${r.isCpo ? '<span class="split-cpo-badge">CPO</span>' : ''}`;
+        const specParts = [p.storage, p.color].filter(Boolean).map(v => escapeHtml(v));
+        const subText = specParts.length ? specParts.join(' • ') : 'Padrão';
+        const hoverAttrs = `data-row-id="${safeRowId}" onmouseenter="highlightSplitRow('${safeRowId}', true)" onmouseleave="highlightSplitRow('${safeRowId}', false)"`;
+
+        costHtmlParts.push(
+          `<div class="split-row" ${hoverAttrs}>` +
+            `<div class="split-row-info"><div class="split-row-title">${titleHtml}</div><div class="split-row-sub">${subText}</div></div>` +
+            `<div class="split-row-price"><strong>${formatBrl(r.costPrice)}</strong><small>Preço de custo</small></div>` +
+          `</div>`
+        );
+        realHtmlParts.push(
+          `<div class="split-row" ${hoverAttrs}>` +
+            `<div class="split-row-info"><div class="split-row-title">${titleHtml}</div><div class="split-row-sub">${subText}</div></div>` +
+            `<div class="split-row-price"><strong>${formatBrl(r.realPrice)}</strong><small>+ ${formatBrl(r.appliedMargin)} margem</small></div>` +
+          `</div>`
+        );
+      }
+      costScroll.innerHTML = costHtmlParts.join('');
+      realScroll.innerHTML = realHtmlParts.join('');
+    }
+
+    function setSplitViewMode(mode) {
+      const normalized = (mode === 'cost' || mode === 'real') ? mode : 'split';
+      splitViewMode = normalized;
+      const grid = document.getElementById('splitCatalogGrid');
+      if (grid) {
+        grid.classList.remove('mode-split', 'mode-cost', 'mode-real');
+        grid.classList.add(`mode-${normalized}`);
+      }
+      document.getElementById('btnModeSplit')?.classList.toggle('active', normalized === 'split');
+      document.getElementById('btnModeCost')?.classList.toggle('active', normalized === 'cost');
+      document.getElementById('btnModeReal')?.classList.toggle('active', normalized === 'real');
+      document.getElementById('tabSplitCost')?.classList.toggle('active-cost', normalized === 'split' || normalized === 'cost');
+      document.getElementById('tabSplitReal')?.classList.toggle('active-real', normalized === 'split' || normalized === 'real');
+    }
+
+    function onSplitTopTabClick(tab) {
+      if (splitViewMode === tab) {
+        setSplitViewMode('split');
+      } else {
+        setSplitViewMode(tab);
+      }
+    }
+
+    function selectSplitCategory(cat, btn) {
+      splitCategory = cat || 'ALL';
+      document.querySelectorAll('#splitCategoryPills .split-cat-pill').forEach(el => el.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      const costScroll = document.getElementById('splitCostScroll');
+      const realScroll = document.getElementById('splitRealScroll');
+      if (costScroll) costScroll.scrollTop = 0;
+      if (realScroll) realScroll.scrollTop = 0;
+      renderSplitCatalog();
+    }
+
+    async function loadSplitCatalog() {
+      try {
+        const pc = window.PricingCore;
+        if (pc && typeof pc.setDfuActive === 'function') pc.setDfuActive(true);
+
+        const [rawResp, costResp] = await Promise.all([
+          fetch('/api/products'),
+          fetch('/api/cost-products').catch(() => null)
+        ]);
+        if (!rawResp || !rawResp.ok) return;
+        const rawJson = await rawResp.json();
+        const rawList = Array.isArray(rawJson) ? rawJson : (rawJson.data || []);
+        const latestDate = rawJson.latestDate || '';
+
+        splitRawProducts = rawList.filter(p => p && Number(p.price) > 0 && (!pc || !pc.isDisallowedProduct(p)));
+        splitCostById = new Map();
+        if (costResp && costResp.ok) {
+          const costJson = await costResp.json();
+          const costList = Array.isArray(costJson) ? costJson : (costJson.data || []);
+          costList.forEach(item => {
+            if (item && item.id !== undefined && Number(item.price) > 0) {
+              splitCostById.set(String(item.id), Number(item.price));
+            }
+          });
+        }
+
+        const costMeta = document.getElementById('splitCostPaneMeta');
+        const realMeta = document.getElementById('splitRealPaneMeta');
+        if (costMeta) costMeta.textContent = latestDate ? `Lista importada (${latestDate})` : 'Lista importada';
+        if (realMeta) realMeta.textContent = latestDate ? `Valor com margem (${latestDate})` : 'Valor com margem';
+
+        renderSplitCatalog();
+      } catch (e) {}
     }
 
     async function loadAvailableModelsDatalist() {
@@ -1289,7 +1872,7 @@
 
     async function openAdminExportModal() {
       document.getElementById('adminExportModal').classList.add('open');
-      const resp = await fetch('/api/products');
+      const resp = await fetch('/api/cost-products');
       const data = await resp.json();
       if (data && data.success && Array.isArray(data.data)) {
         adminProductsCache = data.data;
@@ -1424,6 +2007,7 @@
         adminProductsCache = [];
         loadCatalogHealth();
         loadAvailableModelsDatalist();
+        loadSplitCatalog();
       } catch (err) {
         feedback.style.background = 'rgba(239, 68, 68, 0.12)';
         feedback.style.border = '1px solid rgba(239, 68, 68, 0.35)';
