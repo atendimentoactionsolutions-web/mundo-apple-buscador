@@ -30,17 +30,30 @@
 .catalog-app .header-right-group { gap: 8px; flex-shrink: 0; }
 .catalog-app .header-action-btn { min-height: 40px; border-radius: 10px; padding: 8px 10px; font-size: 12px; white-space: nowrap; }
 .catalog-app .header-dollar-badge { display: none !important; }
-.catalog-app.session-authenticated:not(.client-mode-active) .header-dollar-badge { display: inline-flex !important; }
+.catalog-app.admin-authenticated:not(.client-mode-active) .header-dollar-badge { display: inline-flex !important; }
 .catalog-app .header-live-badge { height: 28px !important; padding: 0 10px !important; }
 .catalog-app.session-authenticated .header-live-badge { display: none !important; }
 .catalog-app #btnClientMode[aria-pressed="true"] { border-color: #a7d9c8; background: #ecfdf5; color: #047857; }
 .catalog-app:not(.session-authenticated) #viewSwitchNav,
+.catalog-app:not(.admin-authenticated) #priceCostLink,
+.catalog-app:not(.admin-authenticated) #btnOpenCalculator,
+.catalog-app:not(.admin-authenticated) #btnExportTopHeader,
+.catalog-app:not(.admin-authenticated) #adminHeaderBtn,
+.catalog-app:not(.admin-authenticated) #mobileDrawerCalcBtn,
+.catalog-app:not(.admin-authenticated) #mobileDrawerExportBtn,
+.catalog-app:not(.admin-authenticated) #mobileDrawerExportAllBtn,
+.catalog-app:not(.admin-authenticated) #mobileDrawerCostBtn,
+.catalog-app:not(.admin-authenticated) #mobileDrawerAdminBtn,
 .catalog-app.client-mode-active #viewSwitchNav,
+.catalog-app.client-mode-active #priceCostLink,
+.catalog-app.client-mode-active #adminHeaderBtn,
 .catalog-app.client-mode-active #btnOpenCalculator,
 .catalog-app.client-mode-active #btnExportTopHeader,
 .catalog-app.client-mode-active #userSessionInfo,
 .catalog-app.client-mode-active #mobileDrawerPricesDayBtn,
 .catalog-app.client-mode-active #mobileDrawerQuotesBtn,
+.catalog-app.client-mode-active #mobileDrawerCostBtn,
+.catalog-app.client-mode-active #mobileDrawerAdminBtn,
 .catalog-app.client-mode-active #mobileDrawerCalcBtn,
 .catalog-app.client-mode-active #mobileDrawerExportBtn,
 .catalog-app.client-mode-active #mobileDrawerExportAllBtn { display: none !important; }

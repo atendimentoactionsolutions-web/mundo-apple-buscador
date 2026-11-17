@@ -15,7 +15,7 @@ function element() {
   };
 }
 async function setup(user = null, products = [], failure = false, pathname = "/") {
-  const ids = ['clientShowcaseModal', 'showcaseModelTitle', 'showcaseModelSubtitle', 'clientShowcaseBody', 'priceCostLink', 'tabStoreFront', 'btnOpenCalculator', 'btnExportTopHeader', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp', 'mobileDrawerCalcBtn', 'mobileDrawerExportBtn', 'mobileDrawerExportAllBtn', 'brandLogoLink', 'viewStoreFront', 'viewPricesDay', 'viewQuotes', 'storefrontGrid', 'podMatrixGrid', 'sfShownCountText',
+  const ids = ['clientShowcaseModal', 'showcaseModelTitle', 'showcaseModelSubtitle', 'clientShowcaseBody', 'priceCostLink', 'headerDollarBadge', 'adminHeaderBtn', 'userSessionInfo', 'tabStoreFront', 'btnOpenCalculator', 'btnExportTopHeader', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp', 'mobileDrawerCalcBtn', 'mobileDrawerExportBtn', 'mobileDrawerExportAllBtn', 'mobileDrawerCostBtn', 'mobileDrawerAdminBtn', 'brandLogoLink', 'viewStoreFront', 'viewPricesDay', 'viewQuotes', 'storefrontGrid', 'podMatrixGrid', 'sfShownCountText',
     'catalogHeading', 'catalogDescription', 'catalogModeLabel', 'btnClientMode', 'txtClientModeBtn', 'sfSearchInput',
     'sfSearchClearBtn', 'qbItemsList', 'qbCatalogDropdown', 'qbCatalogSearchInput'];
   const elements = new Map(ids.map(id => [id, element()]));
@@ -173,26 +173,51 @@ test('admin receives DFU changes in both catalogs and open simulator without acc
 });
 
 
-test('public catalog keeps calculator and exports available without adding DFU twice or showing costs', async () => {
+test('logged-out visitors never see admin bar controls, calculator, export, USD or cost buttons, while admin sees them', async () => {
+  const indexHtml = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+  const layoutCss = fs.readFileSync(path.join(__dirname, '../public/css/catalog-layout.css'), 'utf8');
+  for (const id of ['priceCostLink', 'headerDollarBadge', 'btnOpenCalculator', 'btnExportTopHeader', 'userSessionInfo', 'adminHeaderBtn']) {
+    assert.match(indexHtml, new RegExp(`id="${id}"[^>]*style="[^"]*display:\\s*none`), `${id} starts hidden in HTML`);
+  }
+  assert.match(layoutCss, /\.catalog-app:not\(\.admin-authenticated\) #btnOpenCalculator/);
+  assert.match(layoutCss, /\.catalog-app:not\(\.admin-authenticated\) #btnExportTopHeader/);
+  assert.match(layoutCss, /\.catalog-app\.admin-authenticated:not\(\.client-mode-active\) \.header-dollar-badge/);
+
   const app = await setup(null, [{ id: 'public-phone', name: 'IPHONE 17 PRO', category: 'IPH', price: 6850 }]);
   assert.equal(app.errors.length, 0);
   assert.equal(app.read('currentUser'), null);
   assert.equal(app.context.IS_CATALOG_SHIELDED, true);
   assert.equal(app.read('applyDFU(6850, "IPH", "IPHONE 17 PRO")'), 6850);
-  for (const id of ['btnOpenCalculator', 'btnExportTopHeader', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp']) {
-    assert.equal(app.elements.get(id).style.display, 'inline-flex');
+  assert.equal(app.context.document.body.classList.contains('admin-authenticated'), false);
+  for (const id of ['priceCostLink', 'headerDollarBadge', 'btnOpenCalculator', 'btnExportTopHeader', 'adminHeaderBtn', 'userSessionInfo', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp']) {
+    assert.equal(app.elements.get(id).style.display, 'none', `${id} hidden for visitor`);
   }
   app.context.syncMobileDrawerActions();
-  for (const id of ['mobileDrawerCalcBtn', 'mobileDrawerExportBtn', 'mobileDrawerExportAllBtn']) {
-    assert.equal(app.elements.get(id).style.display, 'flex');
+  for (const id of ['mobileDrawerCalcBtn', 'mobileDrawerExportBtn', 'mobileDrawerExportAllBtn', 'mobileDrawerCostBtn', 'mobileDrawerAdminBtn']) {
+    assert.equal(app.elements.get(id).style.display, 'none', `${id} hidden in mobile drawer for visitor`);
   }
   assert.equal(app.elements.get('brandLogoLink').href, '/login.html');
-  assert.equal(app.elements.get('priceCostLink').style.display, 'none');
   assert.doesNotMatch(app.elements.get('storefrontGrid').innerHTML, /mock-card-cost-btn|openCardCostModal/);
-  let scope;
-  app.context.openExportSelectionModal = value => { scope = value; };
-  app.context.openStorefrontExportModal();
-  assert.equal(scope, 'SF');
+
+  const storeUserApp = await setup({ id: 'lojista-1', username: 'loja', role: 'lojista' }, [{ id: 'public-phone', name: 'IPHONE 17 PRO', category: 'IPH', price: 6850 }]);
+  assert.equal(storeUserApp.context.document.body.classList.contains('admin-authenticated'), false);
+  for (const id of ['priceCostLink', 'headerDollarBadge', 'btnOpenCalculator', 'btnExportTopHeader', 'adminHeaderBtn']) {
+    assert.equal(storeUserApp.elements.get(id).style.display, 'none', `${id} hidden for non-admin user`);
+  }
+
+  const adminApp = await setup({ id: 'admin-felipe', username: 'felipe', role: 'admin' }, [{ id: 'cost-phone', name: 'IPHONE 17 PRO', category: 'IPH', price: 6000 }]);
+  assert.equal(adminApp.context.document.body.classList.contains('admin-authenticated'), true);
+  for (const id of ['priceCostLink', 'headerDollarBadge', 'btnOpenCalculator', 'btnExportTopHeader', 'adminHeaderBtn']) {
+    assert.equal(adminApp.elements.get(id).style.display, 'inline-flex', `${id} shown for admin`);
+  }
+  adminApp.context.syncMobileDrawerActions();
+  for (const id of ['mobileDrawerCalcBtn', 'mobileDrawerExportBtn', 'mobileDrawerExportAllBtn', 'mobileDrawerCostBtn', 'mobileDrawerAdminBtn']) {
+    assert.equal(adminApp.elements.get(id).style.display, 'flex', `${id} shown in mobile drawer for admin`);
+  }
+  adminApp.context.toggleClientMode();
+  for (const id of ['priceCostLink', 'headerDollarBadge', 'btnOpenCalculator', 'btnExportTopHeader', 'adminHeaderBtn']) {
+    assert.equal(adminApp.elements.get(id).style.display, 'none', `${id} hidden in client mode`);
+  }
 });
 
 

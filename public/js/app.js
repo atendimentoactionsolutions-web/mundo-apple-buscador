@@ -4884,15 +4884,8 @@ async function checkAuthSession() {
       const tabQuotes = document.getElementById('tabQuotes');
       if (tabQuotes) tabQuotes.style.display = 'none';
       if (tabPricesDay) tabPricesDay.style.display = 'none';
-      if (btnOpenCalculator) btnOpenCalculator.style.display = 'inline-flex';
-      if (btnExportTopHeader) btnExportTopHeader.style.display = 'inline-flex';
-      if (btnExportSfWhatsapp) btnExportSfWhatsapp.style.display = 'inline-flex';
-      if (btnExportAllSfWhatsapp) btnExportAllSfWhatsapp.style.display = 'inline-flex';
       if (publicAdminTopBtn) publicAdminTopBtn.style.display = 'none';
-      if (adminHeaderBtn) adminHeaderBtn.style.display = 'none';
       if (userSessionInfo) userSessionInfo.style.display = 'none';
-      const priceCostLink = document.getElementById('priceCostLink');
-      if (priceCostLink) priceCostLink.style.display = 'none';
 
       const brandLogoLink = document.getElementById('brandLogoLink');
       if (brandLogoLink) {
@@ -4905,21 +4898,10 @@ async function checkAuthSession() {
         return;
       }
 
-      // Sincroniza gaveta mobile: esconde Preços do Dia, Calculadora e Acesso Admin para visitantes
+      // Sincroniza gaveta mobile: esconde itens restritos para visitantes
       const mobileDrawerUser = document.getElementById('mobileDrawerUser');
-      const mobileDrawerAdminBtn = document.getElementById('mobileDrawerAdminBtn');
-      const mobileDrawerPricesDayBtn = document.getElementById('mobileDrawerPricesDayBtn');
-      const mobileDrawerCalcBtn = document.getElementById('mobileDrawerCalcBtn');
-      const mobileDrawerLogoutBtn = document.getElementById('mobileDrawerLogoutBtn');
       if (mobileDrawerUser) mobileDrawerUser.style.display = 'none';
-      if (mobileDrawerAdminBtn) mobileDrawerAdminBtn.style.display = 'none';
-      const mobileDrawerQuotesBtn = document.getElementById('mobileDrawerQuotesBtn');
-      if (mobileDrawerQuotesBtn) mobileDrawerQuotesBtn.style.display = 'none';
-      if (mobileDrawerPricesDayBtn) mobileDrawerPricesDayBtn.style.display = 'none';
-      if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'flex';
-      if (mobileDrawerExportBtn) mobileDrawerExportBtn.style.display = 'flex';
-      if (mobileDrawerExportAllBtn) mobileDrawerExportAllBtn.style.display = 'flex';
-      if (mobileDrawerLogoutBtn) mobileDrawerLogoutBtn.style.display = 'none';
+      syncHeaderAdminControls();
 
       // Garante que o visitante fica exclusivamente na Loja Física
       const viewSwitchNav = document.getElementById('viewSwitchNav');
@@ -4942,10 +4924,13 @@ async function checkAuthSession() {
     const viewSwitchNav = document.getElementById('viewSwitchNav');
     if (viewSwitchNav) viewSwitchNav.classList.remove('single-tab');
 
-    // Usuário autenticado (Lojista ou Admin):
-    // - Exibe Preços do Dia
-    // - Exibe Calculadora de Taxas
-    // - Exibe Exportar Valores (WhatsApp)
+    const isAdminUser = user.role === 'admin';
+    if (IS_COST_PAGE && !isAdminUser && typeof window.location?.replace === 'function') {
+      window.location.replace('/');
+      return;
+    }
+
+    // Usuário autenticado: libera abas internas conforme o perfil
     const tabQuotes = document.getElementById('tabQuotes');
     if (tabQuotes) {
       tabQuotes.style.display = 'inline-flex';
@@ -4953,51 +4938,21 @@ async function checkAuthSession() {
     if (tabPricesDay) {
       tabPricesDay.style.display = 'inline-flex';
     }
-    if (btnOpenCalculator) {
-      btnOpenCalculator.style.display = 'inline-flex';
-    }
-    if (btnExportTopHeader) {
-      btnExportTopHeader.style.display = 'inline-flex';
-    }
-    if (btnExportSfWhatsapp) {
-      btnExportSfWhatsapp.style.display = 'inline-flex';
-    }
-    if (btnExportAllSfWhatsapp) {
-      btnExportAllSfWhatsapp.style.display = 'inline-flex';
-    }
 
     // Registra sessão no WebSocket para controle anti-pirataria
     socket.emit('register_session');
 
-    // Esconde o botão público de login "Painel Admin" e exibe a barra do lojista logado
+    // Esconde o botão público de login e exibe controles da sessão
     if (publicAdminTopBtn) {
       publicAdminTopBtn.style.display = 'none';
     }
 
-    let badgeText = user.storeName || user.username;
-    const adminHeaderBtnLabel = document.getElementById('adminHeaderBtnLabel');
-    const mobileDrawerAdminBtn = document.getElementById('mobileDrawerAdminBtn');
-    const mobileDrawerAdminLabel = document.getElementById('mobileDrawerAdminLabel');
     const mobileDrawerUser = document.getElementById('mobileDrawerUser');
     const mobileDrawerUserBadge = document.getElementById('mobileDrawerUserBadge');
-    const mobileDrawerPricesDayBtn = document.getElementById('mobileDrawerPricesDayBtn');
-    const mobileDrawerCalcBtn = document.getElementById('mobileDrawerCalcBtn');
-    const mobileDrawerLogoutBtn = document.getElementById('mobileDrawerLogoutBtn');
-
-    const isAdminUser = user.role === 'admin';
-    if (IS_COST_PAGE && !isAdminUser && typeof window.location?.replace === 'function') {
-      window.location.replace('/');
-      return;
-    }
 
     if (userSessionInfo && userStoreBadge) {
       userSessionInfo.style.display = 'flex';
-      if (adminHeaderBtn) adminHeaderBtn.style.display = (isAdminUser && !isClientMode) ? 'inline-flex' : 'none';
       userStoreBadge.style.display = 'none'; // REMOVIDO A PEDIDO DO USUARIO
-    }
-    const priceCostLink = document.getElementById('priceCostLink');
-    if (priceCostLink) {
-      priceCostLink.style.display = (isAdminUser && !isClientMode) ? 'inline-flex' : 'none';
     }
 
     const brandLogoLink = document.getElementById('brandLogoLink');
@@ -5006,19 +4961,13 @@ async function checkAuthSession() {
       brandLogoLink.title = isAdminUser ? 'Painel Administrativo' : 'Início';
     }
 
-    // Atualiza drawer mobile logado
-    if (mobileDrawerAdminBtn) mobileDrawerAdminBtn.style.display = (isAdminUser && !isClientMode) ? 'flex' : 'none';
+    // Atualiza drawer mobile e controles administrativos da barra
     if (mobileDrawerUser && mobileDrawerUserBadge) {
-      mobileDrawerUser.style.display = 'block';
-      mobileDrawerUserBadge.style.display = 'none'; // REMOVIDO A PEDIDO DO USUARIO
+      mobileDrawerUser.style.display = 'none';
+      mobileDrawerUserBadge.style.display = 'none';
     }
-    const mobileDrawerQuotesBtn = document.getElementById('mobileDrawerQuotesBtn');
-    if (mobileDrawerQuotesBtn) mobileDrawerQuotesBtn.style.display = 'flex';
-    if (mobileDrawerPricesDayBtn) mobileDrawerPricesDayBtn.style.display = 'flex';
-    if (mobileDrawerCalcBtn) mobileDrawerCalcBtn.style.display = 'flex';
-    if (mobileDrawerExportBtn) mobileDrawerExportBtn.style.display = 'flex';
-    if (mobileDrawerExportAllBtn) mobileDrawerExportAllBtn.style.display = 'flex';
-    if (mobileDrawerLogoutBtn) mobileDrawerLogoutBtn.style.display = 'flex';
+    syncHeaderAdminControls();
+    syncMobileDrawerActions();
 
     // Exibe botão de sincronizar na Loja Física apenas quando logado
     const sfSyncBtn = document.getElementById('btnSyncSfPrices');
@@ -5314,18 +5263,11 @@ function syncMobileDrawerActions() {
   });
   const isAdmin = Boolean(currentUser && currentUser.role === 'admin');
   const showAdminActions = isAdmin && !isClientMode;
-  const storeActions = ['mobileDrawerQuotesBtn', 'mobileDrawerPricesDayBtn', 'mobileDrawerExportBtn',
-    'mobileDrawerExportAllBtn', 'mobileDrawerCalcBtn'];
-  storeActions.forEach(id => {
+  ['mobileDrawerQuotesBtn', 'mobileDrawerPricesDayBtn'].forEach(id => {
     const button = document.getElementById(id);
-    if (!button) return;
-    if (['mobileDrawerExportBtn', 'mobileDrawerExportAllBtn', 'mobileDrawerCalcBtn'].includes(id)) {
-      button.style.display = 'flex';
-    } else {
-      button.style.display = (currentUser && !isClientMode) ? 'flex' : 'none';
-    }
+    if (button) button.style.display = (currentUser && !isClientMode) ? 'flex' : 'none';
   });
-  ['mobileDrawerAdminBtn', 'mobileDrawerCostBtn'].forEach(id => {
+  ['mobileDrawerAdminBtn', 'mobileDrawerCostBtn', 'mobileDrawerCalcBtn', 'mobileDrawerExportBtn', 'mobileDrawerExportAllBtn'].forEach(id => {
     const button = document.getElementById(id);
     if (button) button.style.display = showAdminActions ? 'flex' : 'none';
   });
@@ -5509,42 +5451,53 @@ socket.on('session_terminated', async (data) => {
 // =========================================================================
 let isClientMode = window.location.pathname.includes('/catalogo') || window.location.search.includes('mode=cliente');
 
+function syncHeaderAdminControls() {
+  const authenticated = Boolean(currentUser);
+  const isAdmin = Boolean(currentUser && currentUser.role === 'admin');
+  const showAdminControls = isAdmin && !isClientMode;
+
+  document.body.classList.toggle('session-authenticated', authenticated);
+  document.body.classList.toggle('admin-authenticated', isAdmin);
+  document.body.classList.toggle('client-mode-active', isClientMode);
+
+  ['adminHeaderBtn', 'headerDollarBadge', 'btnOpenCalculator', 'btnExportTopHeader', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = showAdminControls ? 'inline-flex' : 'none';
+  });
+
+  const priceCostLink = document.getElementById('priceCostLink');
+  if (priceCostLink) {
+    if (IS_COST_PAGE) {
+      priceCostLink.href = '/';
+      priceCostLink.textContent = 'Preço real';
+      priceCostLink.style.display = isAdmin ? 'inline-flex' : 'none';
+    } else {
+      priceCostLink.href = '/preco-de-custo';
+      priceCostLink.textContent = 'Preço de custo';
+      priceCostLink.style.display = showAdminControls ? 'inline-flex' : 'none';
+    }
+  }
+}
+
 function updateCatalogPresentation() {
   syncDfuButtons();
   const authenticated = Boolean(currentUser);
-  const isAdmin = Boolean(currentUser && currentUser.role === 'admin');
-  const showCostAccess = isAdmin && !isClientMode;
-  const adminBtn = document.getElementById('adminHeaderBtn');
-  if (adminBtn) adminBtn.style.display = showCostAccess ? 'inline-flex' : 'none';
+  syncHeaderAdminControls();
   if (IS_COST_PAGE) {
     document.title = '\u200b';
     const heading = document.getElementById('catalogHeading');
     const description = document.getElementById('catalogDescription');
     const label = document.getElementById('catalogModeLabel');
-    const link = document.getElementById('priceCostLink');
     const tab = document.getElementById('tabStoreFront');
     if (heading) heading.textContent = 'Preço de custo';
     if (description) description.textContent = 'Valores com DFU ativo, sem margem de venda.';
     if (label) label.textContent = 'CUSTO + DFU';
     if (tab) tab.textContent = 'Preço de custo';
-    if (link) {
-      link.href = '/';
-      link.textContent = 'Preço real';
-      link.style.display = isAdmin ? 'inline-flex' : 'none';
-    }
     syncMobileDrawerActions();
     return;
   }
   const customerView = !authenticated || isClientMode;
-  document.body.classList.toggle('session-authenticated', authenticated);
-  document.body.classList.toggle('client-mode-active', isClientMode);
   syncMobileDrawerActions();
-  const priceCostLink = document.getElementById('priceCostLink');
-  if (priceCostLink) {
-    priceCostLink.href = '/preco-de-custo';
-    priceCostLink.textContent = 'Preço de custo';
-    priceCostLink.style.display = showCostAccess ? 'inline-flex' : 'none';
-  }
   const heading = document.getElementById('catalogHeading');
   const description = document.getElementById('catalogDescription');
   const label = document.getElementById('catalogModeLabel');
