@@ -12,6 +12,7 @@ data/snapshot_*.json
 data/cached_catalog.json
 data/sync.log
 data/*.tmp
+data/*.txt
 data/admin-pricing.json
 data/audit_latest.json
 data/catalog-backups/
