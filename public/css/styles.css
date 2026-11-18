@@ -2435,23 +2435,7 @@ body.light-theme .matrix-color-dot {
 }
 
 .matrix-margin-tag {
-  display: inline-block;
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: #059669;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  padding: 1px 5px;
-  border-radius: 4px;
-  letter-spacing: 0.2px;
-  margin-top: 1px;
-  white-space: nowrap;
-}
-
-body:not(.light-theme) .matrix-margin-tag {
-  color: #34d399;
-  background: rgba(16, 185, 129, 0.18);
-  border-color: rgba(52, 211, 153, 0.3);
+  display: none !important;
 }
 
 .matrix-retail-val {
