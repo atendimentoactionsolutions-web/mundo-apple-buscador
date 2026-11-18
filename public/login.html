@@ -381,8 +381,6 @@
           const nextUrl = getSafeNextUrl();
           if (nextUrl) {
             window.location.href = nextUrl;
-          } else if (data.user && data.user.role === 'admin') {
-            window.location.href = '/admin.html';
           } else {
             window.location.href = '/';
           }

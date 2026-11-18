@@ -4884,6 +4884,8 @@ async function checkAuthSession() {
       const tabQuotes = document.getElementById('tabQuotes');
       if (tabQuotes) tabQuotes.style.display = 'none';
       if (tabPricesDay) tabPricesDay.style.display = 'none';
+      const tabCostLink = document.getElementById('tabCostLink');
+      if (tabCostLink) tabCostLink.style.display = 'none';
       if (publicAdminTopBtn) publicAdminTopBtn.style.display = 'none';
       if (userSessionInfo) userSessionInfo.style.display = 'none';
 
@@ -4933,10 +4935,18 @@ async function checkAuthSession() {
     // Usuário autenticado: libera abas internas conforme o perfil
     const tabQuotes = document.getElementById('tabQuotes');
     if (tabQuotes) {
-      tabQuotes.style.display = 'inline-flex';
+      tabQuotes.style.display = 'none';
     }
     if (tabPricesDay) {
       tabPricesDay.style.display = 'inline-flex';
+    }
+    const tabCostLink = document.getElementById('tabCostLink');
+    if (tabCostLink) {
+      tabCostLink.style.display = 'inline-flex';
+    }
+
+    if (isAdminUser && !IS_COST_PAGE && !isClientMode && currentView !== 'prices_of_the_day') {
+      switchView('prices_of_the_day');
     }
 
     // Registra sessão no WebSocket para controle anti-pirataria
@@ -5066,24 +5076,7 @@ function ensureMobileDrawerMounted() {
         <span class="mobile-drawer-user-badge" id="mobileDrawerUserBadge">Loja</span>
       </div>
       <div class="mobile-drawer-nav">
-<button class="mobile-drawer-item" id="mobileDrawerStoreFrontBtn" onclick="closeMobileMenu(); switchView('storefront');">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-            <polyline points="9 22 9 12 15 12 15 22"/>
-          </svg>
-          <span>Loja Física (Preço de Venda)</span>
-        </button>
-        <button class="mobile-drawer-item" id="mobileDrawerQuotesBtn" onclick="closeMobileMenu(); switchView('quotes');" style="display: none;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
-            <polyline points="10 9 9 9 8 9"/>
-          </svg>
-          <span>Orçamentos & Propostas</span>
-        </button>
-        <button class="mobile-drawer-item" id="mobileDrawerPricesDayBtn" onclick="closeMobileMenu(); switchView('prices_of_the_day');" style="display: none;">
+<button class="mobile-drawer-item" id="mobileDrawerPricesDayBtn" onclick="closeMobileMenu(); switchView('prices_of_the_day');" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
             <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
@@ -5101,6 +5094,13 @@ function ensureMobileDrawerMounted() {
           </svg>
           <span>Preço de custo</span>
         </a>
+        <button class="mobile-drawer-item" id="mobileDrawerStoreFrontBtn" onclick="closeMobileMenu(); switchView('storefront');" style="display: none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          <span>Loja Física (Preço de Venda)</span>
+        </button>
         <a class="mobile-drawer-item" id="mobileDrawerAdminBtn" href="/admin.html" onclick="closeMobileMenu();" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
@@ -5263,10 +5263,12 @@ function syncMobileDrawerActions() {
   });
   const isAdmin = Boolean(currentUser && currentUser.role === 'admin');
   const showAdminActions = isAdmin && !isClientMode;
-  ['mobileDrawerQuotesBtn', 'mobileDrawerPricesDayBtn'].forEach(id => {
+  ['mobileDrawerQuotesBtn'].forEach(id => {
     const button = document.getElementById(id);
-    if (button) button.style.display = (currentUser && !isClientMode) ? 'flex' : 'none';
+    if (button) button.style.display = 'none';
   });
+  const pricesDayBtn = document.getElementById('mobileDrawerPricesDayBtn');
+  if (pricesDayBtn) pricesDayBtn.style.display = (currentUser && !isClientMode) ? 'flex' : 'none';
   ['mobileDrawerAdminBtn', 'mobileDrawerCostBtn', 'mobileDrawerCalcBtn', 'mobileDrawerExportBtn', 'mobileDrawerExportAllBtn'].forEach(id => {
     const button = document.getElementById(id);
     if (button) button.style.display = showAdminActions ? 'flex' : 'none';
@@ -5493,6 +5495,14 @@ function updateCatalogPresentation() {
     if (description) description.textContent = 'Valores com DFU ativo, sem margem de venda.';
     if (label) label.textContent = 'CUSTO + DFU';
     if (tab) tab.textContent = 'Preço de custo';
+    const tabCostLink = document.getElementById('tabCostLink');
+    if (tabCostLink) {
+      tabCostLink.classList.add('active');
+    }
+    const tabPricesDay = document.getElementById('tabPricesDay');
+    if (tabPricesDay) {
+      tabPricesDay.classList.remove('active');
+    }
     syncMobileDrawerActions();
     return;
   }

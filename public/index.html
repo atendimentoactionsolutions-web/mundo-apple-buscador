@@ -54,16 +54,16 @@
           </svg>
         </a>
 
-        <!-- Navigation Tabs Segmented (Preços de venda & Custo fornecedor) -->
+        <!-- Navigation Tabs Segmented (Preços do dia & Preço de custo) -->
         <nav class="view-switch-segmented" id="viewSwitchNav">
-          <button class="segmented-tab-btn" id="tabPricesDay" onclick="handleCustoFornecedorClick()" style="display: none;">
+          <button class="segmented-tab-btn active" id="tabPricesDay" onclick="handleCustoFornecedorClick()" style="display: none;">
             Preços do dia
           </button>
-          <button class="segmented-tab-btn active" id="tabStoreFront" onclick="switchView('storefront')">
+          <a class="segmented-tab-btn" id="tabCostLink" href="/preco-de-custo" style="display: none;">
+            Preço de custo
+          </a>
+          <button class="segmented-tab-btn" id="tabStoreFront" onclick="switchView('storefront')" style="display: none;">
             Preços de venda
-          </button>
-          <button class="segmented-tab-btn" id="tabQuotes" onclick="switchView('quotes')" style="display: none;">
-            Orçamentos
           </button>
         </nav>
       </div>
@@ -722,6 +722,6 @@
   <script src="/js/jspdf.umd.min.js"></script>
   <script src="/js/jspdf.plugin.autotable.min.js"></script>
   <script src="/js/quotes-module.js?v=1.2"></script>
-  <script src="/js/app.js?v=pod-margin-tag-3"></script>
+  <script src="/js/app.js?v=pod-nav-4"></script>
 </body>
 </html>

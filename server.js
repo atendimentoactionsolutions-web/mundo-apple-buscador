@@ -92,7 +92,7 @@ app.get('/login', (req, res) => res.redirect('/login.html'));
 app.get('/login.html', asyncHandler(async (req, res, next) => {
   const token = auth.getSessionTokenFromRequest(req);
   const user = token ? await auth.findUserBySessionToken(token) : null;
-  if (user) return res.redirect(user.role === 'admin' ? '/admin.html' : '/');
+  if (user) return res.redirect('/');
   next();
 }));
 
