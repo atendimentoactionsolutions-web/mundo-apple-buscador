@@ -155,7 +155,9 @@ test('admin receives DFU changes in both catalogs and open simulator without acc
   for (let cycle = 0; cycle < 3; cycle++) {
     app.events.get('pricing_updated')({ dfuActive: true, pricingVersion: 3 + cycle * 2 });
     assert.match(app.elements.get('storefrontGrid').innerHTML, /data-price="6500"/);
-    assert.match(app.elements.get('podMatrixGrid').innerHTML, /6[.,]100/);
+    assert.match(app.elements.get('podMatrixGrid').innerHTML, /6[.,]500/);
+    assert.match(app.elements.get('podMatrixGrid').innerHTML, /PREÇO DO DIA/);
+    assert.doesNotMatch(app.elements.get('podMatrixGrid').innerHTML, /6[.,]100/);
     assert.equal(app.read('currentSimData.unitPrice'), 6500);
     assert.equal(app.read('currentSimData.colorOptions[0].price'), 6500);
     assert.equal(app.read('currentSimData.additionalItems[0].unitPrice'), 6450);

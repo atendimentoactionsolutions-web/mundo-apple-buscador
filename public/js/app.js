@@ -1773,6 +1773,12 @@ function getProductMargin(rawModel, category, isSemi = false) {
   return 500;
 }
 
+function calculateRetailOfferPrice(rawCost, category, rawModel, isSemi = false) {
+  const refCost = applyDFU(rawCost, category, rawModel);
+  const marginVal = getProductMargin(rawModel, category, isSemi);
+  return refCost + marginVal;
+}
+
 function getProductRetailPrice(p) {
   if (!p || !p.price) return 0;
   if (IS_COST_PAGE || window.IS_CATALOG_SHIELDED) return Number(p.price) || 0;
@@ -1780,9 +1786,7 @@ function getProductRetailPrice(p) {
   if (window.PricingCore && typeof window.PricingCore.calculateRetailPrice === 'function') {
     return window.PricingCore.calculateRetailPrice(p.price, p.category, p.name, isSemi, margins);
   }
-  const dfuCost = applyDFU(p.price, p.category, p.name);
-  const margin = getProductMargin(p.name, p.category, isSemi);
-  return dfuCost + margin;
+  return calculateRetailOfferPrice(p.price, p.category, p.name, isSemi);
 }
 
 // =========================================================================
@@ -2011,10 +2015,7 @@ function renderStoreFront() {
       const isSemi = card.isSeminovo;
       const offers = colObj.offers || [];
       const rawRefCost = calculateSupplierReferencePrice(offers, isSemi);
-      const refCost = applyDFU(rawRefCost, card.category, card.rawModelName);
-      
-      const marginVal = getProductMargin(card.rawModelName, card.category, isSemi);
-      const retailPrice = refCost + marginVal;
+      const retailPrice = calculateRetailOfferPrice(rawRefCost, card.category, card.rawModelName, isSemi);
 
       return {
         color: colObj.color,
@@ -2960,7 +2961,7 @@ function renderPricesOfTheDay() {
           repOffer = offers.reduce((prev, curr) => (curr.price < prev.price ? curr : prev), offers[0]);
         }
 
-        const refPrice = applyDFU(rawRefPrice, fam.category, grp.rawModel);
+        const refPrice = calculateRetailOfferPrice(rawRefPrice, fam.category, grp.rawModel, isSemi);
 
         return {
           color: colObj.color,
@@ -2980,10 +2981,11 @@ function renderPricesOfTheDay() {
       window.matrixCardMap.set(cardKey, {
         model: grp.model,
         rawModel: grp.rawModel,
+        category: fam.category,
         storage: grp.storage,
         ram: grp.ram,
         isSeminovo: grp.isSeminovo,
-        isCusto: true,
+        isCusto: false,
         allOffers: grp.allOffers || [],
         colors: colorsArr.map(c => ({ color: c.color, price: c.displayPrice }))
       });
@@ -3002,7 +3004,7 @@ function renderPricesOfTheDay() {
             </div>
             <div class="matrix-color-right">
               <div class="matrix-cost-group" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo}, '${cardKey}')">
-                <span class="matrix-cost-label">${col.isSeminovo ? 'PREÇO MÉDIO' : 'CUSTO'}</span>
+                <span class="matrix-cost-label">${col.isSeminovo ? 'PREÇO MÉDIO' : 'PREÇO DO DIA'}</span>
                 <span class="matrix-cost-val">${formatBRL(col.displayPrice)}</span>
               </div>
               <a class="matrix-wa-btn" href="${waLink}" target="_blank" rel="noopener noreferrer" title="Chamar ${col.bestSupplier} no WhatsApp (${formatBRL(col.displayPrice)})">
@@ -3122,10 +3124,9 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
 
   const lowestPrice = offers[0].price;
   const rawRefPrice = calculateSupplierReferencePrice(offers, isSeminovo);
+  const cardCategory = (cardKey && window.matrixCardMap?.get(cardKey)?.category) || offers[0]?.category || '';
 
-  // We don't have category here easily, but we have model.
-  // We can pass empty string for category, the model check inside applyDFU is enough.
-  const headerRefPrice = applyDFU(rawRefPrice, '', model);
+  const headerRefPrice = calculateRetailOfferPrice(rawRefPrice, cardCategory, model, isSeminovo);
 
   const offersHtml = offers.map((p) => {
     const sName = p.supplier?.name || 'Fornecedor';
@@ -3138,7 +3139,7 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
     const colHex = getAppleColorHex(p.color);
     const ram = getMacBookRam(p);
 
-    const displayPrice = applyDFU(p.price, '', model);
+    const displayPrice = calculateRetailOfferPrice(p.price, p.category || cardCategory, model, isSeminovo);
 
     // Mensagem enviada para o fornecedor utiliza o custo real anunciado por ele
     const orderMsg = buildSupplierWhatsAppMessage(cleanModelName(p.name) + (isSeminovo ? ' (Seminovo)' : ''), p.storage, p.color, p.price, ram);
@@ -4358,13 +4359,7 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
         const offers = colObj.offers || [];
         const rawRefCost = calculateSupplierReferencePrice(offers, isSemi);
         if (!rawRefCost || rawRefCost <= 0) return null;
-        const refCost = applyDFU(rawRefCost, fam.category, grp.rawModel);
-        
-        let finalPrice = refCost;
-        if (!isPod) {
-          const marginVal = getProductMargin(grp.rawModel, fam.category, isSemi);
-          finalPrice = refCost + marginVal;
-        }
+        const finalPrice = calculateRetailOfferPrice(rawRefCost, fam.category, grp.rawModel, isSemi);
 
         return {
           color: colObj.color,
