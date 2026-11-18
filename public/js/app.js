@@ -2961,12 +2961,14 @@ function renderPricesOfTheDay() {
           repOffer = offers.reduce((prev, curr) => (curr.price < prev.price ? curr : prev), offers[0]);
         }
 
+        const marginVal = getProductMargin(grp.rawModel, fam.category, isSemi);
         const refPrice = calculateRetailOfferPrice(rawRefPrice, fam.category, grp.rawModel, isSemi);
 
         return {
           color: colObj.color,
           displayPrice: refPrice,
           rawPrice: repOffer.price || rawRefPrice,
+          marginVal: marginVal,
           isSeminovo: isSemi,
           bestSupplier: repOffer.supplier?.name || 'Fornecedor',
           whatsappNumber: repOffer.supplier?.whatsappNumber || '',
@@ -3006,6 +3008,7 @@ function renderPricesOfTheDay() {
               <div class="matrix-cost-group" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo}, '${cardKey}')">
                 <span class="matrix-cost-label">${col.isSeminovo ? 'PREÇO MÉDIO' : 'PREÇO DO DIA'}</span>
                 <span class="matrix-cost-val">${formatBRL(col.displayPrice)}</span>
+                ${col.marginVal > 0 ? `<span class="matrix-margin-tag">+${formatBRL(col.marginVal)} margem</span>` : ''}
               </div>
               <a class="matrix-wa-btn" href="${waLink}" target="_blank" rel="noopener noreferrer" title="Chamar ${col.bestSupplier} no WhatsApp (${formatBRL(col.displayPrice)})">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
@@ -3139,6 +3142,7 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
     const colHex = getAppleColorHex(p.color);
     const ram = getMacBookRam(p);
 
+    const marginVal = getProductMargin(model, p.category || cardCategory, isSeminovo);
     const displayPrice = calculateRetailOfferPrice(p.price, p.category || cardCategory, model, isSeminovo);
 
     // Mensagem enviada para o fornecedor utiliza o custo real anunciado por ele
@@ -3172,6 +3176,7 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
 
         <div class="all-offer-price-group">
           <span class="all-offer-price-val">${formatBRL(displayPrice)}</span>
+          ${marginVal > 0 ? `<span class="matrix-margin-tag" style="margin-top: 2px;">+${formatBRL(marginVal)} margem</span>` : ''}
         </div>
 
         <a class="all-offer-wa-btn" href="${waLink}" target="_blank" rel="noopener noreferrer">
