@@ -1793,6 +1793,47 @@ function getProductRetailPrice(p) {
 // VIEW MANAGER: PREÇOS DO DIA VS LOJA FÍSICA
 // =========================================================================
 let currentView = 'prices_of_the_day'; // Preços do Dia por padrão
+let currentPriceMode = IS_COST_PAGE ? 'cost' : 'day'; // 'cost' = Preço de Custo | 'day' = Preço do Dia (Preço Real com Margem)
+
+window.switchToCostPrices = function() {
+  currentPriceMode = 'cost';
+  if (typeof switchView === 'function') {
+    switchView('prices_of_the_day');
+  }
+  const tabCost = document.getElementById('tabCostLink');
+  const tabDay = document.getElementById('tabPricesDay');
+  if (tabCost) tabCost.classList.add('active');
+  if (tabDay) tabDay.classList.remove('active');
+  const priceCostLink = document.getElementById('priceCostLink');
+  if (priceCostLink) {
+    priceCostLink.href = '/';
+    priceCostLink.textContent = 'Preço real';
+  }
+  if (window.history && window.history.pushState && window.location.pathname !== '/preco-de-custo') {
+    window.history.pushState(null, '', '/preco-de-custo');
+  }
+  renderPricesOfTheDay();
+};
+
+window.switchToDayPrices = function() {
+  currentPriceMode = 'day';
+  if (typeof switchView === 'function') {
+    switchView('prices_of_the_day');
+  }
+  const tabCost = document.getElementById('tabCostLink');
+  const tabDay = document.getElementById('tabPricesDay');
+  if (tabDay) tabDay.classList.add('active');
+  if (tabCost) tabCost.classList.remove('active');
+  const priceCostLink = document.getElementById('priceCostLink');
+  if (priceCostLink) {
+    priceCostLink.href = '/preco-de-custo';
+    priceCostLink.textContent = 'Preço de custo';
+  }
+  if (window.history && window.history.pushState && window.location.pathname !== '/') {
+    window.history.pushState(null, '', '/');
+  }
+  renderPricesOfTheDay();
+};
 
 let podCurrentCategory = 'IPH';
 let podSearchQuery = '';
@@ -1814,11 +1855,13 @@ window.switchView = function(viewName) {
   const viewStoreFront = document.getElementById('viewStoreFront');
   const viewQuotes = document.getElementById('viewQuotes');
   const tabPricesDay = document.getElementById('tabPricesDay');
+  const tabCostLink = document.getElementById('tabCostLink');
   const tabStoreFront = document.getElementById('tabStoreFront');
   const tabQuotes = document.getElementById('tabQuotes');
 
   // Reset tabs
   if (tabPricesDay) tabPricesDay.classList.remove('active');
+  if (tabCostLink) tabCostLink.classList.remove('active');
   if (tabStoreFront) tabStoreFront.classList.remove('active');
   if (tabQuotes) tabQuotes.classList.remove('active');
 
@@ -1837,7 +1880,13 @@ window.switchView = function(viewName) {
     renderStoreFront();
   } else {
     if (viewPricesDay) viewPricesDay.style.display = 'block';
-    if (tabPricesDay) tabPricesDay.classList.add('active');
+    if (currentPriceMode === 'cost') {
+      if (tabCostLink) tabCostLink.classList.add('active');
+      if (tabPricesDay) tabPricesDay.classList.remove('active');
+    } else {
+      if (tabPricesDay) tabPricesDay.classList.add('active');
+      if (tabCostLink) tabCostLink.classList.remove('active');
+    }
     renderPricesOfTheDay();
   }
 };
@@ -2961,14 +3010,24 @@ function renderPricesOfTheDay() {
           repOffer = offers.reduce((prev, curr) => (curr.price < prev.price ? curr : prev), offers[0]);
         }
 
-        const marginVal = getProductMargin(grp.rawModel, fam.category, isSemi);
-        const refPrice = calculateRetailOfferPrice(rawRefPrice, fam.category, grp.rawModel, isSemi);
+        const pc = window.PricingCore;
+        const costPrice = pc ? pc.applyDFU(rawRefPrice, fam.category, grp.rawModel) : applyDFU(rawRefPrice, fam.category, grp.rawModel);
+        const realPrice = pc
+          ? pc.calculateRetailPrice(rawRefPrice, fam.category, grp.rawModel, isSemi, margins)
+          : calculateRetailOfferPrice(rawRefPrice, fam.category, grp.rawModel, isSemi);
+        const appliedMargin = Math.max(0, realPrice - costPrice);
+
+        const isCostMode = (currentPriceMode === 'cost');
+        const displayPrice = isCostMode ? costPrice : realPrice;
+        const displayMargin = isCostMode ? 0 : appliedMargin;
+        const costLabel = isCostMode ? 'PREÇO DE CUSTO' : (isSemi ? 'PREÇO MÉDIO' : 'PREÇO DO DIA');
 
         return {
           color: colObj.color,
-          displayPrice: refPrice,
+          displayPrice: displayPrice,
           rawPrice: repOffer.price || rawRefPrice,
-          marginVal: marginVal,
+          marginVal: displayMargin,
+          costLabel: costLabel,
           isSeminovo: isSemi,
           bestSupplier: repOffer.supplier?.name || 'Fornecedor',
           whatsappNumber: repOffer.supplier?.whatsappNumber || '',
@@ -2987,7 +3046,7 @@ function renderPricesOfTheDay() {
         storage: grp.storage,
         ram: grp.ram,
         isSeminovo: grp.isSeminovo,
-        isCusto: false,
+        isCusto: (currentPriceMode === 'cost'),
         allOffers: grp.allOffers || [],
         colors: colorsArr.map(c => ({ color: c.color, price: c.displayPrice }))
       });
@@ -3006,7 +3065,7 @@ function renderPricesOfTheDay() {
             </div>
             <div class="matrix-color-right">
               <div class="matrix-cost-group" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '${encodeURIComponent(col.color)}', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo}, '${cardKey}')">
-                <span class="matrix-cost-label">${col.isSeminovo ? 'PREÇO MÉDIO' : 'PREÇO DO DIA'}</span>
+                <span class="matrix-cost-label">${col.costLabel}</span>
                 <span class="matrix-cost-val">${formatBRL(col.displayPrice)}</span>
                 ${col.marginVal > 0 ? `<span class="matrix-margin-tag">+${formatBRL(col.marginVal)} margem</span>` : ''}
               </div>
@@ -3142,8 +3201,16 @@ window.openAllOffersModal = function(encodedModel, encodedStorage, encodedColor,
     const colHex = getAppleColorHex(p.color);
     const ram = getMacBookRam(p);
 
-    const marginVal = getProductMargin(model, p.category || cardCategory, isSeminovo);
-    const displayPrice = calculateRetailOfferPrice(p.price, p.category || cardCategory, model, isSeminovo);
+    const pc = window.PricingCore;
+    const isCostMode = (currentPriceMode === 'cost');
+    const offerCostPrice = pc ? pc.applyDFU(p.price, p.category || cardCategory, model) : applyDFU(p.price, p.category || cardCategory, model);
+    const offerRealPrice = pc
+      ? pc.calculateRetailPrice(p.price, p.category || cardCategory, model, isSeminovo, margins)
+      : calculateRetailOfferPrice(p.price, p.category || cardCategory, model, isSeminovo);
+    const offerMargin = Math.max(0, offerRealPrice - offerCostPrice);
+
+    const displayPrice = isCostMode ? offerCostPrice : offerRealPrice;
+    const marginVal = isCostMode ? 0 : offerMargin;
 
     // Mensagem enviada para o fornecedor utiliza o custo real anunciado por ele
     const orderMsg = buildSupplierWhatsAppMessage(cleanModelName(p.name) + (isSeminovo ? ' (Seminovo)' : ''), p.storage, p.color, p.price, ram);
@@ -4945,8 +5012,12 @@ async function checkAuthSession() {
       tabCostLink.style.display = 'inline-flex';
     }
 
-    if (isAdminUser && !IS_COST_PAGE && !isClientMode && currentView !== 'prices_of_the_day') {
-      switchView('prices_of_the_day');
+    if (isAdminUser && !isClientMode) {
+      if (IS_COST_PAGE) {
+        switchToCostPrices();
+      } else {
+        switchToDayPrices();
+      }
     }
 
     // Registra sessão no WebSocket para controle anti-pirataria
@@ -5076,7 +5147,14 @@ function ensureMobileDrawerMounted() {
         <span class="mobile-drawer-user-badge" id="mobileDrawerUserBadge">Loja</span>
       </div>
       <div class="mobile-drawer-nav">
-<button class="mobile-drawer-item" id="mobileDrawerPricesDayBtn" onclick="closeMobileMenu(); switchView('prices_of_the_day');" style="display: none;">
+        <button class="mobile-drawer-item" id="mobileDrawerCostBtn" onclick="closeMobileMenu(); switchToCostPrices();" style="display: none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+          <span>Preço de custo</span>
+        </button>
+        <button class="mobile-drawer-item" id="mobileDrawerPricesDayBtn" onclick="closeMobileMenu(); switchToDayPrices();" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
             <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
@@ -5085,15 +5163,8 @@ function ensureMobileDrawerMounted() {
             <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
             <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
           </svg>
-          <span>Preços do dia</span>
+          <span>Preço do dia</span>
         </button>
-        <a class="mobile-drawer-item" id="mobileDrawerCostBtn" href="/preco-de-custo" onclick="closeMobileMenu();" style="display: none;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="1" x2="12" y2="23"/>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-          </svg>
-          <span>Preço de custo</span>
-        </a>
         <button class="mobile-drawer-item" id="mobileDrawerStoreFrontBtn" onclick="closeMobileMenu(); switchView('storefront');" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -5563,6 +5634,15 @@ window.shareClientCatalogLink = async function() {
     prompt('Copie o link do catálogo para enviar ao cliente:', catalogUrl);
   }
 };
+
+window.addEventListener('popstate', () => {
+  const isCost = window.location.pathname.replace(/\/$/, '') === '/preco-de-custo';
+  if (isCost) {
+    switchToCostPrices();
+  } else {
+    switchToDayPrices();
+  }
+});
 
 initClientModeCheck();
 switchView('storefront');

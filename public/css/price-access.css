@@ -1,11 +1,6 @@
-/* O acesso aos custos permanece ao lado do indicador, inclusive no celular. */
+/* O acesso aos custos foi unificado na barra de abas principal à esquerda. */
 .catalog-app .price-page-access {
-  display: inline-flex;
-  flex-flow: row nowrap;
-  align-items: center;
-  gap: 7px;
-  flex-shrink: 0;
-  white-space: nowrap;
+  display: none !important;
 }
 .catalog-app .price-live-label {
   display: inline-flex;

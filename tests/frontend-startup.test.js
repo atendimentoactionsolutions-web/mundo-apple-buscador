@@ -15,7 +15,7 @@ function element() {
   };
 }
 async function setup(user = null, products = [], failure = false, pathname = "/") {
-  const ids = ['clientShowcaseModal', 'showcaseModelTitle', 'showcaseModelSubtitle', 'clientShowcaseBody', 'priceCostLink', 'headerDollarBadge', 'adminHeaderBtn', 'userSessionInfo', 'tabStoreFront', 'btnOpenCalculator', 'btnExportTopHeader', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp', 'mobileDrawerCalcBtn', 'mobileDrawerExportBtn', 'mobileDrawerExportAllBtn', 'mobileDrawerCostBtn', 'mobileDrawerAdminBtn', 'brandLogoLink', 'viewStoreFront', 'viewPricesDay', 'viewQuotes', 'storefrontGrid', 'podMatrixGrid', 'sfShownCountText',
+  const ids = ['clientShowcaseModal', 'showcaseModelTitle', 'showcaseModelSubtitle', 'clientShowcaseBody', 'priceCostLink', 'headerDollarBadge', 'adminHeaderBtn', 'userSessionInfo', 'tabStoreFront', 'tabCostLink', 'tabPricesDay', 'btnOpenCalculator', 'btnExportTopHeader', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp', 'mobileDrawerCalcBtn', 'mobileDrawerExportBtn', 'mobileDrawerExportAllBtn', 'mobileDrawerCostBtn', 'mobileDrawerAdminBtn', 'brandLogoLink', 'viewStoreFront', 'viewPricesDay', 'viewQuotes', 'storefrontGrid', 'podMatrixGrid', 'sfShownCountText',
     'catalogHeading', 'catalogDescription', 'catalogModeLabel', 'btnClientMode', 'txtClientModeBtn', 'sfSearchInput',
     'sfSearchClearBtn', 'qbItemsList', 'qbCatalogDropdown', 'qbCatalogSearchInput'];
   const elements = new Map(ids.map(id => [id, element()]));
@@ -239,6 +239,37 @@ test('cost page requires admin login and loads a separate price list without ext
   assert.equal(app.elements.get('priceCostLink').textContent, 'Preço real');
   assert.equal(app.elements.get('priceCostLink').style.display, 'inline-flex');
   assert.equal(app.elements.get('brandLogoLink').href, '/admin.html');
+});
+
+test('segmented tabs place Preço de Custo on the left and toggle cleanly between cost and day prices', async () => {
+  const indexHtml = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+  const costPos = indexHtml.indexOf('id="tabCostLink"');
+  const dayPos = indexHtml.indexOf('id="tabPricesDay"');
+  assert.ok(costPos > -1 && dayPos > -1, 'both tabs present in index.html');
+  assert.ok(costPos < dayPos, 'Preço de custo is on the LEFT of Preço do dia');
+
+  const app = await setup(
+    { id: 'admin-felipe', username: 'felipe', role: 'admin' },
+    [{ id: 'phone-17pm', name: 'IPHONE 17 PRO MAX', storage: '256GB', color: 'COSMIC ORANGE', category: 'IPH', price: 7477 }]
+  );
+  assert.equal(app.errors.length, 0);
+
+  // Default login on / starts on Preço do dia (real price with margin)
+  assert.equal(app.read('currentPriceMode'), 'day');
+  assert.equal(app.elements.get('tabPricesDay').classList.contains('active'), true);
+  assert.equal(app.elements.get('tabCostLink').classList.contains('active'), false);
+
+  // Switch to Preço de custo
+  app.context.switchToCostPrices();
+  assert.equal(app.read('currentPriceMode'), 'cost');
+  assert.equal(app.elements.get('tabCostLink').classList.contains('active'), true);
+  assert.equal(app.elements.get('tabPricesDay').classList.contains('active'), false);
+
+  // Switch back to Preço do dia
+  app.context.switchToDayPrices();
+  assert.equal(app.read('currentPriceMode'), 'day');
+  assert.equal(app.elements.get('tabPricesDay').classList.contains('active'), true);
+  assert.equal(app.elements.get('tabCostLink').classList.contains('active'), false);
 });
 
 
