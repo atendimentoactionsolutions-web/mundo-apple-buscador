@@ -23,6 +23,7 @@ rsync -az \
   --exclude='*.bak' \
   --exclude='*.backup-*' \
   --exclude='.DS_Store' \
+  --exclude='public/css/mobile.css' \
   "$ROOT_DIR/" "$REMOTE:$REMOTE_PATH/"
 
 ssh "$REMOTE" "cd '$REMOTE_PATH' &&
