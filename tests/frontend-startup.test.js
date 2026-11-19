@@ -17,7 +17,8 @@ function element() {
 async function setup(user = null, products = [], failure = false, pathname = "/") {
   const ids = ['clientShowcaseModal', 'showcaseModelTitle', 'showcaseModelSubtitle', 'clientShowcaseBody', 'priceCostLink', 'headerDollarBadge', 'adminHeaderBtn', 'userSessionInfo', 'tabStoreFront', 'tabCostLink', 'tabPricesDay', 'btnOpenCalculator', 'btnExportTopHeader', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp', 'mobileDrawerCalcBtn', 'mobileDrawerExportBtn', 'mobileDrawerExportAllBtn', 'mobileDrawerCostBtn', 'mobileDrawerAdminBtn', 'brandLogoLink', 'viewStoreFront', 'viewPricesDay', 'viewQuotes', 'storefrontGrid', 'podMatrixGrid', 'sfShownCountText',
     'catalogHeading', 'catalogDescription', 'catalogModeLabel', 'btnClientMode', 'txtClientModeBtn', 'sfSearchInput',
-    'sfSearchClearBtn', 'qbItemsList', 'qbCatalogDropdown', 'qbCatalogSearchInput'];
+    'sfSearchClearBtn', 'qbItemsList', 'qbCatalogDropdown', 'qbCatalogSearchInput',
+    'pdfSelectionModal', 'pdfSelectionListBody', 'exportModalTitle', 'exportModalSubtitle', 'exportModalScopeLabel', 'exportModalCategoryPills', 'pdfSelectedCountBadge'];
   const elements = new Map(ids.map(id => [id, element()]));
   const storage = new Map();
   const errors = [];
@@ -393,4 +394,65 @@ test('CPO categories separate phones, Macs and iPads from sealed products', asyn
     assert.ok(html.indexOf(`${attr}="IPH"`) < html.indexOf(`${attr}="IPH_CPO"`));
     assert.ok(html.indexOf(`${attr}="IPH_CPO"`) < html.indexOf(`${attr}="MCB"`));
   }
+});
+
+test('export modal pulls the active selected category (not always iPhone), supports switching categories, and respects Preço do Dia vs Preço de Custo', async () => {
+  const products = [
+    { id: 'iph-1', name: 'IPHONE 17 PRO', category: 'IPH', storage: '256GB', color: 'BLACK', price: 7000, condition: 'NOVO' },
+    { id: 'mac-1', name: 'MACBOOK AIR M5 13"', category: 'MCB', storage: '512GB', ram: '16GB', color: 'SILVER', price: 8500, condition: 'NOVO' },
+    { id: 'ipad-1', name: 'IPAD AIR M4 11" WIFI', category: 'IPAD', storage: '256GB', color: 'BLUE', price: 6200, condition: 'NOVO' },
+    { id: 'watch-1', name: 'APPLE WATCH S12', category: 'RLG', storage: '46MM', color: 'BLACK', price: 3300, condition: 'NOVO' }
+  ];
+  const app = await setup({ id: 'admin-felipe', username: 'felipe', role: 'admin' }, products);
+  let copiedText = '';
+  app.context.robustCopyToClipboard = async text => { copiedText = text; return true; };
+
+  // 1. User is in Preço do Dia and selects Mac (MCB), while sfCurrentCategory is still IPH
+  app.read("podCurrentCategory = 'MCB'; sfCurrentCategory = 'IPH';");
+  app.context.openStorefrontExportModal();
+  assert.equal(app.read('exportModalCategory'), 'MCB');
+  assert.match(app.elements.get('pdfSelectionListBody').innerHTML, /MACBOOK AIR M5/);
+  assert.doesNotMatch(app.elements.get('pdfSelectionListBody').innerHTML, /IPHONE 17 PRO/);
+  assert.match(app.elements.get('exportModalCategoryPills').innerHTML, /data-export-modal-cat="MCB"/);
+
+  // Copy WhatsApp text in Preço do Dia mode: only MacBook with retail price (margin applied, no DFU/margem text)
+  await app.context.copySelectedStorefrontWhatsApp();
+  assert.match(copiedText, /MACBOOK AIR M5/i);
+  assert.doesNotMatch(copiedText, /IPHONE 17 PRO/i);
+  assert.doesNotMatch(copiedText, /margem|dfu/i);
+  assert.match(copiedText, /Valores válidos para pagamento à vista/);
+
+  // 2. Switch category directly inside the export modal to iPad
+  app.context.selectExportModalCategory('IPAD');
+  assert.equal(app.read('exportModalCategory'), 'IPAD');
+  assert.match(app.elements.get('pdfSelectionListBody').innerHTML, /IPAD AIR M4/);
+  assert.doesNotMatch(app.elements.get('pdfSelectionListBody').innerHTML, /MACBOOK AIR M5/);
+  assert.doesNotMatch(app.elements.get('pdfSelectionListBody').innerHTML, /IPHONE 17 PRO/);
+
+  await app.context.copySelectedStorefrontWhatsApp();
+  assert.match(copiedText, /IPAD AIR M4/i);
+  assert.doesNotMatch(copiedText, /MACBOOK AIR M5/i);
+  assert.doesNotMatch(copiedText, /IPHONE 17 PRO/i);
+
+  // 3. Toggle to All Catalog and back to page's active category (MCB, NOT IPH)
+  app.context.toggleExportModalCatalogScope();
+  assert.equal(app.read('exportModalCategory'), 'ALL');
+  assert.match(app.elements.get('pdfSelectionListBody').innerHTML, /IPHONE 17 PRO/);
+  assert.match(app.elements.get('pdfSelectionListBody').innerHTML, /APPLE WATCH S12/);
+  app.context.toggleExportModalCatalogScope();
+  assert.equal(app.read('exportModalCategory'), 'MCB');
+  assert.match(app.elements.get('pdfSelectionListBody').innerHTML, /MACBOOK AIR M5/);
+  assert.doesNotMatch(app.elements.get('pdfSelectionListBody').innerHTML, /IPHONE 17 PRO/);
+
+  // 4. Switch to Preço de Custo tab and export Apple Watch -> exports cost price without retail margin or customer footer
+  app.context.switchToCostPrices();
+  app.read("podCurrentCategory = 'RLG';");
+  app.context.openStorefrontExportModal();
+  assert.equal(app.read('exportModalCategory'), 'RLG');
+  assert.match(app.elements.get('exportModalTitle').textContent, /Preço de Custo.*Apple Watch/);
+  await app.context.copySelectedStorefrontWhatsApp();
+  assert.match(copiedText, /APPLE WATCH S12/i);
+  assert.doesNotMatch(copiedText, /IPHONE 17 PRO/i);
+  assert.doesNotMatch(copiedText, /Emitimos nota fiscal/);
+  assert.doesNotMatch(copiedText, /margem|dfu/i);
 });

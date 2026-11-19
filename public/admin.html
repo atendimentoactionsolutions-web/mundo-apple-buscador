@@ -2155,6 +2155,7 @@
         adminExportPriceMode = (splitViewMode === 'cost' || splitViewMode === 'real') ? splitViewMode : 'both';
         if (searchInput) searchInput.value = document.getElementById('splitCatalogSearch')?.value || '';
       } else {
+        adminExportActiveCategory = splitCategory || 'ALL';
         if (!EXPORT_MODE_CONFIG[adminExportPriceMode]) adminExportPriceMode = 'cost';
       }
       syncExportModalFilterPills();
@@ -2167,14 +2168,18 @@
 
     function selectExportPriceMode(mode, btn) {
       adminExportPriceMode = EXPORT_MODE_CONFIG[mode] ? mode : 'cost';
-      document.querySelectorAll('#exportPriceModePills .export-mode-btn').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('#exportPriceModePills .export-mode-btn').forEach(p => {
+        p.classList.toggle('active', p.dataset?.exportMode === adminExportPriceMode);
+      });
       if (btn) btn.classList.add('active');
       updateAdminExportSummary();
     }
 
     function selectExportCategory(cat, btn) {
       adminExportActiveCategory = cat || 'ALL';
-      document.querySelectorAll('#exportCategoryFilterPills .period-btn').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('#exportCategoryFilterPills .period-btn').forEach(p => {
+        p.classList.toggle('active', p.dataset?.exportCat === adminExportActiveCategory);
+      });
       if (btn) btn.classList.add('active');
       updateAdminExportSummary();
     }

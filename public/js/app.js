@@ -349,7 +349,8 @@ async function loadProducts(dateParam) {
   const cacheKey = getCatalogCacheKey();
   try {
     const target = dateParam || selectedDateMode || 'today';
-    const res = await fetch(`${IS_COST_PAGE ? '/api/cost-products' : '/api/products'}?date=${target}`, { cache: 'no-store' });
+    const useCostApi = IS_COST_PAGE && currentPriceMode === 'cost';
+    const res = await fetch(`${useCostApi ? '/api/cost-products' : '/api/products'}?date=${target}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     if (requestId !== catalogRequestId) return;
@@ -1496,6 +1497,7 @@ function cleanModelName(name) {
 // Categorização de Seções para Exportação WhatsApp e Listas
 function getProductSectionInfo(p) {
   const isSemi = isSeminovoProduct(p);
+  const isCpo = isCpoProduct(p) || p.condition === 'CPO';
   const cat = (p.category || '').toUpperCase().trim();
   const name = (p.name || '').toUpperCase();
 
@@ -1510,6 +1512,25 @@ function getProductSectionInfo(p) {
       return { key: 'WATCHES_SEMI', title: 'APPLE WATCHES SEMINOVOS', order: 55 };
     }
     return { key: 'IPHONES_SEMINOVOS', title: 'IPHONES SEMINOVOS', order: 20 };
+  }
+
+  if (isCpo) {
+    if (cat === 'IPH' || name.includes('IPHONE')) {
+      return { key: 'IPHONES_CPO', title: 'IPHONES CPO', order: 15 };
+    }
+    if (cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD')) {
+      return { key: 'IPADS_CPO', title: 'IPADS CPO', order: 35 };
+    }
+    if (cat === 'MCB' || cat === 'IMAC' || name.includes('MAC') || name.includes('IMAC')) {
+      return { key: 'MACS_CPO', title: 'MACBOOKS & MACS CPO', order: 45 };
+    }
+    if (cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA')) {
+      return { key: 'WATCHES_CPO', title: 'APPLE WATCHES CPO', order: 55 };
+    }
+    if (cat === 'PODS' || name.includes('AIRPOD')) {
+      return { key: 'AIRPODS_CPO', title: 'AIRPODS CPO', order: 65 };
+    }
+    return { key: 'ACESSORIOS_CPO', title: 'ACESSÓRIOS CPO', order: 75 };
   }
 
   if (cat === 'IPH' || name.includes('IPHONE')) {
@@ -1831,6 +1852,10 @@ window.switchToDayPrices = function() {
   }
   if (window.history && window.history.pushState && window.location.pathname !== '/') {
     window.history.pushState(null, '', '/');
+  }
+  if (IS_COST_PAGE && window.IS_CATALOG_SHIELDED && currentUser && currentUser.role === 'admin' && typeof loadProducts === 'function') {
+    loadProducts();
+    return;
   }
   renderPricesOfTheDay();
 };
@@ -3010,11 +3035,8 @@ function renderPricesOfTheDay() {
           repOffer = offers.reduce((prev, curr) => (curr.price < prev.price ? curr : prev), offers[0]);
         }
 
-        const pc = window.PricingCore;
-        const costPrice = pc ? pc.applyDFU(rawRefPrice, fam.category, grp.rawModel) : applyDFU(rawRefPrice, fam.category, grp.rawModel);
-        const realPrice = pc
-          ? pc.calculateRetailPrice(rawRefPrice, fam.category, grp.rawModel, isSemi, margins)
-          : calculateRetailOfferPrice(rawRefPrice, fam.category, grp.rawModel, isSemi);
+        const costPrice = applyDFU(rawRefPrice, fam.category, grp.rawModel);
+        const realPrice = calculateRetailOfferPrice(rawRefPrice, fam.category, grp.rawModel, isSemi);
         const appliedMargin = Math.max(0, realPrice - costPrice);
 
         const isCostMode = (currentPriceMode === 'cost');
@@ -4085,7 +4107,7 @@ if (clientShowcaseModal) {
 
 // 17. Export Preços do Dia Summary to WhatsApp (Agora com seleção por modelos)
 window.exportPricesDayTable = function() {
-  openExportSelectionModal('POD');
+  openExportSelectionModal('POD', false, podCurrentCategory || 'IPH');
 };
 
 // =========================================================================
@@ -4093,25 +4115,100 @@ window.exportPricesDayTable = function() {
 // =========================================================================
 let pdfSelectedVariantsMap = new Map(); // key: variantKey -> boolean
 let pdfCachedFamilies = [];
-let currentExportScope = 'SF'; // 'SF' = Loja Física, 'POD' = Preços do Dia (Fornecedores)
+let currentExportScope = 'SF'; // 'SF' = Loja Física, 'POD' = Preços do Dia / Custo
 let exportModalIsAllScope = false;
+let exportModalCategory = 'IPH';
 
-window.openStorefrontExportModal = function(forceAll = true) {
-  openExportSelectionModal('SF', forceAll);
+const EXPORT_MODAL_CATEGORIES = [
+  { key: 'ALL', label: 'Todos' },
+  { key: 'IPH', label: 'iPhone' },
+  { key: 'IPH_CPO', label: 'iPhone CPO' },
+  { key: 'MCB', label: 'Mac' },
+  { key: 'MCB_CPO', label: 'Mac CPO' },
+  { key: 'IPAD', label: 'iPad' },
+  { key: 'IPAD_CPO', label: 'iPad CPO' },
+  { key: 'RLG', label: 'Apple Watch' },
+  { key: 'RLG_CPO', label: 'Apple Watch CPO' },
+  { key: 'PODS', label: 'AirPods' },
+  { key: 'PODS_CPO', label: 'AirPods CPO' },
+  { key: 'ACSS', label: 'Acessórios' },
+  { key: 'ACSS_CPO', label: 'Acessórios CPO' },
+  { key: 'IMAC', label: 'iMac' },
+  { key: 'IMAC_CPO', label: 'iMac CPO' }
+];
+
+function getActiveCatalogCategory() {
+  return currentView === 'prices_of_the_day'
+    ? (podCurrentCategory || 'IPH')
+    : (sfCurrentCategory || 'IPH');
+}
+
+function getExportCategoryLabel(catKey) {
+  const found = EXPORT_MODAL_CATEGORIES.find(c => c.key === catKey);
+  return found ? found.label : catKey;
+}
+
+function isCostExportActive() {
+  return (currentView === 'prices_of_the_day' && currentPriceMode === 'cost') || IS_COST_PAGE;
+}
+
+function renderExportModalCategoryPills() {
+  const container = document.getElementById('exportModalCategoryPills');
+  if (!container) return;
+
+  const validPool = (allProducts || []).filter(p => !isDisallowedProduct(p) && p.price && p.price > 0);
+  const pillsHtml = EXPORT_MODAL_CATEGORIES.map(cat => {
+    const count = cat.key === 'ALL'
+      ? validPool.length
+      : validPool.filter(p => matchesCatalogCategory(p, cat.key)).length;
+    if (cat.key !== 'ALL' && count === 0 && cat.key !== exportModalCategory) {
+      return '';
+    }
+    const activeClass = exportModalCategory === cat.key ? ' active' : '';
+    return `<button type="button" class="export-modal-cat-pill${activeClass}" data-export-modal-cat="${cat.key}" onclick="selectExportModalCategory('${cat.key}')"><span>${cat.label}</span><span class="export-modal-cat-count">${count}</span></button>`;
+  }).filter(Boolean).join('');
+
+  container.innerHTML = pillsHtml;
+}
+
+window.selectExportModalCategory = function(catKey) {
+  const targetCat = catKey || 'ALL';
+  exportModalCategory = targetCat;
+  exportModalIsAllScope = (targetCat === 'ALL');
+  openExportSelectionModal(currentExportScope, exportModalIsAllScope, targetCat, true);
+};
+
+window.openStorefrontExportModal = function(forceAll = false) {
+  const scope = currentView === 'prices_of_the_day' ? 'POD' : 'SF';
+  const activeCat = forceAll ? 'ALL' : getActiveCatalogCategory();
+  openExportSelectionModal(scope, Boolean(forceAll), activeCat);
 };
 window.exportStorefrontPDF = window.openStorefrontExportModal;
-window.openPdfSelectionModal = function(forceAll = true) {
-  openExportSelectionModal('SF', forceAll);
+window.openPdfSelectionModal = function(forceAll = false) {
+  const scope = currentView === 'prices_of_the_day' ? 'POD' : 'SF';
+  const activeCat = forceAll ? 'ALL' : getActiveCatalogCategory();
+  openExportSelectionModal(scope, Boolean(forceAll), activeCat);
 };
 
 window.toggleExportModalCatalogScope = function() {
-  exportModalIsAllScope = !exportModalIsAllScope;
-  openExportSelectionModal(currentExportScope, exportModalIsAllScope);
+  if (exportModalIsAllScope || exportModalCategory === 'ALL') {
+    const pageCat = getActiveCatalogCategory();
+    const targetCat = pageCat === 'ALL' ? 'IPH' : pageCat;
+    openExportSelectionModal(currentExportScope, false, targetCat, true);
+  } else {
+    openExportSelectionModal(currentExportScope, true, 'ALL', true);
+  }
 };
 
-window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
+window.openExportSelectionModal = function(scope = 'SF', forceAll = false, categoryOverride = null, fromModalSwitch = false) {
   currentExportScope = scope;
-  exportModalIsAllScope = Boolean(forceAll);
+  const pageCategory = scope === 'POD' ? (podCurrentCategory || 'IPH') : (sfCurrentCategory || 'IPH');
+  const resolvedCategory = categoryOverride
+    ? categoryOverride
+    : (forceAll ? 'ALL' : pageCategory);
+  exportModalCategory = resolvedCategory || 'ALL';
+  exportModalIsAllScope = Boolean(forceAll) || exportModalCategory === 'ALL';
+
   const modal = document.getElementById('pdfSelectionModal');
   const body = document.getElementById('pdfSelectionListBody');
   const titleEl = document.getElementById('exportModalTitle');
@@ -4119,28 +4216,37 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
   const scopeLabel = document.getElementById('exportModalScopeLabel');
   if (!modal || !body) return;
 
+  const isCostMode = isCostExportActive();
+  const catLabel = getExportCategoryLabel(exportModalCategory);
+
   if (scopeLabel) {
     scopeLabel.textContent = exportModalIsAllScope ? 'Voltar para Categoria Atual' : 'Ver Catálogo Inteiro';
   }
 
   if (titleEl) {
-    if (scope === 'POD') {
-      titleEl.textContent = 'Exportar Preços do Dia';
+    if (isCostMode) {
+      titleEl.textContent = exportModalIsAllScope
+        ? 'Exportar Preço de Custo (Catálogo Completo)'
+        : `Exportar Preço de Custo • ${catLabel}`;
     } else {
       titleEl.textContent = exportModalIsAllScope
         ? 'Exportar Catálogo Completo para o WhatsApp'
-        : 'Exportar Lista para o WhatsApp';
+        : `Exportar ${catLabel} para o WhatsApp`;
     }
   }
   if (subEl) {
-    if (scope === 'POD') {
-      subEl.textContent = 'Marque os modelos de fornecedor que deseja incluir no texto';
+    if (isCostMode) {
+      subEl.textContent = exportModalIsAllScope
+        ? 'Exibindo todos os produtos com valores de custo'
+        : `Marque os modelos de ${catLabel} com preço de custo para copiar`;
     } else {
       subEl.textContent = exportModalIsAllScope
         ? 'Exibindo todos os produtos e categorias disponíveis na loja'
-        : 'Marque os modelos que deseja incluir no texto para enviar aos clientes';
+        : `Marque os modelos de ${catLabel} que deseja incluir no texto para enviar aos clientes`;
     }
   }
+
+  renderExportModalCategoryPills();
 
   let filtered = [];
 
@@ -4149,17 +4255,18 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
     const podRegionFilter = document.getElementById('podRegionFilter');
     const podVerifiedFilter = document.getElementById('podVerifiedFilter');
 
-    const searchTerm = (podSearchInput?.value || '').trim();
+    const searchTerm = fromModalSwitch ? '' : (podSearchInput?.value || '').trim();
     const searchTokens = normalizeSearchText(searchTerm).split(' ').filter(Boolean);
     const selectedRegion = podRegionFilter?.value || '';
     const onlyVerified = podVerifiedFilter?.checked || false;
 
     filtered = allProducts.filter(p => {
+      if (isDisallowedProduct(p)) return false;
       if (!p.price || p.price <= 0) return false;
 
-      const isSemi = isSeminovoProduct(p);
-
-      if (searchTokens.length === 0 && !matchesCatalogCategory(p, podCurrentCategory)) return false;
+      if (!exportModalIsAllScope && exportModalCategory !== 'ALL' && searchTokens.length === 0) {
+        if (!matchesCatalogCategory(p, exportModalCategory)) return false;
+      }
 
       if (searchTokens.length > 0) {
         if (!matchSearchTokens(p, searchTokens)) return false;
@@ -4179,43 +4286,48 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
       if (onlyVerified && !p.supplier?.isVerified) return false;
       return true;
     });
-
-    if (filtered.length === 0) {
-      alert('Nenhum produto encontrado para exportar com os filtros atuais de Preços do Dia.');
-      return;
-    }
   } else {
     // SF Scope
-    const sLower = sfSearchQuery.trim().toLowerCase();
+    const sLower = fromModalSwitch ? '' : sfSearchQuery.trim().toLowerCase();
     const searchTokens = normalizeSearchText(sLower).split(' ').filter(Boolean);
 
     filtered = allProducts.filter(p => {
       if (isDisallowedProduct(p)) return false;
       if (!p.price || p.price <= 0) return false;
-      const isSemi = isSeminovoProduct(p);
 
-      if (!exportModalIsAllScope && searchTokens.length === 0 && !matchesCatalogCategory(p, sfCurrentCategory)) return false;
+      if (!exportModalIsAllScope && exportModalCategory !== 'ALL' && searchTokens.length === 0) {
+        if (!matchesCatalogCategory(p, exportModalCategory)) return false;
+      }
 
       if (searchTokens.length > 0) {
         if (!matchSearchTokens(p, searchTokens)) return false;
       }
       return true;
     });
-
-    if (filtered.length === 0) {
-      alert('Nenhum produto encontrado para exportar com os filtros atuais da Loja Física.');
-      return;
-    }
   }
 
   // Limpa o mapa para a visualização atual garantindo que apenas os modelos presentes no modal sejam selecionados
   pdfSelectedVariantsMap.clear();
+  pdfCachedFamilies = [];
+
+  if (filtered.length === 0) {
+    if (!fromModalSwitch && (!allProducts || allProducts.length === 0)) {
+      alert('Nenhum produto disponível no catálogo para exportar.');
+      return;
+    }
+    body.innerHTML = `<div style="padding: 36px 20px; text-align: center; color: var(--text-muted); font-size: 0.9rem; font-weight: 600;">Nenhum produto encontrado em <strong>${catLabel}</strong>.<br><span style="font-size: 0.8rem; opacity: 0.85;">Selecione outra categoria acima ou clique em "Todos".</span></div>`;
+    updatePdfSelectedCountBadge();
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+    return;
+  }
 
   const modelFamilies = new Map();
   let variantCounter = 0;
 
   filtered.forEach(p => {
     const isSemi = isSeminovoProduct(p);
+    const isCpo = isCpoProduct(p) || p.condition === 'CPO';
     const secInfo = getProductSectionInfo(p);
     const baseModelName = cleanModelName(p.name).replace(/\s+/g, ' ').trim();
     const modelKey = isSemi ? `${baseModelName.toUpperCase()} [SEMINOVO]` : baseModelName.toUpperCase();
@@ -4230,6 +4342,7 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
         rawModelName: baseModelName,
         category: p.category,
         isSeminovo: isSemi,
+        isCpo: isCpo,
         sectionKey: secInfo.key,
         sectionTitle: secInfo.title,
         sectionOrder: secInfo.order,
@@ -4248,6 +4361,7 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
         storage: (p.storage || '').trim(),
         ram: ram,
         isSeminovo: isSemi,
+        isCpo: isCpo,
         colors: new Map()
       });
       pdfSelectedVariantsMap.set(varId, true);
@@ -4290,11 +4404,14 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false) {
         </div>
       `;
     }
+    const badgeLabel = fam.isSeminovo ? 'SEMINOVO' : (fam.isCpo ? 'CPO' : 'LACRADO');
+    const badgeBg = fam.isSeminovo ? 'rgba(245, 158, 11, 0.15)' : (fam.isCpo ? 'rgba(59, 130, 246, 0.15)' : 'rgba(16, 185, 129, 0.15)');
+    const badgeColor = fam.isSeminovo ? '#f59e0b' : (fam.isCpo ? '#3b82f6' : '#10b981');
     html += `
       <div style="margin-bottom: 14px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 800; font-size: 0.88rem; color: var(--text-primary);">
           <span>${fam.modelName}</span>
-          <span style="font-size: 0.72rem; padding: 2px 7px; border-radius: 6px; background: ${fam.isSeminovo ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)'}; color: ${fam.isSeminovo ? '#f59e0b' : '#10b981'}; font-weight: 800;">${fam.isSeminovo ? 'SEMINOVO' : 'LACRADO'}</span>
+          <span style="font-size: 0.72rem; padding: 2px 7px; border-radius: 6px; background: ${badgeBg}; color: ${badgeColor}; font-weight: 800;">${badgeLabel}</span>
         </div>
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px;">
     `;
@@ -4369,9 +4486,11 @@ window.toggleAllPdfSelections = function(selectState) {
 
 function updatePdfSelectedCountBadge() {
   const badge = document.getElementById('pdfSelectedCountBadge');
-  const checkedCbs = document.querySelectorAll('#pdfSelectionListBody input[type="checkbox"]:checked');
-  let count = checkedCbs.length;
-  if (count === 0 && !document.querySelector('#pdfSelectionListBody input[type="checkbox"]')) {
+  const allCbs = document.querySelectorAll('#pdfSelectionListBody input[type="checkbox"]');
+  let count = 0;
+  if (allCbs.length > 0) {
+    allCbs.forEach(cb => { if (cb.checked) count++; });
+  } else {
     pdfSelectedVariantsMap.forEach(val => { if (val === true) count++; });
   }
   if (badge) badge.textContent = `${count} selecionados`;
@@ -4379,27 +4498,29 @@ function updatePdfSelectedCountBadge() {
 
 // Copia lista formatada para WhatsApp com os modelos selecionados
 window.copySelectedStorefrontWhatsApp = async function(btn) {
-  // Sincroniza com os checkboxes reais que estão fisicamente marcados na tela
-  const checkedCbs = document.querySelectorAll('#pdfSelectionListBody input[type="checkbox"]:checked');
+  // Sincroniza com TODOS os checkboxes reais presentes na tela (marcados e desmarcados)
+  const allCbs = document.querySelectorAll('#pdfSelectionListBody input[type="checkbox"]');
   const checkedIds = new Set();
-  checkedCbs.forEach(cb => {
-    if (cb.dataset && cb.dataset.varId) {
-      checkedIds.add(cb.dataset.varId);
-      pdfSelectedVariantsMap.set(cb.dataset.varId, true);
-    }
-  });
-
-  let selectedCount = checkedIds.size;
-  if (selectedCount === 0) {
-    pdfSelectedVariantsMap.forEach(val => { if (val === true) selectedCount++; });
+  if (allCbs.length > 0) {
+    allCbs.forEach(cb => {
+      if (cb.dataset && cb.dataset.varId) {
+        const isChecked = Boolean(cb.checked);
+        pdfSelectedVariantsMap.set(cb.dataset.varId, isChecked);
+        if (isChecked) checkedIds.add(cb.dataset.varId);
+      }
+    });
+  } else {
+    pdfSelectedVariantsMap.forEach((val, key) => {
+      if (val === true) checkedIds.add(key);
+    });
   }
 
-  if (selectedCount === 0) {
+  if (checkedIds.size === 0) {
     alert('Por favor, selecione pelo menos 1 modelo para exportar.');
     return;
   }
 
-  const isPod = (currentExportScope === 'POD');
+  const isCostMode = isCostExportActive();
   let hasNovos = false;
   let hasSemis = false;
 
@@ -4415,8 +4536,7 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
     });
 
     variants.forEach(grp => {
-      const isSelected = checkedIds.has(grp.varId) || (pdfSelectedVariantsMap.get(grp.varId) === true);
-      if (!isSelected) return;
+      if (!checkedIds.has(grp.varId)) return;
 
       if (grp.isSeminovo || grp.model.toUpperCase().includes('SEMINOVO')) {
         hasSemis = true;
@@ -4429,7 +4549,9 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
         const offers = colObj.offers || [];
         const rawRefCost = calculateSupplierReferencePrice(offers, isSemi);
         if (!rawRefCost || rawRefCost <= 0) return null;
-        const finalPrice = calculateRetailOfferPrice(rawRefCost, fam.category, grp.rawModel, isSemi);
+        const finalPrice = isCostMode
+          ? applyDFU(rawRefCost, fam.category, grp.rawModel)
+          : calculateRetailOfferPrice(rawRefCost, fam.category, grp.rawModel, isSemi);
 
         return {
           color: colObj.color,
@@ -4481,7 +4603,7 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
   });
 
   let footer = '';
-  if (!isPod) {
+  if (!isCostMode) {
     const footerLines = [''];
     if (hasNovos && !hasSemis) {
       footerLines.push('Produto novo lacrado com 1 ano de garantia Apple.');
@@ -4628,14 +4750,15 @@ window.exportAllStorefrontWhatsApp = async function(btn) {
           hasNovos = true;
         }
 
+        const isCostMode = isCostExportActive();
         const colorsArr = Array.from(grp.colors.values()).map(colObj => {
           const isSemi = grp.isSeminovo;
           const offers = colObj.offers || [];
           const rawRefCost = calculateSupplierReferencePrice(offers, isSemi);
           if (!rawRefCost || rawRefCost <= 0) return null;
-          const refCost = applyDFU(rawRefCost, fam.category, grp.rawModel);
-          const marginVal = getProductMargin(grp.rawModel, fam.category, isSemi);
-          const finalPrice = refCost + marginVal;
+          const finalPrice = isCostMode
+            ? applyDFU(rawRefCost, fam.category, grp.rawModel)
+            : calculateRetailOfferPrice(rawRefCost, fam.category, grp.rawModel, isSemi);
 
           return {
             color: colObj.color,
@@ -5060,7 +5183,7 @@ async function checkAuthSession() {
     if (window.location.search.includes('export=true')) {
       setTimeout(() => {
         if (typeof openStorefrontExportModal === 'function') {
-          openStorefrontExportModal();
+          openStorefrontExportModal(true);
         }
       }, 500);
     }
@@ -5288,7 +5411,7 @@ function applyRemotePricingState(state) {
   const quoteSearch = document.getElementById('qbCatalogSearchInput');
   if (quoteSearch?.value && typeof onQuoteCatalogSearch === 'function') onQuoteCatalogSearch(quoteSearch);
   if (document.getElementById('pdfSelectionModal')?.classList.contains('active')) {
-    openExportSelectionModal(currentExportScope, exportModalIsAllScope);
+    openExportSelectionModal(currentExportScope, exportModalIsAllScope, exportModalCategory, true);
   }
 }
 

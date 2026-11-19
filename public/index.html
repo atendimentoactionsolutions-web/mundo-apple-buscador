@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css?v=70.0">
+  <link rel="stylesheet" href="/css/styles.css?v=71.0">
   <link rel="stylesheet" href="/css/quotes.css?v=1.3">
   <link rel="stylesheet" href="/css/catalog-layout.css?v=1.7">
   <link rel="stylesheet" href="/css/mobile.css?v=2.0">
@@ -516,6 +516,11 @@
         <span id="pdfSelectedCountBadge" style="font-size: 0.8rem; font-weight: 800; color: var(--accent-green);">0 selecionados</span>
       </div>
 
+      <!-- Category Filter Pills inside Export Modal -->
+      <div class="export-modal-cat-bar" id="exportModalCategoryPills" role="tablist" aria-label="Filtrar categoria para exportar">
+        <!-- Populated dynamically via JS -->
+      </div>
+
       <!-- Scrollable Product Selection Checklist Body -->
       <div id="pdfSelectionListBody" style="padding: 16px 20px; overflow-y: auto; flex: 1; max-height: 450px;">
         <!-- Injected dynamically via JS -->
@@ -722,6 +727,6 @@
   <script src="/js/jspdf.umd.min.js"></script>
   <script src="/js/jspdf.plugin.autotable.min.js"></script>
   <script src="/js/quotes-module.js?v=1.2"></script>
-  <script src="/js/app.js?v=pod-nav-4"></script>
+  <script src="/js/app.js?v=export-cat-5"></script>
 </body>
 </html>
