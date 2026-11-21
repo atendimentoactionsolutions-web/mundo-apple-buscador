@@ -179,9 +179,10 @@ test('admin receives DFU changes in both catalogs and open simulator without acc
 test('logged-out visitors never see admin bar controls, calculator, export, USD or cost buttons, while admin sees them', async () => {
   const indexHtml = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
   const layoutCss = fs.readFileSync(path.join(__dirname, '../public/css/catalog-layout.css'), 'utf8');
-  for (const id of ['priceCostLink', 'headerDollarBadge', 'btnOpenCalculator', 'btnExportTopHeader', 'userSessionInfo', 'adminHeaderBtn']) {
+  for (const id of ['priceCostLink', 'headerDollarBadge', 'btnOpenCalculator', 'btnExportTopHeader', 'userSessionInfo']) {
     assert.match(indexHtml, new RegExp(`id="${id}"[^>]*style="[^"]*display:\\s*none`), `${id} starts hidden in HTML`);
   }
+  assert.doesNotMatch(indexHtml, /id="adminHeaderBtn"/, 'adminHeaderBtn removed from header');
   assert.match(layoutCss, /\.catalog-app:not\(\.admin-authenticated\) #btnOpenCalculator/);
   assert.match(layoutCss, /\.catalog-app:not\(\.admin-authenticated\) #btnExportTopHeader/);
   assert.match(layoutCss, /\.catalog-app\.admin-authenticated:not\(\.client-mode-active\) \.header-dollar-badge/);
@@ -210,9 +211,10 @@ test('logged-out visitors never see admin bar controls, calculator, export, USD 
 
   const adminApp = await setup({ id: 'admin-felipe', username: 'felipe', role: 'admin' }, [{ id: 'cost-phone', name: 'IPHONE 17 PRO', category: 'IPH', price: 6000 }]);
   assert.equal(adminApp.context.document.body.classList.contains('admin-authenticated'), true);
-  for (const id of ['priceCostLink', 'headerDollarBadge', 'btnOpenCalculator', 'btnExportTopHeader', 'adminHeaderBtn']) {
+  for (const id of ['priceCostLink', 'headerDollarBadge', 'btnOpenCalculator', 'btnExportTopHeader']) {
     assert.equal(adminApp.elements.get(id).style.display, 'inline-flex', `${id} shown for admin`);
   }
+  assert.equal(adminApp.elements.get('adminHeaderBtn').style.display, 'none', 'adminHeaderBtn stays hidden even for admin');
   adminApp.context.syncMobileDrawerActions();
   for (const id of ['mobileDrawerCalcBtn', 'mobileDrawerExportBtn', 'mobileDrawerExportAllBtn', 'mobileDrawerCostBtn', 'mobileDrawerAdminBtn']) {
     assert.equal(adminApp.elements.get(id).style.display, 'flex', `${id} shown in mobile drawer for admin`);

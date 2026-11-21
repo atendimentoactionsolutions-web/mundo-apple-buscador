@@ -5045,6 +5045,7 @@ async function checkAuthSession() {
     const userSessionInfo = document.getElementById('userSessionInfo');
     const userStoreBadge = document.getElementById('userStoreBadge');
     const adminHeaderBtn = document.getElementById('adminHeaderBtn');
+    if (adminHeaderBtn) adminHeaderBtn.style.display = 'none';
     const btnOpenCalculator = document.getElementById('btnOpenCalculator');
     const btnExportSfWhatsapp = document.getElementById('btnExportSfWhatsapp');
     const btnExportAllSfWhatsapp = document.getElementById('btnExportAllSfWhatsapp');
@@ -5654,7 +5655,10 @@ function syncHeaderAdminControls() {
   document.body.classList.toggle('admin-authenticated', isAdmin);
   document.body.classList.toggle('client-mode-active', isClientMode);
 
-  ['adminHeaderBtn', 'headerDollarBadge', 'btnOpenCalculator', 'btnExportTopHeader', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp'].forEach(id => {
+  const adminHeaderBtn = document.getElementById('adminHeaderBtn');
+  if (adminHeaderBtn) adminHeaderBtn.style.display = 'none';
+
+  ['headerDollarBadge', 'btnOpenCalculator', 'btnExportTopHeader', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = showAdminControls ? 'inline-flex' : 'none';
   });
