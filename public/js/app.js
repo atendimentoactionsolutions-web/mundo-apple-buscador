@@ -3107,7 +3107,7 @@ function renderPricesOfTheDay() {
             <div class="matrix-card-title-row">
               <h3 class="matrix-card-title" title="${grp.model}">${grp.model}</h3>
               <div class="matrix-card-actions">
-
+                ${!IS_COST_PAGE ? `
                 <button class="matrix-card-all-btn" onclick="openAllOffersModal('${encodeURIComponent(grp.rawModel)}', '${encodeURIComponent(grp.storage)}', '', '${encodeURIComponent(grp.ram || '')}', ${grp.isSeminovo}, '${cardKey}')" title="Ver todos os fornecedores deste modelo">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
@@ -3115,6 +3115,7 @@ function renderPricesOfTheDay() {
                   </svg>
                   <span>Todas</span>
                 </button>
+                ` : ''}
               </div>
             </div>
             <div class="matrix-card-badges-row">
