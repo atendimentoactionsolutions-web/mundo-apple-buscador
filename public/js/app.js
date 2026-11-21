@@ -4122,19 +4122,12 @@ let exportModalCategory = 'IPH';
 const EXPORT_MODAL_CATEGORIES = [
   { key: 'ALL', label: 'Todos' },
   { key: 'IPH', label: 'iPhone' },
-  { key: 'IPH_CPO', label: 'iPhone CPO' },
   { key: 'MCB', label: 'Mac' },
-  { key: 'MCB_CPO', label: 'Mac CPO' },
   { key: 'IPAD', label: 'iPad' },
-  { key: 'IPAD_CPO', label: 'iPad CPO' },
   { key: 'RLG', label: 'Apple Watch' },
-  { key: 'RLG_CPO', label: 'Apple Watch CPO' },
   { key: 'PODS', label: 'AirPods' },
-  { key: 'PODS_CPO', label: 'AirPods CPO' },
   { key: 'ACSS', label: 'Acessórios' },
-  { key: 'ACSS_CPO', label: 'Acessórios CPO' },
-  { key: 'IMAC', label: 'iMac' },
-  { key: 'IMAC_CPO', label: 'iMac CPO' }
+  { key: 'IMAC', label: 'iMac' }
 ];
 
 function getActiveCatalogCategory() {

@@ -292,7 +292,7 @@ function processAppleProduct(p) {
   if (!p) return null;
   if (isDisallowedProduct(p)) return null; // Exclui modelos AS IS, CPO, ativados e seminovos
   if (isAppleNovo(p)) {
-    return { ...p, isSeminovo: false, condition: isCpoProduct(p) ? 'CPO' : 'NOVO' };
+    return { ...p, isSeminovo: false, condition: 'NOVO' };
   }
   return null;
 }

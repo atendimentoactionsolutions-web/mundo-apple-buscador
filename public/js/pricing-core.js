@@ -205,6 +205,7 @@
   function isDisallowedProduct(p) {
     if (!p) return true;
     if (isAtivadoProduct(p)) return true;
+    if (isCpoProduct(p)) return true;
     if (isDisallowedSupplierRegion(p)) return true;
 
     if (isAsIsProduct(p)) return true;

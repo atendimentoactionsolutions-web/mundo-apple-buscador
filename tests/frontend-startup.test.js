@@ -374,7 +374,7 @@ test('grouping the full current catalog preserves every offer ID', async () => {
   }
 });
 
-test('CPO categories separate phones, Macs and iPads from sealed products', async () => {
+test('CPO products are strictly filtered from catalog categories and never shown', async () => {
   const products = ['IPH', 'MCB', 'IPAD', 'RLG'].flatMap(category => [
     { id: category, name: category, category, price: 1000, condition: 'NOVO' },
     { id: category + '-cpo', name: category + ' CPO', category, price: 900, condition: 'CPO' }
@@ -382,19 +382,12 @@ test('CPO categories separate phones, Macs and iPads from sealed products', asyn
   for (const [pathname, user] of [['/', null], ['/preco-de-custo', { id: 'admin-felipe', username: 'felipe', role: 'admin' }]]) {
     const app = await setup(user, products, false, pathname);
     for (const category of ['IPH', 'MCB', 'IPAD', 'RLG']) {
-      for (const suffix of ['', '_CPO']) {
-        app.read(`sfCurrentCategory = '${category}${suffix}'; podCurrentCategory = '${category}${suffix}'; renderStoreFront(); renderPricesOfTheDay();`);
-        const ids = Array.from(app.context.storefrontCardMap.values()).flatMap(c => Array.from(c.productIds));
-        assert.deepEqual(ids, [category + (suffix ? '-cpo' : '')]);
-        const html = app.elements.get('podMatrixGrid').innerHTML;
-        if (suffix) assert.match(html, /CPO/); else assert.doesNotMatch(html, /CPO/);
-      }
+      app.read(`sfCurrentCategory = '${category}'; podCurrentCategory = '${category}'; renderStoreFront(); renderPricesOfTheDay();`);
+      const ids = Array.from(app.context.storefrontCardMap.values()).flatMap(c => Array.from(c.productIds));
+      assert.deepEqual(ids, [category]);
+      const html = app.elements.get('podMatrixGrid').innerHTML;
+      assert.doesNotMatch(html, /CPO/);
     }
-  }
-  const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
-  for (const attr of ['data-category', 'data-sf-category']) {
-    assert.ok(html.indexOf(`${attr}="IPH"`) < html.indexOf(`${attr}="IPH_CPO"`));
-    assert.ok(html.indexOf(`${attr}="IPH_CPO"`) < html.indexOf(`${attr}="MCB"`));
   }
 });
 

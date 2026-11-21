@@ -8,13 +8,15 @@ const { importCatalog } = require('../scripts/import-catalog');
 
 const list = 'IPHONE 17 PRO • 256GB • BLUE • Custo R$ 6.000,00\n' +
   'HOTWAV A18 PRO MAX • 128/4 • BLACK • Custo R$ 880,00\n' +
-  'IPHONE 16 CPO • 128GB • WHITE • Custo R$ 4.199,00';
+  'IPHONE 16 • 128GB • WHITE • Custo R$ 4.199,00\n' +
+  'IPHONE 15 CPO • 128GB • BLACK • Custo R$ 3.500,00';
 
 test('manual import blocks unwanted products and never replaces the catalog with invalid input', t => {
   const root = temporaryProject(t);
   const result = importCatalog(list, { root, date: '2026-11-12' });
   assert.equal(result.total, 2);
   assert.equal(result.blocked.blockedHotwav, 1);
+  assert.equal(result.blocked.blockedCpo, 1);
   assert.equal(result.blocked.blockedOthers, 0);
   const file = path.join(root, 'data/snapshot_latest.json');
   const before = fs.readFileSync(file, 'utf8');
@@ -171,7 +173,6 @@ test('an imported list survives restart with its original date and final selling
     const catalog = await response.json();
     assert.equal(catalog.latestDate, '12-11');
     assert.equal(catalog.data.length, 2);
-    assert.equal(catalog.data.find(p => p.name.includes('CPO')).condition, 'CPO');
     assert.equal(catalog.data[0].price, 6850);
     modules.close();
     await new Promise(resolve => service.localIo.close(resolve));
@@ -411,8 +412,6 @@ test('admin split catalog pane renders Preço de Custo and Preço Real side-by-s
 
   getEl('adminExportSearchInput').value = '';
   sandbox.selectExportPriceMode('real');
-  sandbox.selectExportCategory('IPH_CPO');
-  assert.match(getEl('exportFilteredCount').textContent, /0 ofertas filtradas \(Preço Real\)/);
   sandbox.selectExportCategory('IPH');
   assert.match(getEl('exportFilteredCount').textContent, /1 ofertas filtradas \(Preço Real\)/);
   const realModalWa = await sandbox.executeAdminWhatsAppExport();

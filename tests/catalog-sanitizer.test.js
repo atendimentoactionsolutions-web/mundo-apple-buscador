@@ -18,7 +18,7 @@ test('catalog sanitizer normalizes storage and color strings', () => {
   assert.equal(sanitizeColor(' cosmic orange '), 'COSMIC ORANGE');
 });
 
-test('catalog sanitizer allows CPO and filters ativados, android, and seminovos', () => {
+test('catalog sanitizer blocks CPO and filters ativados, android, and seminovos', () => {
   const dirtyItems = [
     { id: '1', name: 'IPHONE 17 PRO MAX', category: 'IPH', price: 6920, storage: '256GB', color: 'BLUE', priceDate: '07-11' },
     { id: '2', name: 'SAMSUNG S24 ULTRA', category: 'SAMSUNG', price: 5000, storage: '256GB' }, // Android
@@ -34,15 +34,14 @@ test('catalog sanitizer allows CPO and filters ativados, android, and seminovos'
 
   const { cleanProducts, auditReport } = sanitizeCatalog(dirtyItems, { strictTodayOnly: true, todayDateStr: '07-11' });
 
-  assert.equal(cleanProducts.length, 2);
+  assert.equal(cleanProducts.length, 1);
   assert.equal(cleanProducts[0].id, '1');
-  assert.equal(cleanProducts.find(p => p.id === '4').condition, 'CPO');
   assert.equal(cleanProducts[0].name, 'IPHONE 17 PRO MAX');
   assert.equal(cleanProducts[0].price, 6920);
 
   assert.equal(auditReport.anomalies.androidBlocked, 2);
   assert.equal(auditReport.anomalies.ativadoBlocked, 1);
-  assert.equal(auditReport.anomalies.cpoBlocked, 0);
+  assert.equal(auditReport.anomalies.cpoBlocked, 1);
   assert.equal(auditReport.anomalies.asIsBlocked, 1);
   assert.equal(auditReport.anomalies.seminovoBlocked, 1);
   assert.equal(auditReport.anomalies.invalidPrice, 1);
