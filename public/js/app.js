@@ -121,11 +121,8 @@ function updateHeaderDollarDisplay(rate, variation) {
     const num = Number(rate);
     topRateEl.textContent = `R$ ${num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
   }
-  if (topVarEl && variation !== undefined && variation !== null) {
-    const numVar = Number(variation);
-    const sign = numVar > 0 ? '+' : '';
-    topVarEl.textContent = `${sign}${numVar.toFixed(2)}%`;
-    topVarEl.className = 'dollar-var-badge ' + (numVar > 0 ? 'positive' : (numVar < 0 ? 'negative' : ''));
+  if (topVarEl) {
+    topVarEl.style.display = 'none';
   }
 }
 
