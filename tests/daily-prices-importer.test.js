@@ -27,23 +27,31 @@ test('daily prices importer strictly blocks Hotwav and Android products', () => 
   assert.equal(res3.reason, 'HOTWAV_ANDROID');
 });
 
-test('daily prices importer blocks disallowed Seminovos and accepts allowed Seminovos', () => {
-  const lineBlocked1 = 'IPHONE 12 SEMI NOVO • 128GB • BLUE • Custo R$ 2.200,00';
-  const lineBlocked2 = 'IPHONE 13 MINI SEMI NOVO • 128GB • MIDNIGHT • Custo R$ 2.400,00';
-  const lineBlocked3 = 'IPHONE 15 PRO SEMI NOVO • 512GB • BLUE • Custo R$ 4.500,00';
+test('daily prices importer accepts Apple Seminovos without blocking', () => {
+  const line1 = 'IPHONE 12 SEMI NOVO • 128GB • BLUE • Custo R$ 2.200,00';
+  const line2 = 'IPHONE 13 MINI SEMI NOVO • 128GB • MIDNIGHT • Custo R$ 2.400,00';
+  const line3 = 'IPHONE 15 PRO SEMI NOVO • 512GB • BLUE • Custo R$ 4.500,00';
   const lineAllowed = 'IPHONE 13 SEMI NOVO • 128GB • MIDNIGHT • Custo R$ 2.500,00';
 
-  const res1 = parseSupplierLine(lineBlocked1);
-  const res2 = parseSupplierLine(lineBlocked2);
-  const res3 = parseSupplierLine(lineBlocked3);
+  const res1 = parseSupplierLine(line1);
+  const res2 = parseSupplierLine(line2);
+  const res3 = parseSupplierLine(line3);
   const resAllowed = parseSupplierLine(lineAllowed);
 
-  assert.equal(res1.isBlocked, true);
-  assert.equal(res1.reason, 'SEMINOVO_DISALLOWED');
-  assert.equal(res2.isBlocked, true);
-  assert.equal(res2.reason, 'SEMINOVO_DISALLOWED');
-  assert.equal(res3.isBlocked, true);
-  assert.equal(res3.reason, 'SEMINOVO_DISALLOWED');
+  assert.equal(res1.isBlocked, undefined);
+  assert.equal(res1.isSeminovo, true);
+  assert.equal(res1.condition, 'SEMINOVO');
+  assert.equal(res1.category, 'SEMI');
+
+  assert.equal(res2.isBlocked, undefined);
+  assert.equal(res2.isSeminovo, true);
+  assert.equal(res2.condition, 'SEMINOVO');
+  assert.equal(res2.category, 'SEMI');
+
+  assert.equal(res3.isBlocked, undefined);
+  assert.equal(res3.isSeminovo, true);
+  assert.equal(res3.condition, 'SEMINOVO');
+  assert.equal(res3.category, 'SEMI');
 
   assert.equal(resAllowed.isBlocked, undefined);
   assert.equal(resAllowed.isSeminovo, true);
@@ -79,8 +87,8 @@ test('daily prices importer processes batch text and reports block stats', () =>
   const { success, products, stats } = processDailyPricesText(text, { dateStr: '11-11' });
 
   assert.equal(success, true);
-  assert.equal(products.length, 3); // APPLE TV 4K + IPHONE 14 SEMI NOVO + IPAD 11 WIFI
-  assert.equal(stats.accepted, 3);
+  assert.equal(products.length, 4); // APPLE TV 4K + IPHONE 11 SEMI NOVO + IPHONE 14 SEMI NOVO + IPAD 11 WIFI
+  assert.equal(stats.accepted, 4);
   assert.equal(stats.blockedHotwav, 1);
-  assert.equal(stats.blockedSeminovos, 1); // IPHONE 11 SEMI NOVO (< 13) bloqueado
+  assert.equal(stats.blockedSeminovos, 0); // Seminovos não são mais bloqueados
 });

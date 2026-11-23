@@ -1548,36 +1548,10 @@ function getProductSectionInfo(p) {
   return { key: 'ACESSORIOS', title: 'ACESSÓRIOS', order: 70 };
 }
 
-// Modelos de seminovos não permitidos (apenas a partir do iPhone 13, excluindo 13 Mini e 512GB/1TB no 15/16)
+// Seminovos são todos permitidos no catálogo
 function isDisallowedSeminovo(nameOrProduct, storage) {
   if (window.PricingCore && typeof window.PricingCore.isDisallowedSeminovo === 'function') {
     return window.PricingCore.isDisallowedSeminovo(nameOrProduct, storage);
-  }
-  if (!nameOrProduct) return false;
-  let name = '';
-  let stor = '';
-  let desc = '';
-  if (typeof nameOrProduct === 'object' && nameOrProduct !== null) {
-    name = nameOrProduct.name || '';
-    stor = nameOrProduct.storage || '';
-    desc = nameOrProduct.description || '';
-  } else {
-    name = String(nameOrProduct || '');
-    stor = storage ? String(storage) : '';
-  }
-  const n = name.toUpperCase();
-  const s = stor.toUpperCase().trim();
-  const d = desc.toUpperCase();
-
-  if (n.includes('13 MINI') || n.includes('13-MINI') || n.includes('13MINI')) return true;
-  if (/\b(IPHONE|IPH)\s+(11|12|X|XR|XS|SE|8|7|6)\b/i.test(n)) {
-    return true;
-  }
-  const hasHighCap = s.includes('512') || s.includes('1TB') || s.includes('1 TB') || s.includes('2TB') || s.includes('2 TB') ||
-                     d.includes('512GB') || d.includes('1TB') || d.includes('1 TB') || d.includes('2TB') || d.includes('2 TB') ||
-                     /\b(512GB|1TB|2TB)\b/i.test(n);
-  if (hasHighCap) {
-    return true;
   }
   return false;
 }

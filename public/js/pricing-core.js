@@ -136,36 +136,7 @@
   }
 
   function isDisallowedSeminovo(nameOrProduct, storage) {
-    if (!nameOrProduct) return false;
-    let name = '';
-    let stor = '';
-    let desc = '';
-    if (typeof nameOrProduct === 'object' && nameOrProduct !== null) {
-      name = nameOrProduct.name || '';
-      stor = nameOrProduct.storage || '';
-      desc = nameOrProduct.description || '';
-    } else {
-      name = String(nameOrProduct || '');
-      stor = storage ? String(storage) : '';
-    }
-    const n = name.toUpperCase();
-    const s = stor.toUpperCase().trim();
-    const d = desc.toUpperCase();
-
-    // 1. Exclui iPhone 13 Mini e modelos anteriores ao iPhone 13
-    if (n.includes('13 MINI') || n.includes('13-MINI') || n.includes('13MINI')) return true;
-    if (/\b(IPHONE|IPH)\s+(11|12|X|XR|XS|SE|8|7|6)\b/i.test(n)) {
-      return true;
-    }
-
-    // 2. Exclui Seminovos de alta capacidade (512GB, 1TB e superiores)
-    const hasHighCap = s.includes('512') || s.includes('1TB') || s.includes('1 TB') || s.includes('2TB') || s.includes('2 TB') ||
-                       d.includes('512GB') || d.includes('1TB') || d.includes('1 TB') || d.includes('2TB') || d.includes('2 TB') ||
-                       /\b(512GB|1TB|2TB)\b/i.test(n);
-    if (hasHighCap) {
-      return true;
-    }
-
+    // Seminovos são todos permitidos no catálogo
     return false;
   }
 
