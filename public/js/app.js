@@ -5442,9 +5442,13 @@ function syncMobileDrawerActions() {
   });
   const pricesDayBtn = document.getElementById('mobileDrawerPricesDayBtn');
   if (pricesDayBtn) pricesDayBtn.style.display = (currentUser && !isClientMode) ? 'flex' : 'none';
-  ['mobileDrawerAdminBtn', 'mobileDrawerCostBtn', 'mobileDrawerCalcBtn', 'mobileDrawerExportBtn', 'mobileDrawerExportAllBtn'].forEach(id => {
+  ['mobileDrawerAdminBtn', 'mobileDrawerCostBtn', 'mobileDrawerCalcBtn'].forEach(id => {
     const button = document.getElementById(id);
     if (button) button.style.display = showAdminActions ? 'flex' : 'none';
+  });
+  ['mobileDrawerExportBtn', 'mobileDrawerExportAllBtn'].forEach(id => {
+    const button = document.getElementById(id);
+    if (button) button.style.display = isClientMode ? 'none' : 'flex';
   });
   const logout = document.getElementById('mobileDrawerLogoutBtn');
   if (logout) logout.style.display = currentUser ? 'flex' : 'none';
@@ -5638,10 +5642,15 @@ function syncHeaderAdminControls() {
   const adminHeaderBtn = document.getElementById('adminHeaderBtn');
   if (adminHeaderBtn) adminHeaderBtn.style.display = 'none';
 
-  ['headerDollarBadge', 'btnOpenCalculator', 'btnExportTopHeader', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp'].forEach(id => {
+  ['headerDollarBadge', 'btnOpenCalculator', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = showAdminControls ? 'inline-flex' : 'none';
   });
+
+  const btnExportTopHeader = document.getElementById('btnExportTopHeader');
+  if (btnExportTopHeader) {
+    btnExportTopHeader.style.display = isClientMode ? 'none' : 'inline-flex';
+  }
 
   const priceCostLink = document.getElementById('priceCostLink');
   if (priceCostLink) {
