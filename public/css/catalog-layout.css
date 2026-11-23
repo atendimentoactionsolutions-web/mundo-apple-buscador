@@ -80,17 +80,20 @@
 
 .catalog-app #storefrontGrid,
 .catalog-app #podMatrixGrid {
-  display: grid !important;
-  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  display: flex !important;
+  flex-direction: column !important;
   width: 100% !important;
   max-width: none !important;
   margin: 0 !important;
   padding: 0 0 48px !important;
-  gap: 16px !important;
-  align-items: start !important;
+  gap: 32px !important;
 }
 .catalog-app .model-family-row {
-  display: contents !important;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  align-items: start !important;
+  margin: 0 !important;
+  gap: 16px !important;
 }
 .catalog-app .mock-card,
 .catalog-app .matrix-card {
@@ -348,34 +351,19 @@
   color: #ffffff !important;
 }
 
-@media (max-width: 1550px) {
-  .catalog-app #storefrontGrid,
-  .catalog-app #podMatrixGrid {
-    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-  }
-}
-@media (max-width: 1250px) {
-  .catalog-app #storefrontGrid,
-  .catalog-app #podMatrixGrid {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  }
-}
-@media (max-width: 950px) {
-  .catalog-app #storefrontGrid,
-  .catalog-app #podMatrixGrid {
+@media (max-width: 1199px) {
+  .catalog-app .model-family-row {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 }
-@media (max-width: 680px) {
-  .catalog-app #storefrontGrid,
-  .catalog-app #podMatrixGrid {
+@media (max-width: 899px) {
+  .catalog-app .model-family-row {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 10px !important;
+    gap: 12px !important;
   }
 }
-@media (max-width: 440px) {
-  .catalog-app #storefrontGrid,
-  .catalog-app #podMatrixGrid {
+@media (max-width: 580px) {
+  .catalog-app .model-family-row {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 }
