@@ -365,7 +365,7 @@ test('grouping the full current catalog preserves every offer ID', async () => {
   for (const [pathname, user] of [['/', null], ['/preco-de-custo', { id: 'admin-felipe', username: 'felipe', role: 'admin' }]]) {
     const app = await setup(user, products, false, pathname);
     const visible = new Set();
-    for (const cat of ['IPH', 'MCB', 'IPAD', 'RLG', 'PODS', 'ACSS', 'IMAC', 'IPH_CPO', 'MCB_CPO', 'IPAD_CPO', 'RLG_CPO', 'PODS_CPO', 'ACSS_CPO', 'IMAC_CPO']) {
+    for (const cat of ['IPH', 'SEMI', 'MCB', 'IPAD', 'RLG', 'PODS', 'ACSS', 'IMAC', 'IPH_CPO', 'MCB_CPO', 'IPAD_CPO', 'RLG_CPO', 'PODS_CPO', 'ACSS_CPO', 'IMAC_CPO']) {
       app.read(`sfCurrentCategory = ${JSON.stringify(cat)}; renderStoreFront();`);
       for (const card of app.context.storefrontCardMap.values()) for (const id of card.productIds) visible.add(id);
     }

@@ -353,7 +353,7 @@ async function loadProducts(dateParam) {
     if (requestId !== catalogRequestId) return;
     if (json.success && Array.isArray(json.data)) {
       window.IS_CATALOG_SHIELDED = !!json.isShielded;
-      allProducts = json.data.filter(p => !isDisallowedProduct(p) && !isSeminovoProduct(p));
+      allProducts = json.data.filter(p => !isDisallowedProduct(p));
       catalogStatus = 'ready';
       lastColorCategory = '';
       if (!json.isHistorical) saveCachedCatalog({ isShielded: window.IS_CATALOG_SHIELDED, products: allProducts }, cacheKey);
