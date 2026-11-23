@@ -85,8 +85,8 @@
   width: 100% !important;
   max-width: none !important;
   margin: 0 !important;
-  padding: 0 0 48px !important;
-  gap: 32px !important;
+  padding: 0 0 64px !important;
+  gap: 60px !important;
 }
 .catalog-app .model-family-row {
   display: grid !important;
@@ -94,6 +94,12 @@
   align-items: start !important;
   margin: 0 !important;
   gap: 16px !important;
+  padding-bottom: 32px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+.catalog-app .model-family-row:last-child {
+  padding-bottom: 0 !important;
+  border-bottom: none !important;
 }
 .catalog-app .mock-card,
 .catalog-app .matrix-card {
@@ -357,14 +363,24 @@
   }
 }
 @media (max-width: 899px) {
+  .catalog-app #storefrontGrid,
+  .catalog-app #podMatrixGrid {
+    gap: 44px !important;
+  }
   .catalog-app .model-family-row {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 12px !important;
+    padding-bottom: 24px !important;
   }
 }
 @media (max-width: 580px) {
+  .catalog-app #storefrontGrid,
+  .catalog-app #podMatrixGrid {
+    gap: 36px !important;
+  }
   .catalog-app .model-family-row {
     grid-template-columns: minmax(0, 1fr) !important;
+    padding-bottom: 20px !important;
   }
 }
 
