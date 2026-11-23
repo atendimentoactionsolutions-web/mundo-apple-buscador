@@ -1973,10 +1973,18 @@ function renderStoreFront() {
   const searchTokens = normalizeSearchText(sLower).split(' ').filter(Boolean);
 
   const sfCapacityFilter = document.getElementById('sfCapacityFilter');
-  const selectedCapacity = sfCapacityFilter ? sfCapacityFilter.value : 'ALL';
+  const isCapFilterVisible = sfCapacityFilter && sfCapacityFilter.offsetParent !== null;
+  const selectedCapacity = isCapFilterVisible ? sfCapacityFilter.value : 'ALL';
+  if (sfCapacityFilter && !isCapFilterVisible && sfCapacityFilter.value !== 'ALL') {
+    sfCapacityFilter.value = 'ALL';
+  }
 
   const sfColorFilter = document.getElementById('sfColorFilter');
-  const selectedColor = sfColorFilter ? sfColorFilter.value : 'ALL';
+  const isColorFilterVisible = sfColorFilter && sfColorFilter.offsetParent !== null;
+  const selectedColor = isColorFilterVisible ? sfColorFilter.value : 'ALL';
+  if (sfColorFilter && !isColorFilterVisible && sfColorFilter.value !== 'ALL') {
+    sfColorFilter.value = 'ALL';
+  }
 
   // Atualiza as opções de cor para o dropdown de cores
   updateStoreFrontColorFilterOptions();
@@ -2093,6 +2101,8 @@ function renderStoreFront() {
 
   if (cardsList.length === 0) {
     if (allProducts.length === 0 && catalogStatus === 'loading') {
+      const sfShownCountText = document.getElementById('sfShownCountText');
+      if (sfShownCountText) sfShownCountText.textContent = '';
       container.innerHTML = `
         <div class="app-catalog-loader">
           <div class="app-spinner"></div>
@@ -2102,6 +2112,8 @@ function renderStoreFront() {
       `;
       return;
     }
+    const sfShownCountText = document.getElementById('sfShownCountText');
+    if (sfShownCountText) sfShownCountText.textContent = '';
     container.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
         <h3 style="font-size: 1.25rem; color: var(--text-primary, #0f172a); margin-bottom: 8px;">${catalogStatus === 'error' ? 'Não foi possível atualizar o catálogo.' : 'Nenhum produto encontrado.'}</h3>
@@ -2198,6 +2210,12 @@ function renderStoreFront() {
     });
     html += '</section>';
   });
+
+  const sfShownCountText = document.getElementById('sfShownCountText');
+  if (sfShownCountText) {
+    const totalOffers = filtered.length;
+    sfShownCountText.textContent = `Mostrando ${cardsList.length} modelos organizados • ${totalOffers} variações ativas`;
+  }
 
   container.innerHTML = html;
 }
@@ -2517,6 +2535,8 @@ function updatePricesDayCategoryCounts() {
     const count = valid.filter(p => matchesCatalogCategory(p, category)).length;
     const badge = document.getElementById('countCat' + category);
     if (badge) badge.textContent = count;
+    const sfBadge = document.getElementById('countSfCat' + category);
+    if (sfBadge) sfBadge.textContent = count;
     if (category.endsWith('_CPO')) {
       document.querySelectorAll(`[data-category="${category}"], [data-sf-category="${category}"]`).forEach(button => {
         button.style.display = count || category === 'IPH_CPO' ? '' : 'none';
@@ -4094,6 +4114,7 @@ let exportModalCategory = 'IPH';
 const EXPORT_MODAL_CATEGORIES = [
   { key: 'ALL', label: 'Todos' },
   { key: 'IPH', label: 'iPhone' },
+  { key: 'SEMI', label: 'Seminovos' },
   { key: 'MCB', label: 'Mac' },
   { key: 'IPAD', label: 'iPad' },
   { key: 'RLG', label: 'Apple Watch' },
@@ -4576,6 +4597,11 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
       footerLines.push('');
     } else if (hasNovos && hasSemis) {
       footerLines.push('Produtos novos lacrados com 1 ano de garantia Apple.');
+      footerLines.push('Seminovos revisados com garantia.');
+      footerLines.push('Emitimos nota fiscal.');
+      footerLines.push('');
+    } else if (!hasNovos && hasSemis) {
+      footerLines.push('Aparelhos seminovos revisados com garantia.');
       footerLines.push('Emitimos nota fiscal.');
       footerLines.push('');
     }
@@ -4764,6 +4790,11 @@ window.exportAllStorefrontWhatsApp = async function(btn) {
     footerLines.push('');
   } else if (hasNovos && hasSemis) {
     footerLines.push('Produtos novos lacrados com 1 ano de garantia Apple.');
+    footerLines.push('Seminovos revisados com garantia.');
+    footerLines.push('Emitimos nota fiscal.');
+    footerLines.push('');
+  } else if (!hasNovos && hasSemis) {
+    footerLines.push('Aparelhos seminovos revisados com garantia.');
     footerLines.push('Emitimos nota fiscal.');
     footerLines.push('');
   }
@@ -4933,9 +4964,11 @@ if (sfCategoryNav) {
     sfCurrentCategory = btn.dataset.sfCategory || 'ALL';
     // Se clicar em uma categoria específica e houver busca ativa, limpa a busca para navegar pela categoria
     sfSearchQuery = '';
-    // Ao alternar categorias, reseta o filtro de cor para todas
+    // Ao alternar categorias, reseta o filtro de cor e capacidade para todas
     const colFilter = document.getElementById('sfColorFilter');
     if (colFilter) colFilter.value = 'ALL';
+    const capFilter = document.getElementById('sfCapacityFilter');
+    if (capFilter) capFilter.value = 'ALL';
     lastColorCategory = '';
     renderStoreFront();
   });

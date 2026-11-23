@@ -80,75 +80,311 @@
 
 .catalog-app #storefrontGrid,
 .catalog-app #podMatrixGrid {
-  display: flex !important;
-  flex-direction: column !important;
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
   width: 100% !important;
   max-width: none !important;
   margin: 0 !important;
-  padding: 0 !important;
-  gap: 32px !important;
+  padding: 0 0 48px !important;
+  gap: 16px !important;
+  align-items: start !important;
 }
 .catalog-app .model-family-row {
-  display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  align-items: start;
-  margin: 0 !important;
-  gap: 16px !important;
+  display: contents !important;
 }
 .catalog-app .mock-card,
 .catalog-app .matrix-card {
-  min-width: 0;
-  height: auto;
-  border-radius: 16px !important;
-  border-color: var(--border-color) !important;
-  background: var(--bg-card) !important;
-  box-shadow: 0 2px 5px #0f172a04 !important;
+  min-width: 0 !important;
+  height: auto !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--border-color, #e2e8f0) !important;
+  background: var(--bg-card, #ffffff) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+  overflow: hidden !important;
   transform: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
 }
 .catalog-app .mock-card:hover,
-.catalog-app .matrix-card:hover { border-color: #b5c8c0 !important; box-shadow: 0 6px 18px #0f172a08 !important; transform: none !important; }
+.catalog-app .matrix-card:hover {
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08) !important;
+  transform: none !important;
+}
 .catalog-app .mock-card-header,
-.catalog-app .matrix-card-header { min-height: 98px !important; padding: 16px !important; gap: 14px !important; background: var(--bg-card) !important; border-color: var(--border-color) !important; }
-.catalog-app .mock-card-title-row { min-height: 22px !important; align-items: center !important; gap: 8px; }
+.catalog-app .matrix-card-header {
+  min-height: auto !important;
+  padding: 10px 12px !important;
+  gap: 8px !important;
+  background: var(--bg-card, #ffffff) !important;
+  border-bottom: 1px solid var(--border-color, #f1f5f9) !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+.catalog-app .mock-card-title-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  min-height: 20px !important;
+  gap: 6px !important;
+}
 .catalog-app .mock-card-title,
-.catalog-app .matrix-card-title { margin: 0; font-size: 13px !important; line-height: 1.4 !important; text-transform: none !important; font-weight: 800 !important; letter-spacing: -0.25px !important; color: var(--text-primary) !important; white-space: normal !important; overflow-wrap: anywhere; }
-.catalog-app .mock-card-title { display: block; max-height: none; -webkit-line-clamp: unset; }
-.catalog-app .mock-card-ver-btn { min-height: 30px; padding: 4px 7px !important; flex-shrink: 0; font-size: 10px !important; border-radius: 7px !important; background: var(--bg-subtle) !important; color: var(--text-secondary) !important; }
-.catalog-app .mock-card-badges-row { margin: 0 !important; gap: 6px !important; }
+.catalog-app .matrix-card-title {
+  margin: 0 !important;
+  font-size: 11.5px !important;
+  line-height: 1.3 !important;
+  text-transform: uppercase !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.2px !important;
+  color: var(--text-primary, #0f172a) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+.catalog-app .mock-card-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  flex-shrink: 0 !important;
+}
+.catalog-app .mock-card-ver-btn {
+  min-height: 24px !important;
+  padding: 2px 6px !important;
+  flex-shrink: 0 !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  background: var(--bg-subtle, #f1f5f9) !important;
+  color: var(--text-secondary, #64748b) !important;
+  border: 1px solid var(--border-color, #e2e8f0) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+.catalog-app .mock-card-ver-btn:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+.catalog-app .mock-card-badges-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
 .catalog-app .mock-storage-badge,
-.catalog-app .matrix-card-storage { font-size: 12px !important; background: var(--bg-subtle) !important; border: 1px solid var(--border-color) !important; color: var(--text-primary) !important; border-radius: 6px !important; padding: 5px 8px !important; }
-.catalog-app .mock-ram-badge { font-size: 10px !important; }
-.catalog-app .mock-card-body { padding: 0 !important; }
+.catalog-app .matrix-card-storage {
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  background: var(--bg-subtle, #f8fafc) !important;
+  border: 1px solid var(--border-color, #e2e8f0) !important;
+  color: var(--text-primary, #0f172a) !important;
+  border-radius: 5px !important;
+  padding: 2px 6px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.2px !important;
+}
+.catalog-app .mock-seminovo-badge {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  background: #fef3c7 !important;
+  border: 1px solid #fde68a !important;
+  color: #92400e !important;
+  border-radius: 5px !important;
+  padding: 2px 6px !important;
+  text-transform: uppercase !important;
+}
+.catalog-app .mock-ram-badge {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  background: #e0e7ff !important;
+  border: 1px solid #c7d2fe !important;
+  color: #3730a3 !important;
+  border-radius: 5px !important;
+  padding: 2px 6px !important;
+}
+.catalog-app .mock-card-body {
+  padding: 0 !important;
+}
 .catalog-app .mock-color-row,
-.catalog-app .matrix-color-row { width: 100%; min-height: 67px !important; padding: 12px 16px !important; gap: 10px; background: var(--bg-card); border-radius: 0; text-align: left; border-bottom-color: var(--border-subtle) !important; cursor: pointer; }
-.catalog-app .mock-color-row:hover { background: var(--bg-subtle); }
-.catalog-app .mock-color-left { flex: 1; min-width: 0; gap: 9px; }
-.catalog-app .mock-color-dot { width: 11px !important; height: 11px !important; flex: 0 0 11px; border-color: #0f172a1a; box-shadow: 0 0 0 3px #64748b08; }
+.catalog-app .matrix-color-row {
+  width: 100% !important;
+  min-height: 48px !important;
+  padding: 8px 12px !important;
+  gap: 8px !important;
+  background: var(--bg-card, #ffffff) !important;
+  border-radius: 0 !important;
+  text-align: left !important;
+  border: none !important;
+  border-bottom: 1px solid var(--border-subtle, #f1f5f9) !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  transition: background-color 0.12s ease !important;
+}
+.catalog-app .mock-color-row:last-child,
+.catalog-app .matrix-color-row:last-child {
+  border-bottom: none !important;
+}
+.catalog-app .mock-color-row:hover,
+.catalog-app .matrix-color-row:hover {
+  background: var(--bg-subtle, #f8fafc) !important;
+}
+.catalog-app .mock-color-left {
+  display: flex !important;
+  align-items: center !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  gap: 8px !important;
+}
+.catalog-app .mock-color-dot {
+  width: 10px !important;
+  height: 10px !important;
+  flex: 0 0 10px !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(15, 23, 42, 0.15) !important;
+  box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.08) !important;
+}
 .catalog-app .mock-color-name,
-.catalog-app .matrix-color-name { font-size: 11px !important; text-transform: none !important; letter-spacing: 0 !important; font-weight: 600 !important; color: var(--text-secondary) !important; white-space: normal !important; overflow-wrap: anywhere; }
-.catalog-app .mock-color-right { flex-shrink: 0; gap: 10px; }
-.catalog-app .mock-price-block { display: flex; flex-direction: column; align-items: flex-end; }
-.catalog-app .mock-price-label { font-size: 8px !important; font-weight: 600 !important; letter-spacing: 0.6px !important; }
+.catalog-app .matrix-color-name {
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.2px !important;
+  font-weight: 700 !important;
+  color: var(--text-secondary, #334155) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.catalog-app .mock-color-right {
+  display: flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+  gap: 8px !important;
+}
+.catalog-app .mock-price-block {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+}
+.catalog-app .mock-price-label {
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.5px !important;
+  color: var(--text-muted, #64748b) !important;
+  line-height: 1 !important;
+}
 .catalog-app .mock-price-val,
-.catalog-app .matrix-cost-val { white-space: nowrap; font-size: 16px !important; letter-spacing: -0.6px; line-height: 1.35; }
-.catalog-app .mock-card-sim-btn { width: 32px !important; height: 32px !important; flex: 0 0 32px !important; border-radius: 9px !important; opacity: 1 !important; background: var(--bg-subtle) !important; }
-.catalog-app .mock-card-sim-btn svg { width: 15px !important; height: 15px !important; }
-.catalog-app .mock-color-row:hover .mock-card-sim-btn { background: #d1fae5 !important; border-color: #a7d9c8 !important; }
+.catalog-app .matrix-cost-val {
+  white-space: nowrap !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.4px !important;
+  line-height: 1.25 !important;
+  color: var(--accent-green, #059669) !important;
+}
+.catalog-app .mock-card-sim-btn {
+  width: 26px !important;
+  height: 26px !important;
+  flex: 0 0 26px !important;
+  border-radius: 7px !important;
+  border: 1px solid var(--border-color, #e2e8f0) !important;
+  background: var(--bg-subtle, #f8fafc) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--text-secondary, #64748b) !important;
+  transition: all 0.15s ease !important;
+}
+.catalog-app .mock-card-sim-btn svg { width: 13px !important; height: 13px !important; }
+.catalog-app .mock-color-row:hover .mock-card-sim-btn {
+  background: #d1fae5 !important;
+  border-color: #a7f3d0 !important;
+  color: #047857 !important;
+}
 .catalog-app .mock-color-row:hover .mock-card-sim-btn svg { stroke: #047857 !important; }
 .catalog-app :is(button, a, input):focus-visible { outline: 2px solid var(--accent-green); outline-offset: 3px; }
 .catalog-app .mock-color-row:focus-visible { outline-offset: -3px; background: var(--bg-subtle); }
+
+.catalog-app .sf-header-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 0 4px;
+}
+.catalog-app .sf-shown-count-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+}
+
+.catalog-app #sfCategoryNav .cat-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+  padding: 8px 16px !important;
+  transition: all 0.15s ease !important;
+}
+.catalog-app .sf-cat-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 10px;
+  background: var(--bg-subtle, #f1f5f9);
+  color: var(--text-secondary, #64748b);
+  transition: all 0.15s ease;
+}
+.catalog-app #sfCategoryNav .cat-pill.active .sf-cat-count {
+  background: #10b981 !important;
+  color: #ffffff !important;
+}
+
+@media (max-width: 1550px) {
+  .catalog-app #storefrontGrid,
+  .catalog-app #podMatrixGrid {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 1250px) {
+  .catalog-app #storefrontGrid,
+  .catalog-app #podMatrixGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 950px) {
+  .catalog-app #storefrontGrid,
+  .catalog-app #podMatrixGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 680px) {
+  .catalog-app #storefrontGrid,
+  .catalog-app #podMatrixGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+}
+@media (max-width: 440px) {
+  .catalog-app #storefrontGrid,
+  .catalog-app #podMatrixGrid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
 
 @media (max-width: 1270px) and (min-width: 769px) {
   .catalog-app.session-authenticated .header-left-group { display: contents; }
   .catalog-app.session-authenticated .header-inner { flex-wrap: wrap !important; gap: 12px !important; }
   .catalog-app.session-authenticated #viewSwitchNav { order: 3; width: 100%; justify-content: center; }
   .catalog-app.session-authenticated .header-right-group { margin-left: auto; }
-}
-@media (max-width: 1199px) {
-  .catalog-app .model-family-row { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
-}
-@media (max-width: 959px) {
-  .catalog-app .model-family-row { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
 @media (max-width: 768px) {
   .catalog-app .top-header { padding-block: max(10px, var(--safe-top)) 10px !important; }
@@ -164,15 +400,13 @@
   .catalog-app #viewPricesDay { padding-top: 24px !important; }
   .catalog-app #sfCategoryNav { overflow-x: auto; padding-bottom: 14px !important; }
   .catalog-app #sfCategoryNav .cat-pill { min-height: 40px !important; padding-inline: 15px !important; }
-  .catalog-app .model-family-row { gap: 12px !important; }
 }
 @media (max-width: 620px) {
-  .catalog-app .model-family-row { grid-template-columns: minmax(0, 1fr) !important; }
-  .catalog-app .mock-card-header { min-height: 90px !important; }
-  .catalog-app .mock-color-name { font-size: 13px !important; }
-  .catalog-app .mock-price-val { font-size: 18px !important; }
-  .catalog-app .mock-color-row { min-height: 70px !important; }
-  .catalog-app .mock-card-sim-btn { width: 38px !important; height: 38px !important; flex-basis: 38px !important; }
+  .catalog-app .mock-card-header { min-height: auto !important; }
+  .catalog-app .mock-color-name { font-size: 11px !important; }
+  .catalog-app .mock-price-val { font-size: 15px !important; }
+  .catalog-app .mock-color-row { min-height: 50px !important; }
+  .catalog-app .mock-card-sim-btn { width: 30px !important; height: 30px !important; flex-basis: 30px !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   .catalog-app .mock-card,
