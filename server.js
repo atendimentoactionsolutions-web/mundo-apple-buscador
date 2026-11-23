@@ -209,7 +209,65 @@ function invalidateProductsCache() {
 
 // Filter & Classification for Apple Products (New and Seminovos)
 function isAppleSeminovo(p) {
-  return false; // Seminovos removidos completamente do buscador (apenas novos/lacrados)
+  if (!p) return false;
+  if (isAsIsProduct(p)) return false;
+
+  const cat = (p.category || '').toUpperCase().trim();
+  const name = (p.name || '').toLowerCase();
+  const desc = (p.description || '').toLowerCase();
+
+  // Exclude Android / Non-Apple brands explicitly
+  if (ANDROID_CATEGORIES.has(cat)) return false;
+  if (
+    name.includes('samsung') ||
+    name.includes('xiaomi') ||
+    name.includes('redmi') ||
+    name.includes('poco') ||
+    name.includes('motorola') ||
+    name.includes('realme') ||
+    name.includes('infinix')
+  ) {
+    return false;
+  }
+
+  const isSeminovoText = (
+    cat === 'SEMI' ||
+    name.includes('semi novo') ||
+    name.includes('semi-novo') ||
+    name.includes('seminovo') ||
+    name.includes('usado') ||
+    name.includes('vitrine') ||
+    name.includes('grade a') ||
+    name.includes('grade b') ||
+    name.includes('recondicionado') ||
+    name.includes('swp') ||
+    name.includes('swap') ||
+    desc.includes('semi novo') ||
+    desc.includes('seminovo') ||
+    desc.includes('vitrine') ||
+    desc.includes('usado')
+  );
+
+  if (!isSeminovoText) return false;
+
+  // Filtro de Seminovos: apenas do iPhone 13 para cima (exclui 13 Mini, anteriores ao 13, e 512GB/1TB no 15/16)
+  if (isDisallowedSeminovo(p)) return false;
+
+  // Must be an Apple device
+  const isApple = (
+    APPLE_CATEGORIES.has(cat) ||
+    cat === 'SEMI' ||
+    name.includes('iphone') ||
+    name.includes('macbook') ||
+    name.includes('ipad') ||
+    name.includes('apple watch') ||
+    name.includes('watch') ||
+    name.includes('airpods') ||
+    name.includes('imac') ||
+    name.includes('apple tv')
+  );
+
+  return isApple;
 }
 
 function isAppleNovo(p) {
@@ -290,7 +348,10 @@ function isAppleNovo(p) {
 
 function processAppleProduct(p) {
   if (!p) return null;
-  if (isDisallowedProduct(p)) return null; // Exclui modelos AS IS, CPO, ativados e seminovos
+  if (isDisallowedProduct(p)) return null; // Exclui modelos AS IS, CPO, ativados e seminovos desautorizados
+  if (isAppleSeminovo(p)) {
+    return { ...p, isSeminovo: true, condition: 'SEMINOVO' };
+  }
   if (isAppleNovo(p)) {
     return { ...p, isSeminovo: false, condition: 'NOVO' };
   }
@@ -672,12 +733,12 @@ function getHistoricalCatalog(dateParam) {
       const file = path.join(dataDir, name);
       if (!fs.existsSync(file)) continue;
       const products = JSON.parse(fs.readFileSync(file, 'utf8'));
-      if (Array.isArray(products)) return products.filter(product => !isDisallowedProduct(product) && !PricingCore.isSeminovoProduct(product));
+      if (Array.isArray(products)) return products.filter(product => !isDisallowedProduct(product));
     }
   } catch (error) {
     console.warn('[Snapshot]', error.message);
   }
-  return latest ? Array.from(productsMap.values()).filter(product => !isDisallowedProduct(product) && !PricingCore.isSeminovoProduct(product)) : [];
+  return latest ? Array.from(productsMap.values()).filter(product => !isDisallowedProduct(product)) : [];
 }
 
 // --- ROTAS E GESTÃO DE MARGENS DE LUCRO / LOJA FÍSICA ---
@@ -1056,7 +1117,7 @@ function formatProductForClient(p, isAuthed = false, marginsData = null) {
 // Página de custos: somente custo + DFU, sem margem e restrita ao administrador logado.
 app.get('/api/cost-products', requireAdminApi, (req, res) => {
   const products = Array.from(productsMap.values())
-    .filter(p => !isDisallowedProduct(p) && !PricingCore.isSeminovoProduct(p));
+    .filter(p => !isDisallowedProduct(p));
   const data = products.map(p => ({
     ...formatProductForClient(p, false),
     price: PricingCore.applyDFU(p.price, p.category, p.name),
@@ -1157,7 +1218,7 @@ app.get(['/api/products', '/api/v1/vitrine', '/api/vitrine'], asyncHandler(async
     }
   }
 
-  let products = Array.from(productsMap.values()).filter(p => !isDisallowedProduct(p) && !PricingCore.isSeminovoProduct(p));
+  let products = Array.from(productsMap.values()).filter(p => !isDisallowedProduct(p));
   
   // Fallback de Segurança Nível Máximo: Se o servidor na nuvem acabou de subir e o mapa está zerado, carrega o snapshot em disco!
   if (products.length === 0) {

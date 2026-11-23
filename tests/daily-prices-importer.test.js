@@ -27,17 +27,28 @@ test('daily prices importer strictly blocks Hotwav and Android products', () => 
   assert.equal(res3.reason, 'HOTWAV_ANDROID');
 });
 
-test('daily prices importer strictly blocks Seminovos', () => {
-  const line1 = 'IPHONE 15 PRO SEMI NOVO • 128GB • BLUE • Custo R$ 4.200,00';
-  const line2 = 'IPHONE 13 VITRINE • 128GB • MIDNIGHT • Custo R$ 2.400,00';
+test('daily prices importer blocks disallowed Seminovos and accepts allowed Seminovos', () => {
+  const lineBlocked1 = 'IPHONE 12 SEMI NOVO • 128GB • BLUE • Custo R$ 2.200,00';
+  const lineBlocked2 = 'IPHONE 13 MINI SEMI NOVO • 128GB • MIDNIGHT • Custo R$ 2.400,00';
+  const lineBlocked3 = 'IPHONE 15 PRO SEMI NOVO • 512GB • BLUE • Custo R$ 4.500,00';
+  const lineAllowed = 'IPHONE 13 SEMI NOVO • 128GB • MIDNIGHT • Custo R$ 2.500,00';
 
-  const res1 = parseSupplierLine(line1);
-  const res2 = parseSupplierLine(line2);
+  const res1 = parseSupplierLine(lineBlocked1);
+  const res2 = parseSupplierLine(lineBlocked2);
+  const res3 = parseSupplierLine(lineBlocked3);
+  const resAllowed = parseSupplierLine(lineAllowed);
 
   assert.equal(res1.isBlocked, true);
-  assert.equal(res1.reason, 'SEMINOVO');
+  assert.equal(res1.reason, 'SEMINOVO_DISALLOWED');
   assert.equal(res2.isBlocked, true);
-  assert.equal(res2.reason, 'SEMINOVO');
+  assert.equal(res2.reason, 'SEMINOVO_DISALLOWED');
+  assert.equal(res3.isBlocked, true);
+  assert.equal(res3.reason, 'SEMINOVO_DISALLOWED');
+
+  assert.equal(resAllowed.isBlocked, undefined);
+  assert.equal(resAllowed.isSeminovo, true);
+  assert.equal(resAllowed.condition, 'SEMINOVO');
+  assert.equal(resAllowed.category, 'SEMI');
 });
 
 test('daily prices importer correctly parses valid Apple Novos and creates official products', () => {
@@ -60,6 +71,7 @@ test('daily prices importer processes batch text and reports block stats', () =>
   const text = `
     APPLE TV 4K • 128GB • Sem cor • Custo R$ 1.499,00
     HOTWAV A17 PRO MAX • 128/4 • SILVER • Custo R$ 650,00
+    IPHONE 11 SEMI NOVO • 128GB • MIDNIGHT • Custo R$ 1.800,00
     IPHONE 14 SEMI NOVO • 128GB • MIDNIGHT • Custo R$ 2.800,00
     IPAD 11 WIFI • 128GB • BLUE • Custo R$ 2.740,00
   `;
@@ -67,8 +79,8 @@ test('daily prices importer processes batch text and reports block stats', () =>
   const { success, products, stats } = processDailyPricesText(text, { dateStr: '11-11' });
 
   assert.equal(success, true);
-  assert.equal(products.length, 2);
-  assert.equal(stats.accepted, 2);
+  assert.equal(products.length, 3); // APPLE TV 4K + IPHONE 14 SEMI NOVO + IPAD 11 WIFI
+  assert.equal(stats.accepted, 3);
   assert.equal(stats.blockedHotwav, 1);
-  assert.equal(stats.blockedSeminovos, 1);
+  assert.equal(stats.blockedSeminovos, 1); // IPHONE 11 SEMI NOVO (< 13) bloqueado
 });

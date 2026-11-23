@@ -18,7 +18,7 @@ test('catalog sanitizer normalizes storage and color strings', () => {
   assert.equal(sanitizeColor(' cosmic orange '), 'COSMIC ORANGE');
 });
 
-test('catalog sanitizer blocks CPO and filters ativados, android, and seminovos', () => {
+test('catalog sanitizer blocks CPO and filters ativados, android, and disallowed seminovos', () => {
   const dirtyItems = [
     { id: '1', name: 'IPHONE 17 PRO MAX', category: 'IPH', price: 6920, storage: '256GB', color: 'BLUE', priceDate: '07-11' },
     { id: '2', name: 'SAMSUNG S24 ULTRA', category: 'SAMSUNG', price: 5000, storage: '256GB' }, // Android
@@ -26,7 +26,10 @@ test('catalog sanitizer blocks CPO and filters ativados, android, and seminovos'
     { id: '3', name: 'IPHONE 16 PRO ATIVADO', category: 'IPH', price: 4000, storage: '128GB' }, // Ativado
     { id: '4', name: 'IPHONE 15 CPO', category: 'IPH', price: 3500, storage: '128GB' }, // CPO
     { id: '5', name: 'IPHONE 14 PRO AS IS', category: 'IPH', price: 3000, storage: '128GB' }, // AS IS
-    { id: '6', name: 'IPHONE 13 SEMI NOVO', category: 'SEMI', price: 2500, storage: '128GB' }, // Seminovo
+    { id: '6', name: 'IPHONE 12 SEMI NOVO', category: 'SEMI', price: 2100, storage: '128GB' }, // Seminovo desautorizado (< iPhone 13)
+    { id: '6b', name: 'IPHONE 13 MINI SEMI NOVO', category: 'SEMI', price: 2300, storage: '128GB' }, // Seminovo desautorizado (13 Mini)
+    { id: '6c', name: 'IPHONE 15 PRO SEMI NOVO', category: 'SEMI', price: 4500, storage: '512GB' }, // Seminovo desautorizado (512GB)
+    { id: '6d', name: 'IPHONE 13 SEMI NOVO', category: 'SEMI', price: 2500, storage: '128GB', color: 'MIDNIGHT', priceDate: '07-11' }, // Seminovo PERMITIDO
     { id: '7', name: 'IPHONE 17 PRO MAX', category: 'IPH', price: 0, storage: '256GB' }, // Preço Zero
     { id: '8', name: 'IPHONE 17 PRO MAX', category: 'IPH', price: 6920, storage: '256GB', color: 'BLUE', priceDate: '06-11' }, // Stale ontem
     { id: '1', name: 'IPHONE 17 PRO MAX', category: 'IPH', price: 6920, storage: '256GB', color: 'BLUE', priceDate: '07-11' } // Duplicata de 1
@@ -34,16 +37,19 @@ test('catalog sanitizer blocks CPO and filters ativados, android, and seminovos'
 
   const { cleanProducts, auditReport } = sanitizeCatalog(dirtyItems, { strictTodayOnly: true, todayDateStr: '07-11' });
 
-  assert.equal(cleanProducts.length, 1);
+  assert.equal(cleanProducts.length, 2);
   assert.equal(cleanProducts[0].id, '1');
   assert.equal(cleanProducts[0].name, 'IPHONE 17 PRO MAX');
   assert.equal(cleanProducts[0].price, 6920);
+  assert.equal(cleanProducts[1].id, '6d');
+  assert.equal(cleanProducts[1].isSeminovo, true);
+  assert.equal(cleanProducts[1].condition, 'SEMINOVO');
 
   assert.equal(auditReport.anomalies.androidBlocked, 2);
   assert.equal(auditReport.anomalies.ativadoBlocked, 1);
   assert.equal(auditReport.anomalies.cpoBlocked, 1);
   assert.equal(auditReport.anomalies.asIsBlocked, 1);
-  assert.equal(auditReport.anomalies.seminovoBlocked, 1);
+  assert.equal(auditReport.anomalies.seminovoBlocked, 3);
   assert.equal(auditReport.anomalies.invalidPrice, 1);
   assert.equal(auditReport.anomalies.staleDateBlocked, 1);
   assert.equal(auditReport.anomalies.duplicateFixed, 1);
