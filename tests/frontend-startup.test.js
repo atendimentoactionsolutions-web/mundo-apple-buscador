@@ -391,7 +391,7 @@ test('CPO products are strictly filtered from catalog categories and never shown
   }
 });
 
-test('export modal pulls the active selected category (not always iPhone), supports switching categories, and respects Preço do Dia vs Preço de Custo', async () => {
+test('export modal pulls active selected category, supports switching categories, and strictly shields cost prices from WhatsApp exports', async () => {
   const products = [
     { id: 'iph-1', name: 'IPHONE 17 PRO', category: 'IPH', storage: '256GB', color: 'BLACK', price: 7000, condition: 'NOVO' },
     { id: 'mac-1', name: 'MACBOOK AIR M5 13"', category: 'MCB', storage: '512GB', ram: '16GB', color: 'SILVER', price: 8500, condition: 'NOVO' },
@@ -439,15 +439,15 @@ test('export modal pulls the active selected category (not always iPhone), suppo
   assert.match(app.elements.get('pdfSelectionListBody').innerHTML, /MACBOOK AIR M5/);
   assert.doesNotMatch(app.elements.get('pdfSelectionListBody').innerHTML, /IPHONE 17 PRO/);
 
-  // 4. Switch to Preço de Custo tab and export Apple Watch -> exports cost price without retail margin or customer footer
+  // 4. Switch to Preço de Custo tab and export Apple Watch -> export modal strictly protects cost and exports retail price with customer footer
   app.context.switchToCostPrices();
   app.read("podCurrentCategory = 'RLG';");
   app.context.openStorefrontExportModal();
   assert.equal(app.read('exportModalCategory'), 'RLG');
-  assert.match(app.elements.get('exportModalTitle').textContent, /Preço de Custo.*Apple Watch/);
+  assert.match(app.elements.get('exportModalTitle').textContent, /Exportar Apple Watch para o WhatsApp/);
   await app.context.copySelectedStorefrontWhatsApp();
   assert.match(copiedText, /APPLE WATCH S12/i);
   assert.doesNotMatch(copiedText, /IPHONE 17 PRO/i);
-  assert.doesNotMatch(copiedText, /Emitimos nota fiscal/);
+  assert.match(copiedText, /Emitimos nota fiscal/);
   assert.doesNotMatch(copiedText, /margem|dfu/i);
 });

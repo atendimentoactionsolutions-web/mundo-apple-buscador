@@ -1678,8 +1678,8 @@
 
       <label class="modal-form-label" style="margin-bottom: 6px; display: block;">Tabela de Valores:</label>
       <div class="export-mode-pills" id="exportPriceModePills">
-        <button type="button" class="export-mode-btn active" data-export-mode="cost" onclick="selectExportPriceMode('cost', this)">Preço de Custo</button>
-        <button type="button" class="export-mode-btn" data-export-mode="real" onclick="selectExportPriceMode('real', this)">Preço Real</button>
+        <button type="button" class="export-mode-btn active" data-export-mode="real" onclick="selectExportPriceMode('real', this)">Preço Real (Venda)</button>
+        <button type="button" class="export-mode-btn" data-export-mode="cost" onclick="selectExportPriceMode('cost', this)">Preço de Custo</button>
         <button type="button" class="export-mode-btn" data-export-mode="both" onclick="selectExportPriceMode('both', this)">Custo + Real</button>
       </div>
 
@@ -1777,7 +1777,7 @@
     };
     let adminProductsCache = [];
     let adminExportActiveCategory = 'ALL';
-    let adminExportPriceMode = 'cost';
+    let adminExportPriceMode = 'real';
     let adminExportDate = '';
     let splitRawProducts = [];
     let splitCostById = new Map();
@@ -2661,7 +2661,8 @@
         if (searchInput) searchInput.value = document.getElementById('splitCatalogSearch')?.value || '';
       } else {
         adminExportActiveCategory = splitCategory || 'ALL';
-        if (!EXPORT_MODE_CONFIG[adminExportPriceMode]) adminExportPriceMode = 'cost';
+        // Padrão de segurança: Preço Real (venda) para evitar vazamento de custos
+        adminExportPriceMode = 'real';
       }
       syncExportModalFilterPills();
       updateAdminExportSummary();
@@ -2672,7 +2673,7 @@
     }
 
     function selectExportPriceMode(mode, btn) {
-      adminExportPriceMode = EXPORT_MODE_CONFIG[mode] ? mode : 'cost';
+      adminExportPriceMode = EXPORT_MODE_CONFIG[mode] ? mode : 'real';
       if (typeof document.querySelectorAll === 'function') {
         document.querySelectorAll('#exportPriceModePills .export-mode-btn').forEach(p => {
           p.classList.toggle('active', p.dataset?.exportMode === adminExportPriceMode);
@@ -2706,7 +2707,18 @@
       const descEl = document.getElementById('exportPreviewDesc');
       if (subEl) subEl.textContent = `Data: ${adminExportDate || 'Atual'} • ${splitRawProducts.length} itens no catálogo`;
       if (countEl) countEl.textContent = `${rows.length} ofertas filtradas (${cfg.label})`;
-      if (descEl) descEl.textContent = rows.length ? `Pronto para copiar ou baixar CSV de ${cfg.label}.` : 'Nenhum produto encontrado para este filtro.';
+      if (descEl) {
+        if (!rows.length) {
+          descEl.textContent = 'Nenhum produto encontrado para este filtro.';
+          descEl.style.color = 'var(--text-secondary)';
+        } else if (adminExportPriceMode === 'cost') {
+          descEl.innerHTML = '<span style="color: #ef4444; font-weight: 700;">⚠️ CUIDADO: Exportando valores de CUSTO INTERNO. Não compartilhe com clientes!</span>';
+        } else if (adminExportPriceMode === 'both') {
+          descEl.innerHTML = '<span style="color: #3b82f6; font-weight: 600;">ℹ️ Comparativo Custo + Real (Apenas para uso interno da loja).</span>';
+        } else {
+          descEl.innerHTML = '<span style="color: #10b981; font-weight: 600;">✓ Preço Real de Venda (com margem de lucro aplicada, seguro para envio a clientes).</span>';
+        }
+      }
     }
 
     async function executeAdminWhatsAppExport(btn) {

@@ -4135,7 +4135,9 @@ function getExportCategoryLabel(catKey) {
 }
 
 function isCostExportActive() {
-  return (currentView === 'prices_of_the_day' && currentPriceMode === 'cost') || IS_COST_PAGE;
+  // A exportação para o WhatsApp é EXCLUSIVA para clientes e equipe de vendas.
+  // NUNCA deve exportar preços de custo para evitar vazamento perigoso de margens e custos da loja.
+  return false;
 }
 
 function renderExportModalCategoryPills() {
@@ -4202,7 +4204,6 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false, categ
   const scopeLabel = document.getElementById('exportModalScopeLabel');
   if (!modal || !body) return;
 
-  const isCostMode = isCostExportActive();
   const catLabel = getExportCategoryLabel(exportModalCategory);
 
   if (scopeLabel) {
@@ -4210,26 +4211,14 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false, categ
   }
 
   if (titleEl) {
-    if (isCostMode) {
-      titleEl.textContent = exportModalIsAllScope
-        ? 'Exportar Preço de Custo (Catálogo Completo)'
-        : `Exportar Preço de Custo • ${catLabel}`;
-    } else {
-      titleEl.textContent = exportModalIsAllScope
-        ? 'Exportar Catálogo Completo para o WhatsApp'
-        : `Exportar ${catLabel} para o WhatsApp`;
-    }
+    titleEl.textContent = exportModalIsAllScope
+      ? 'Exportar Catálogo Completo para o WhatsApp'
+      : `Exportar ${catLabel} para o WhatsApp`;
   }
   if (subEl) {
-    if (isCostMode) {
-      subEl.textContent = exportModalIsAllScope
-        ? 'Exibindo todos os produtos com valores de custo'
-        : `Marque os modelos de ${catLabel} com preço de custo para copiar`;
-    } else {
-      subEl.textContent = exportModalIsAllScope
-        ? 'Exibindo todos os produtos e categorias disponíveis na loja'
-        : `Marque os modelos de ${catLabel} que deseja incluir no texto para enviar aos clientes`;
-    }
+    subEl.textContent = exportModalIsAllScope
+      ? 'Exibindo todos os produtos e categorias disponíveis na loja'
+      : `Marque os modelos de ${catLabel} que deseja incluir no texto para enviar aos clientes`;
   }
 
   renderExportModalCategoryPills();
@@ -4506,7 +4495,6 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
     return;
   }
 
-  const isCostMode = isCostExportActive();
   let hasNovos = false;
   let hasSemis = false;
 
@@ -4535,9 +4523,8 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
         const offers = colObj.offers || [];
         const rawRefCost = calculateSupplierReferencePrice(offers, isSemi);
         if (!rawRefCost || rawRefCost <= 0) return null;
-        const finalPrice = isCostMode
-          ? applyDFU(rawRefCost, fam.category, grp.rawModel)
-          : calculateRetailOfferPrice(rawRefCost, fam.category, grp.rawModel, isSemi);
+        // SEMPRE preço de venda com margem de lucro para envio a clientes (NUNCA preço de custo)
+        const finalPrice = calculateRetailOfferPrice(rawRefCost, fam.category, grp.rawModel, isSemi);
 
         return {
           color: colObj.color,
@@ -4588,27 +4575,24 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
     }
   });
 
-  let footer = '';
-  if (!isCostMode) {
-    const footerLines = [''];
-    if (hasNovos && !hasSemis) {
-      footerLines.push('Produto novo lacrado com 1 ano de garantia Apple.');
-      footerLines.push('Emitimos nota fiscal.');
-      footerLines.push('');
-    } else if (hasNovos && hasSemis) {
-      footerLines.push('Produtos novos lacrados com 1 ano de garantia Apple.');
-      footerLines.push('Seminovos revisados com garantia.');
-      footerLines.push('Emitimos nota fiscal.');
-      footerLines.push('');
-    } else if (!hasNovos && hasSemis) {
-      footerLines.push('Aparelhos seminovos revisados com garantia.');
-      footerLines.push('Emitimos nota fiscal.');
-      footerLines.push('');
-    }
-    footerLines.push('Valores válidos para pagamento à vista.');
-    footerLines.push('Consulte opções de parcelamento no cartão.');
-    footer = footerLines.join('\n');
+  const footerLines = [''];
+  if (hasNovos && !hasSemis) {
+    footerLines.push('Produto novo lacrado com 1 ano de garantia Apple.');
+    footerLines.push('Emitimos nota fiscal.');
+    footerLines.push('');
+  } else if (hasNovos && hasSemis) {
+    footerLines.push('Produtos novos lacrados com 1 ano de garantia Apple.');
+    footerLines.push('Seminovos revisados com garantia.');
+    footerLines.push('Emitimos nota fiscal.');
+    footerLines.push('');
+  } else if (!hasNovos && hasSemis) {
+    footerLines.push('Aparelhos seminovos revisados com garantia.');
+    footerLines.push('Emitimos nota fiscal.');
+    footerLines.push('');
   }
+  footerLines.push('Valores válidos para pagamento à vista.');
+  footerLines.push('Consulte opções de parcelamento no cartão.');
+  const footer = footerLines.join('\n');
 
   const fullText = (outputSections.join('\n\n\n') + (footer ? '\n\n' + footer : '')).trim();
 
@@ -4741,15 +4725,13 @@ window.exportAllStorefrontWhatsApp = async function(btn) {
           hasNovos = true;
         }
 
-        const isCostMode = isCostExportActive();
         const colorsArr = Array.from(grp.colors.values()).map(colObj => {
           const isSemi = grp.isSeminovo;
           const offers = colObj.offers || [];
           const rawRefCost = calculateSupplierReferencePrice(offers, isSemi);
           if (!rawRefCost || rawRefCost <= 0) return null;
-          const finalPrice = isCostMode
-            ? applyDFU(rawRefCost, fam.category, grp.rawModel)
-            : calculateRetailOfferPrice(rawRefCost, fam.category, grp.rawModel, isSemi);
+          // SEMPRE preço de venda com margem de lucro para envio a clientes (NUNCA preço de custo)
+          const finalPrice = calculateRetailOfferPrice(rawRefCost, fam.category, grp.rawModel, isSemi);
 
           return {
             color: colObj.color,
