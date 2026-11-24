@@ -18,14 +18,14 @@ test('catalog sanitizer normalizes storage and color strings', () => {
   assert.equal(sanitizeColor(' cosmic orange '), 'COSMIC ORANGE');
 });
 
-test('catalog sanitizer blocks CPO and filters ativados and android while allowing seminovos', () => {
+test('catalog sanitizer blocks only CPO and Android while allowing ativados, AS IS and seminovos', () => {
   const dirtyItems = [
     { id: '1', name: 'IPHONE 17 PRO MAX', category: 'IPH', price: 6920, storage: '256GB', color: 'BLUE', priceDate: '07-11' },
-    { id: '2', name: 'SAMSUNG S24 ULTRA', category: 'SAMSUNG', price: 5000, storage: '256GB' }, // Android
-    { id: '2b', name: 'HOTWAV A17 PRO MAX', category: 'HOTWAV', price: 650, storage: '128/4' }, // Hotwav Android
-    { id: '3', name: 'IPHONE 16 PRO ATIVADO', category: 'IPH', price: 4000, storage: '128GB' }, // Ativado
-    { id: '4', name: 'IPHONE 15 CPO', category: 'IPH', price: 3500, storage: '128GB' }, // CPO
-    { id: '5', name: 'IPHONE 14 PRO AS IS', category: 'IPH', price: 3000, storage: '128GB' }, // AS IS
+    { id: '2', name: 'SAMSUNG S24 ULTRA', category: 'SAMSUNG', price: 5000, storage: '256GB' }, // Android (bloqueado)
+    { id: '2b', name: 'HOTWAV A17 PRO MAX', category: 'HOTWAV', price: 650, storage: '128/4' }, // Hotwav Android (bloqueado)
+    { id: '3', name: 'IPHONE 16 PRO ATIVADO', category: 'IPH', price: 4000, storage: '128GB', priceDate: '07-11' }, // Ativado (permitido)
+    { id: '4', name: 'IPHONE 15 CPO', category: 'IPH', price: 3500, storage: '128GB' }, // CPO (bloqueado)
+    { id: '5', name: 'IPHONE 14 PRO AS IS', category: 'IPH', price: 3000, storage: '128GB', priceDate: '07-11' }, // AS IS (permitido em Seminovos)
     { id: '6', name: 'IPHONE 12 SEMI NOVO', category: 'SEMI', price: 2100, storage: '128GB' }, // Seminovo permitido
     { id: '6b', name: 'IPHONE 13 MINI SEMI NOVO', category: 'SEMI', price: 2300, storage: '128GB' }, // Seminovo permitido
     { id: '6c', name: 'IPHONE 15 PRO SEMI NOVO', category: 'SEMI', price: 4500, storage: '512GB' }, // Seminovo permitido
@@ -37,18 +37,29 @@ test('catalog sanitizer blocks CPO and filters ativados and android while allowi
 
   const { cleanProducts, auditReport } = sanitizeCatalog(dirtyItems, { strictTodayOnly: true, todayDateStr: '07-11' });
 
-  assert.equal(cleanProducts.length, 5);
+  assert.equal(cleanProducts.length, 7);
   assert.equal(cleanProducts[0].id, '1');
   assert.equal(cleanProducts[0].name, 'IPHONE 17 PRO MAX');
   assert.equal(cleanProducts[0].price, 6920);
-  assert.equal(cleanProducts[4].id, '6d');
-  assert.equal(cleanProducts[4].isSeminovo, true);
-  assert.equal(cleanProducts[4].condition, 'SEMINOVO');
+
+  const ativadoItem = cleanProducts.find(p => p.id === '3');
+  assert.ok(ativadoItem);
+  assert.equal(ativadoItem.name, 'IPHONE 16 PRO ATIVADO');
+
+  const asIsItem = cleanProducts.find(p => p.id === '5');
+  assert.ok(asIsItem);
+  assert.equal(asIsItem.isSeminovo, true);
+  assert.equal(asIsItem.condition, 'SEMINOVO');
+
+  const semiItem = cleanProducts.find(p => p.id === '6d');
+  assert.ok(semiItem);
+  assert.equal(semiItem.isSeminovo, true);
+  assert.equal(semiItem.condition, 'SEMINOVO');
 
   assert.equal(auditReport.anomalies.androidBlocked, 2);
-  assert.equal(auditReport.anomalies.ativadoBlocked, 1);
+  assert.equal(auditReport.anomalies.ativadoBlocked, 0);
   assert.equal(auditReport.anomalies.cpoBlocked, 1);
-  assert.equal(auditReport.anomalies.asIsBlocked, 1);
+  assert.equal(auditReport.anomalies.asIsBlocked, 0);
   assert.equal(auditReport.anomalies.seminovoBlocked, 0);
   assert.equal(auditReport.anomalies.invalidPrice, 1);
   assert.equal(auditReport.anomalies.staleDateBlocked, 1);

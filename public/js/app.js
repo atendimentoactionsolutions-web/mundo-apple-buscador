@@ -196,16 +196,21 @@ function isDisallowedProduct(p) {
     return window.PricingCore.isDisallowedProduct(p);
   }
   if (!p) return true;
-  if (isAtivadoProduct(p)) return true;
-
-  if (isAsIsProduct(p)) return true;
+  if (isCpoProduct(p)) return true;
   const cat = (p.category || '').toUpperCase().trim();
   const name = (p.name || '').toUpperCase();
   const desc = (p.description || '').toUpperCase();
-  const isSemi = p.isSeminovo === true || p.condition === 'SEMINOVO' || cat === 'SEMI' ||
-                 name.includes('SEMI NOVO') || name.includes('SEMI-NOVO') || name.includes('SEMINOVO') ||
-                 name.includes('USADO') || name.includes('VITRINE') || desc.includes('SEMI');
-  if (isSemi && isDisallowedSeminovo(p)) return true;
+  if (
+    ['MI', 'NOTE', 'PAD', 'POCO', 'RDM', 'REAL', 'HOTWAV', 'ANDROID', 'SAMSUNG', 'MOTOROLA', 'XIAOMI', 'REDMI', 'REALME', 'INFINIX'].includes(cat) ||
+    name.includes('HOTWAV') || desc.includes('HOTWAV') ||
+    name.includes('ANDROID') || desc.includes('ANDROID') ||
+    name.includes('SAMSUNG') || name.includes('XIAOMI') ||
+    name.includes('REDMI') || name.includes('POCO') ||
+    name.includes('MOTOROLA') || name.includes('REALME') ||
+    name.includes('INFINIX')
+  ) {
+    return true;
+  }
   return false;
 }
 
@@ -1559,8 +1564,8 @@ function isDisallowedSeminovo(nameOrProduct, storage) {
 // Helper to detect if a product is an Apple Seminovo
 function isSeminovoProduct(p) {
   if (!p) return false;
-  if (isAsIsProduct(p)) return false;
   if (isDisallowedSeminovo(p)) return false;
+  if (isAsIsProduct(p)) return true;
   if (p.isSeminovo === true || p.condition === 'SEMINOVO') return true;
   const cat = (p.category || '').toUpperCase().trim();
   const name = (p.name || '').toLowerCase();

@@ -142,8 +142,8 @@
 
   function isSeminovoProduct(p) {
     if (!p) return false;
-    if (isAsIsProduct(p)) return false;
     if (isDisallowedSeminovo(p)) return false;
+    if (isAsIsProduct(p)) return true;
     if (p.isSeminovo === true || p.condition === 'SEMINOVO') return true;
     const cat = (p.category || '').toUpperCase().trim();
     const name = (p.name || '').toLowerCase();
@@ -173,23 +173,28 @@
     return false;
   }
 
+  const ANDROID_CATS = new Set(['MI', 'NOTE', 'PAD', 'POCO', 'RDM', 'REAL', 'HOTWAV', 'ANDROID', 'SAMSUNG', 'MOTOROLA', 'XIAOMI', 'REDMI', 'REALME', 'INFINIX']);
+
   function isDisallowedProduct(p) {
     if (!p) return true;
-    if (isAtivadoProduct(p)) return true;
+    // Apenas CPO e Android/marcas concorrentes são bloqueados; todo o restante (incluindo AS IS, Ativados e Seminovos) é permitido.
     if (isCpoProduct(p)) return true;
     if (isDisallowedSupplierRegion(p)) return true;
 
-    if (isAsIsProduct(p)) return true;
     const cat = (p.category || '').toUpperCase().trim();
     const name = (p.name || '').toUpperCase();
     const desc = (p.description || '').toUpperCase();
-    if (name.includes('HOTWAV') || desc.includes('HOTWAV') || cat === 'HOTWAV' || cat === 'ANDROID') {
+    if (
+      ANDROID_CATS.has(cat) ||
+      name.includes('HOTWAV') || desc.includes('HOTWAV') ||
+      name.includes('ANDROID') || desc.includes('ANDROID') ||
+      name.includes('SAMSUNG') || name.includes('XIAOMI') ||
+      name.includes('REDMI') || name.includes('POCO') ||
+      name.includes('MOTOROLA') || name.includes('REALME') ||
+      name.includes('INFINIX')
+    ) {
       return true;
     }
-    const isSemi = p.isSeminovo === true || p.condition === 'SEMINOVO' || cat === 'SEMI' ||
-                   name.includes('SEMI NOVO') || name.includes('SEMI-NOVO') || name.includes('SEMINOVO') ||
-                   name.includes('USADO') || name.includes('VITRINE') || desc.includes('SEMI');
-    if (isSemi && isDisallowedSeminovo(p)) return true;
     return false;
   }
 

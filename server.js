@@ -210,7 +210,6 @@ function invalidateProductsCache() {
 // Filter & Classification for Apple Products (New and Seminovos)
 function isAppleSeminovo(p) {
   if (!p) return false;
-  if (isAsIsProduct(p)) return false;
 
   const cat = (p.category || '').toUpperCase().trim();
   const name = (p.name || '').toLowerCase();
@@ -219,6 +218,8 @@ function isAppleSeminovo(p) {
   // Exclude Android / Non-Apple brands explicitly
   if (ANDROID_CATEGORIES.has(cat)) return false;
   if (
+    name.includes('android') ||
+    name.includes('hotwav') ||
     name.includes('samsung') ||
     name.includes('xiaomi') ||
     name.includes('redmi') ||
@@ -232,6 +233,7 @@ function isAppleSeminovo(p) {
 
   const isSeminovoText = (
     cat === 'SEMI' ||
+    isAsIsProduct(p) ||
     name.includes('semi novo') ||
     name.includes('semi-novo') ||
     name.includes('seminovo') ||
