@@ -11,6 +11,7 @@ const PricingCore = require('./public/js/pricing-core.js');
 const QuoteCore = require('./public/js/quote-core.js');
 const { sanitizeCatalog } = require('./lib/catalog-sanitizer.js');
 const { processDailyPricesText } = require('./lib/daily-prices-importer.js');
+const { createBuscaBuscaSync } = require('./lib/buscabusca-sync.js');
 
 const localEnvFile = path.join(__dirname, '.env');
 if (fs.existsSync(localEnvFile) && typeof process.loadEnvFile === 'function') process.loadEnvFile(localEnvFile);
@@ -1078,6 +1079,8 @@ function formatProductForClient(p, isAuthed = false, marginsData = null) {
       id: p.id,
       name: p.name,
       description: p.description,
+      family: p.family, groupKey: p.groupKey, colorHex: p.colorHex,
+    priceSource: p.priceSource,
       price: p.price,
       category: p.category,
       storage: p.storage,
@@ -1097,12 +1100,16 @@ function formatProductForClient(p, isAuthed = false, marginsData = null) {
 
   // Visitante não autenticado: TOTALMENTE BLINDADO!
   // Preço de venda final da loja com DFU e Margem de Lucro incorporados no servidor via PricingCore
-  const retailPrice = PricingCore.calculateRetailPrice(p.price, p.category, p.name, isSemi, marginsData || loadMargins());
+  const retailPrice = p.priceSource === 'buscabusca'
+    ? p.price + getServerProductMargin(p.name, p.category, isSemi, marginsData)
+    : PricingCore.calculateRetailPrice(p.price, p.category, p.name, isSemi, marginsData || loadMargins());
 
   return {
     id: p.id,
     name: p.name,
     description: p.description,
+    family: p.family, groupKey: p.groupKey, colorHex: p.colorHex,
+    priceSource: p.priceSource,
     price: retailPrice,
     category: p.category,
     storage: p.storage,
@@ -1122,7 +1129,7 @@ app.get('/api/cost-products', requireAdminApi, (req, res) => {
     .filter(p => !isDisallowedProduct(p));
   const data = products.map(p => ({
     ...formatProductForClient(p, false),
-    price: PricingCore.applyDFU(p.price, p.category, p.name),
+    price: p.priceSource === 'buscabusca' ? p.price : PricingCore.applyDFU(p.price, p.category, p.name),
     supplier: null
   }));
   res.json({ success: true, total: data.length, dollarRate, dollarVariation,
@@ -1272,8 +1279,35 @@ app.get('/api/stats', (req, res) => {
 });
 
 // Estado básico do catálogo manual, sem certificações de auditoria.
+const buscaBuscaSync = createBuscaBuscaSync({
+  getCurrentProducts: () => Array.from(productsMap.values()),
+  getCurrentCount: () => productsMap.size,
+  onProductsSynced: async (products, { isoDate, dateStr }) => {
+    productsMap.clear();
+    for (const item of products) {
+      productsMap.set(String(item.id), item);
+    }
+    latestDate = dateStr || latestDate;
+    totalSuppliers = new Set(products.map(item => item.supplier?.name).filter(Boolean)).size;
+    invalidateProductsCache();
+    await performCatalogSnapshotAsync(isoDate);
+    localIo.emit('catalog_reloaded', {
+      total: productsMap.size,
+      dollarRate,
+      dollarVariation,
+      latestDate
+    });
+    console.log(`[BuscaBusca Sync] ✅ ${productsMap.size} produtos Apple sincronizados ao vivo (${totalSuppliers} fornecedores · ${latestDate}).`);
+  }
+});
+
+app.post('/api/admin/sync-buscabusca', requireAdminApi, asyncHandler(async (req, res) => {
+  const result = await buscaBuscaSync.syncOnce();
+  res.json({ success: result.ok !== false, result, sync: buscaBuscaSync.getStatus(), totalProducts: productsMap.size });
+}));
+
 app.get(['/api/health', '/api/v1/health'], (req, res) => {
-  res.json({ status: 'OK', mode: 'manual', totalProducts: productsMap.size, latestDate });
+  const syncStatus = buscaBuscaSync.getStatus(); res.json({ status: 'OK', mode: syncStatus.active ? 'live-sync' : 'manual', totalProducts: productsMap.size, totalSuppliers, latestDate, sync: syncStatus });
 });
 
 // Local client socket connection com Anti-Pirataria e segregação de salas
@@ -1357,6 +1391,9 @@ async function start() {
     if (process.env.DISABLE_LIVE_DOLLAR !== 'true') {
       fetchLiveDollar();
       setInterval(fetchLiveDollar, 60 * 1000);
+      if (process.env.DISABLE_BUSCABUSCA_SYNC !== 'true') {
+        buscaBuscaSync.start();
+      }
     }
   });
 }

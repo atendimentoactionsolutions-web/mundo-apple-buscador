@@ -5849,8 +5849,6 @@ body:not(.light-theme) .mock-card-sim-btn {
   }
 
   #viewSwitchNav,
-  #btnOpenCalculator,
-  #btnExportTopHeader,
   .user-session-info {
     display: none !important;
   }

@@ -1,5 +1,6 @@
 function matchesCatalogCategory(p, selected) {
   if (selected === 'ALL') return true;
+  if (p.groupKey) return p.category === selected;
   if (selected === 'SEMI') return isSeminovoProduct(p);
   const cpo = isCpoProduct(p) || p.condition === 'CPO';
   const wantsCpo = selected.endsWith('_CPO');
@@ -326,6 +327,7 @@ async function restoreCachedCatalog() {
         window.IS_CATALOG_SHIELDED = !!cached.isShielded;
       }
       allProducts = list;
+      if (window.PricingCore) window.PricingCore.DFU_CONFIG.feedBase = allProducts[0]?.priceSource === "buscabusca";
       catalogStatus = 'ready';
       if (totalCountEl) totalCountEl.textContent = allProducts.length;
       updateDynamicFilters();
@@ -359,6 +361,7 @@ async function loadProducts(dateParam) {
     if (json.success && Array.isArray(json.data)) {
       window.IS_CATALOG_SHIELDED = !!json.isShielded;
       allProducts = json.data.filter(p => !isDisallowedProduct(p));
+      if (window.PricingCore) window.PricingCore.DFU_CONFIG.feedBase = allProducts[0]?.priceSource === "buscabusca";
       catalogStatus = 'ready';
       lastColorCategory = '';
       if (!json.isHistorical) saveCachedCatalog({ isShielded: window.IS_CATALOG_SHIELDED, products: allProducts }, cacheKey);
@@ -763,6 +766,13 @@ function buildSupplierWhatsAppMessage(model, storage, color, price, ram = '') {
 // Apple Official Colors Hex Palette Helper
 // Apple Official Colors Hex Palette Helper (Mapeamento Oficial de Cores Apple)
 function getAppleColorHex(colorName) {
+  if (getAppleColorHex.catalog !== allProducts) {
+    getAppleColorHex.catalog = allProducts;
+    getAppleColorHex.swatches = new Map(allProducts.filter(p => p.color && p.colorHex)
+      .map(p => [p.color.toUpperCase(), p.colorHex]));
+  }
+  const sourceHex = getAppleColorHex.swatches.get(String(colorName || '').toUpperCase());
+  if (sourceHex) return sourceHex;
   if (!colorName) return '#8e8e93';
   const c = colorName.trim().toUpperCase();
 
@@ -1493,7 +1503,7 @@ function cleanModelName(name) {
     .replace(/\s+/g, ' ')
     .trim();
   if (!cleaned) return 'Apple';
-  return cleaned;
+  return window.PricingCore?.canonicalModelName?.(cleaned) || cleaned;
 }
 
 // Categorização de Seções para Exportação WhatsApp e Listas
@@ -2033,15 +2043,16 @@ function renderStoreFront() {
 
   filtered.forEach(p => {
     const isSemi = isSeminovoProduct(p);
-    const baseModelName = cleanModelName(p.name);
-    const displayName = isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
+    const baseModelName = p.groupKey ? p.name : cleanModelName(p.name);
+    const displayName = !p.groupKey && isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
     const ram = getMacBookRam(p);
     const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
-    const cardUniqueKey = `${baseModelName.toUpperCase()}__${isSemi ? 'SEMI' : 'NEW'}__${storageKey}__${ram || ''}`;
+    const cardUniqueKey = p.groupKey || `${baseModelName.toUpperCase()}__${isSemi ? 'SEMI' : 'NEW'}__${storageKey}__${ram || ''}`;
 
     if (!cardsMap.has(cardUniqueKey)) {
       cardsMap.set(cardUniqueKey, {
         uniqueKey: cardUniqueKey,
+        family: p.family, description: p.groupKey ? p.description : null,
         displayName: displayName,
         rawModelName: baseModelName,
         category: p.category,
@@ -2132,7 +2143,7 @@ function renderStoreFront() {
   window.storefrontCardMap = new Map();
   const cardsByModel = new Map();
   cardsList.forEach(card => {
-    const familyKey = `${(card.rawModelName || card.displayName).toUpperCase()}__${card.category || ''}__${card.isSeminovo ? 'SEMI' : 'NEW'}`;
+    const familyKey = card.family || `${(card.rawModelName || card.displayName).toUpperCase()}__${card.category || ''}__${card.isSeminovo ? 'SEMI' : 'NEW'}`;
     if (!cardsByModel.has(familyKey)) cardsByModel.set(familyKey, []);
     cardsByModel.get(familyKey).push(card);
   });
@@ -2163,7 +2174,7 @@ function renderStoreFront() {
         <button type="button" class="mock-color-row" data-model="${escapeHtml(encodeURIComponent(card.displayName))}" data-storage="${escapeHtml(encodeURIComponent(card.storage))}" data-color="${escapeHtml(encodeURIComponent(col.color))}" data-price="${col.retailPrice}" data-ram="${escapeHtml(encodeURIComponent(card.ram || ''))}" onclick="openCardSimulator(this.dataset.model, this.dataset.storage, this.dataset.color, Number(this.dataset.price), this.dataset.ram)" aria-label="${escapeHtml(`Simular ${card.displayName} ${card.storage}, cor ${col.color}, ${formatBRL(col.retailPrice)} à vista`)}">
           <span class="mock-color-left">
             <span class="mock-color-dot" style="background-color: ${hex};" aria-hidden="true"></span>
-            <span class="mock-color-name" title="${escapeHtml(col.color)}">${escapeHtml(formatColorName(col.color))}</span>
+            <span class="mock-color-name" title="${escapeHtml(col.color)}">${escapeHtml(card.family ? col.color : formatColorName(col.color))}</span>
           </span>
           <span class="mock-color-right">
             <span class="mock-price-block">
@@ -2187,7 +2198,7 @@ function renderStoreFront() {
       <article class="mock-card">
         <div class="mock-card-header">
           <div class="mock-card-title-row">
-            <h3 class="mock-card-title" title="${escapeHtml(card.displayName)}">${escapeHtml(formatDisplayModelName(card.displayName))}</h3>
+            <h3 class="mock-card-title" title="${escapeHtml(card.displayName)}">${escapeHtml(card.family ? card.displayName.toUpperCase() : formatDisplayModelName(card.displayName))}</h3>
             <div class="mock-card-actions">
             <button class="mock-card-ver-btn" onclick="openClientShowcaseModal('${cardKey}')" title="Ver detalhes do modelo">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2202,7 +2213,7 @@ function renderStoreFront() {
             </div>
           </div>
           <div class="mock-card-badges-row">
-            ${card.storage ? `<span class="mock-storage-badge">${formatStorageBadge(card.storage)}</span>` : ''}
+            ${card.storage ? `<span class="mock-storage-badge">${card.family ? escapeHtml(card.storage) : formatStorageBadge(card.storage)}</span>` : ''}
             ${card.isSeminovo ? `<span class="mock-seminovo-badge">Seminovo</span>` : ''}
             ${card.ram ? `<span class="mock-ram-badge">${card.ram} RAM</span>` : ''}
           </div>
@@ -2914,12 +2925,12 @@ function renderPricesOfTheDay() {
     if (p.supplier?.name) suppliersSet.add(p.supplier.name);
 
     const isSemi = isSeminovoProduct(p);
-    const baseModelName = cleanModelName(p.name);
+    const baseModelName = p.groupKey ? p.name : cleanModelName(p.name);
     const modelKey = isSemi ? `${baseModelName.toUpperCase()} [SEMINOVO]` : baseModelName.toUpperCase();
-    const displayName = isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
+    const displayName = !p.groupKey && isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
     const ram = getMacBookRam(p);
     const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
-    const variantKey = ram ? `${storageKey}__${ram}` : storageKey;
+    const variantKey = p.groupKey || (ram ? `${storageKey}__${ram}` : storageKey);
 
     if (!modelFamilies.has(modelKey)) {
       modelFamilies.set(modelKey, {
@@ -4311,7 +4322,7 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false, categ
     const secInfo = getProductSectionInfo(p);
     const baseModelName = cleanModelName(p.name).replace(/\s+/g, ' ').trim();
     const modelKey = isSemi ? `${baseModelName.toUpperCase()} [SEMINOVO]` : baseModelName.toUpperCase();
-    const displayName = isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
+    const displayName = !p.groupKey && isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
     const ram = getMacBookRam(p);
     const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
     const variantKey = `${modelKey}__${storageKey}__${ram || ''}`;
@@ -5065,8 +5076,8 @@ async function checkAuthSession() {
 
       const brandLogoLink = document.getElementById('brandLogoLink');
       if (brandLogoLink) {
-        brandLogoLink.href = '/login.html';
-        brandLogoLink.title = 'Acesso administrativo';
+        brandLogoLink.href = '/';
+        brandLogoLink.title = 'Início';
       }
 
       if (IS_COST_PAGE && typeof window.location?.replace === 'function') {
@@ -5145,8 +5156,8 @@ async function checkAuthSession() {
 
     const brandLogoLink = document.getElementById('brandLogoLink');
     if (brandLogoLink) {
-      brandLogoLink.href = isAdminUser ? '/admin.html' : '/';
-      brandLogoLink.title = isAdminUser ? 'Painel Administrativo' : 'Início';
+      brandLogoLink.href = '/';
+      brandLogoLink.title = 'Início';
     }
 
     // Atualiza drawer mobile e controles administrativos da barra
@@ -5279,12 +5290,7 @@ function ensureMobileDrawerMounted() {
           </svg>
           <span>Loja Física (Preço de Venda)</span>
         </button>
-        <a class="mobile-drawer-item" id="mobileDrawerAdminBtn" href="/admin.html" onclick="closeMobileMenu();" style="display: none;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
-          </svg>
-          <span id="mobileDrawerAdminLabel">Painel Administrativo</span>
-        </a>
+
         <button class="mobile-drawer-item" id="mobileDrawerExportBtn" onclick="closeMobileMenu(); openStorefrontExportModal();" style="display: none; color: var(--accent-green);">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
@@ -5447,7 +5453,7 @@ function syncMobileDrawerActions() {
   });
   const pricesDayBtn = document.getElementById('mobileDrawerPricesDayBtn');
   if (pricesDayBtn) pricesDayBtn.style.display = (currentUser && !isClientMode) ? 'flex' : 'none';
-  ['mobileDrawerAdminBtn', 'mobileDrawerCostBtn', 'mobileDrawerCalcBtn'].forEach(id => {
+  ['mobileDrawerCostBtn', 'mobileDrawerCalcBtn'].forEach(id => {
     const button = document.getElementById(id);
     if (button) button.style.display = showAdminActions ? 'flex' : 'none';
   });
@@ -5647,11 +5653,13 @@ function syncHeaderAdminControls() {
   const adminHeaderBtn = document.getElementById('adminHeaderBtn');
   if (adminHeaderBtn) adminHeaderBtn.style.display = 'none';
 
-  ['headerDollarBadge', 'btnOpenCalculator', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp'].forEach(id => {
+  ['headerDollarBadge', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = showAdminControls ? 'inline-flex' : 'none';
   });
 
+  const calculatorButton = document.getElementById('btnOpenCalculator');
+  if (calculatorButton) calculatorButton.style.display = isClientMode ? 'none' : 'inline-flex';
   const btnExportTopHeader = document.getElementById('btnExportTopHeader');
   if (btnExportTopHeader) {
     btnExportTopHeader.style.display = isClientMode ? 'none' : 'inline-flex';

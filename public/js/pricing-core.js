@@ -25,7 +25,7 @@
   }
 
   function applyDFU(cost, category, rawModel, options = {}) {
-    if (!DFU_CONFIG.active || options.disableDfu === true) return Number(cost) || 0;
+    if (DFU_CONFIG.feedBase || !DFU_CONFIG.active || options.disableDfu === true) return Number(cost) || 0;
     const numCost = Number(cost) || 0;
     if (numCost <= 0) return 0;
     const cat = (category || '').toUpperCase().trim();
@@ -90,6 +90,23 @@
     );
   }
 
+  function canonicalModelName(cleaned) {
+  if (/^IPAD\b/i.test(cleaned)) {
+    const tokens = cleaned.toUpperCase().replace(/WI[ -]?FI/g, 'WIFI')
+      .replace(/(\d+)[- ]INCH\b/g, '$1').replace(/\s*\+\s*/g, ' ').split(/\s+/);
+    const cellular = tokens.some(token => /^(CELL?ULAR|5G)$/.test(token));
+    const model = tokens.filter(token => !/^(WIFI|CELL?ULAR|5G)$/.test(token)
+      && !(cellular && token === '2025')).join(' ');
+    const suffix = cellular ? ' Wi-Fi + Cellular' : '';
+    if (/^IPAD (?:11(?:TH)?(?: A16)?(?: 11)?|A16)$/.test(model)) return 'IPAD 11 A16' + suffix;
+    if (/^IPAD MINI (?:7|A17 PRO)$/.test(model)) return 'IPAD MINI A17 PRO' + suffix;
+    const family = model.match(/^IPAD (AIR|PRO) (?:7TH )?(?:(11|13) (M[345])|(M[345]) (11|13))$/);
+    if (family) return 'IPAD ' + family[1] + ' ' + (family[2] || family[5])
+      + ' ' + (family[3] || family[4]) + suffix;
+  }
+  return cleaned.replace(/^(APPLE WATCH SE)\s*([23])\b/i, '$1 $2');
+  }
+
   function cleanModelName(name) {
     if (!name) return 'Apple';
     let cleaned = name.replace(/\b(SEMI-NOVO|SEMI NOVO|SEMINOVO|USADO|VITRINE|GRADE A\+?|GRADE B|SWAP|SWP|RECONDICIONADO)\b/gi, '')
@@ -135,14 +152,13 @@
     return false;
   }
 
-  function isDisallowedSeminovo(nameOrProduct, storage) {
-    // Seminovos são todos permitidos no catálogo
-    return false;
+  function isDisallowedSeminovo(value) {
+    const product = typeof value === 'string' ? { name: value } : value;
+    return isSeminovoProduct(product) && !/^(?:APPLE\s+)?IPHONE\s+(?:\d|SE\b|AIR\b|DUO\b|X[RS]?\b)/i.test(product.name || '');
   }
 
   function isSeminovoProduct(p) {
     if (!p) return false;
-    if (isDisallowedSeminovo(p)) return false;
     if (isAsIsProduct(p)) return true;
     if (p.isSeminovo === true || p.condition === 'SEMINOVO') return true;
     const cat = (p.category || '').toUpperCase().trim();
@@ -178,7 +194,7 @@
   function isDisallowedProduct(p) {
     if (!p) return true;
     // Apenas CPO e Android/marcas concorrentes são bloqueados; todo o restante (incluindo AS IS, Ativados e Seminovos) é permitido.
-    if (isCpoProduct(p)) return true;
+    if (isCpoProduct(p) || isDisallowedSeminovo(p)) return true;
     if (isDisallowedSupplierRegion(p)) return true;
 
     const cat = (p.category || '').toUpperCase().trim();
@@ -343,6 +359,7 @@
     setDfuActive,
     applyDFU,
     isAsIsProduct,
+    canonicalModelName,
     cleanModelName,
     isDisallowedSeminovo,
     isSeminovoProduct,

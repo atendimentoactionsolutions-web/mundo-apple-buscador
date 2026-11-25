@@ -36,7 +36,6 @@
 .catalog-app #btnClientMode[aria-pressed="true"] { border-color: #a7d9c8; background: #ecfdf5; color: #047857; }
 .catalog-app:not(.session-authenticated) #viewSwitchNav,
 .catalog-app:not(.admin-authenticated) #priceCostLink,
-.catalog-app:not(.admin-authenticated) #btnOpenCalculator,
 .catalog-app:not(.admin-authenticated) #adminHeaderBtn,
 .catalog-app:not(.admin-authenticated) #mobileDrawerCalcBtn,
 .catalog-app:not(.admin-authenticated) #mobileDrawerCostBtn,

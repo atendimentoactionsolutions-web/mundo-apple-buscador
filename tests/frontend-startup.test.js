@@ -176,15 +176,15 @@ test('admin receives DFU changes in both catalogs and open simulator without acc
 });
 
 
-test('logged-out visitors can export retail catalog, while admin-only controls (calculator, USD, cost) remain strictly protected', async () => {
+test('logged-out visitors can export retail catalog, while admin-only controls (USD, cost) remain strictly protected', async () => {
   const indexHtml = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
   const layoutCss = fs.readFileSync(path.join(__dirname, '../public/css/catalog-layout.css'), 'utf8');
-  for (const id of ['priceCostLink', 'headerDollarBadge', 'btnOpenCalculator', 'userSessionInfo']) {
+  for (const id of ['priceCostLink', 'headerDollarBadge', 'userSessionInfo']) {
     assert.match(indexHtml, new RegExp(`id="${id}"[^>]*style="[^"]*display:\\s*none`), `${id} starts hidden in HTML`);
   }
   assert.match(indexHtml, /id="btnExportTopHeader"[^>]*style="[^"]*display:\s*inline-flex/);
   assert.doesNotMatch(indexHtml, /id="adminHeaderBtn"/, 'adminHeaderBtn removed from header');
-  assert.match(layoutCss, /\.catalog-app:not\(\.admin-authenticated\) #btnOpenCalculator/);
+  assert.match(indexHtml, /id="btnOpenCalculator"[^>]*display: inline-flex/);
   assert.match(layoutCss, /\.catalog-app\.admin-authenticated:not\(\.client-mode-active\) \.header-dollar-badge/);
 
   const app = await setup(null, [{ id: 'public-phone', name: 'IPHONE 17 PRO', category: 'IPH', price: 6850 }]);
@@ -193,23 +193,24 @@ test('logged-out visitors can export retail catalog, while admin-only controls (
   assert.equal(app.context.IS_CATALOG_SHIELDED, true);
   assert.equal(app.read('applyDFU(6850, "IPH", "IPHONE 17 PRO")'), 6850);
   assert.equal(app.context.document.body.classList.contains('admin-authenticated'), false);
+  assert.equal(app.elements.get('btnOpenCalculator').style.display, 'inline-flex');
   assert.equal(app.elements.get('btnExportTopHeader').style.display, 'inline-flex', 'btnExportTopHeader visible for visitor');
-  for (const id of ['priceCostLink', 'headerDollarBadge', 'btnOpenCalculator', 'adminHeaderBtn', 'userSessionInfo', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp']) {
+  for (const id of ['priceCostLink', 'headerDollarBadge', 'adminHeaderBtn', 'userSessionInfo', 'btnExportSfWhatsapp', 'btnExportAllSfWhatsapp']) {
     assert.equal(app.elements.get(id).style.display, 'none', `${id} hidden for visitor`);
   }
   app.context.syncMobileDrawerActions();
   assert.equal(app.elements.get('mobileDrawerExportBtn').style.display, 'flex', 'mobileDrawerExportBtn visible for visitor');
   assert.equal(app.elements.get('mobileDrawerExportAllBtn').style.display, 'flex', 'mobileDrawerExportAllBtn visible for visitor');
-  for (const id of ['mobileDrawerCalcBtn', 'mobileDrawerCostBtn', 'mobileDrawerAdminBtn']) {
+  for (const id of ['mobileDrawerCalcBtn', 'mobileDrawerCostBtn']) {
     assert.equal(app.elements.get(id).style.display, 'none', `${id} hidden in mobile drawer for visitor`);
   }
-  assert.equal(app.elements.get('brandLogoLink').href, '/login.html');
+  assert.equal(app.elements.get('brandLogoLink').href, '/');
   assert.doesNotMatch(app.elements.get('storefrontGrid').innerHTML, /mock-card-cost-btn|openCardCostModal/);
 
   const storeUserApp = await setup({ id: 'lojista-1', username: 'loja', role: 'lojista' }, [{ id: 'public-phone', name: 'IPHONE 17 PRO', category: 'IPH', price: 6850 }]);
   assert.equal(storeUserApp.context.document.body.classList.contains('admin-authenticated'), false);
   assert.equal(storeUserApp.elements.get('btnExportTopHeader').style.display, 'inline-flex', 'btnExportTopHeader visible for non-admin user');
-  for (const id of ['priceCostLink', 'headerDollarBadge', 'btnOpenCalculator', 'adminHeaderBtn']) {
+  for (const id of ['priceCostLink', 'headerDollarBadge', 'adminHeaderBtn']) {
     assert.equal(storeUserApp.elements.get(id).style.display, 'none', `${id} hidden for non-admin user`);
   }
 
@@ -220,7 +221,7 @@ test('logged-out visitors can export retail catalog, while admin-only controls (
   }
   assert.equal(adminApp.elements.get('adminHeaderBtn').style.display, 'none', 'adminHeaderBtn stays hidden even for admin');
   adminApp.context.syncMobileDrawerActions();
-  for (const id of ['mobileDrawerCalcBtn', 'mobileDrawerExportBtn', 'mobileDrawerExportAllBtn', 'mobileDrawerCostBtn', 'mobileDrawerAdminBtn']) {
+  for (const id of ['mobileDrawerCalcBtn', 'mobileDrawerExportBtn', 'mobileDrawerExportAllBtn', 'mobileDrawerCostBtn']) {
     assert.equal(adminApp.elements.get(id).style.display, 'flex', `${id} shown in mobile drawer for admin`);
   }
   adminApp.context.toggleClientMode();
@@ -245,7 +246,7 @@ test('cost page requires admin login and loads a separate price list without ext
   assert.equal(app.elements.get('priceCostLink').href, '/');
   assert.equal(app.elements.get('priceCostLink').textContent, 'Preço real');
   assert.equal(app.elements.get('priceCostLink').style.display, 'inline-flex');
-  assert.equal(app.elements.get('brandLogoLink').href, '/admin.html');
+  assert.equal(app.elements.get('brandLogoLink').href, '/');
 });
 
 test('segmented tabs place Preço de Custo on the left and toggle cleanly between cost and day prices', async () => {
@@ -290,7 +291,7 @@ test('admin cards open their own costs by ID while hiding costs for visitors and
   assert.doesNotMatch(visitor.elements.get('storefrontGrid').innerHTML, /mock-card-cost-btn|openCardCostModal/);
 
   const app = await setup({ id: 'admin-felipe', username: 'felipe', role: 'admin' }, products);
-  assert.equal(app.elements.get('brandLogoLink').href, '/admin.html');
+  assert.equal(app.elements.get('brandLogoLink').href, '/');
   assert.equal(app.elements.get('priceCostLink').style.display, 'inline-flex');
   app.read("sfCurrentCategory = 'MCB'; renderStoreFront();");
   assert.match(app.elements.get('storefrontGrid').innerHTML, /mock-card-actions[\s\S]*?<span>Ver<\/span>[\s\S]*?openCardCostModal/);
