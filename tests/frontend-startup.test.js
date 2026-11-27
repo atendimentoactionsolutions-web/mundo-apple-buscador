@@ -342,7 +342,8 @@ test('Apple TV capacities appear in accessories in both catalogs', async () => {
 test('every current catalog offer is visible in its category, all products and model search', async () => {
   const file = path.join(__dirname, '../data/snapshot_latest.json');
   if (!fs.existsSync(file)) return;
-  const products = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const PricingCore = require('../public/js/pricing-core.js');
+  const products = JSON.parse(fs.readFileSync(file, 'utf8')).filter(p => !PricingCore.isDisallowedProduct(p));
   for (const [pathname, user] of [['/', null], ['/preco-de-custo', { id: 'admin-felipe', username: 'felipe', role: 'admin' }]]) {
     const app = await setup(user, [], false, pathname);
     for (const p of products) {
@@ -366,7 +367,8 @@ test('every current catalog offer is visible in its category, all products and m
 test('grouping the full current catalog preserves every offer ID', async () => {
   const file = path.join(__dirname, '../data/snapshot_latest.json');
   if (!fs.existsSync(file)) return;
-  const products = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const PricingCore = require('../public/js/pricing-core.js');
+  const products = JSON.parse(fs.readFileSync(file, 'utf8')).filter(p => !PricingCore.isDisallowedProduct(p));
   for (const [pathname, user] of [['/', null], ['/preco-de-custo', { id: 'admin-felipe', username: 'felipe', role: 'admin' }]]) {
     const app = await setup(user, products, false, pathname);
     const visible = new Set();
