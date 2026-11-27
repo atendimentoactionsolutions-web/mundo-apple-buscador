@@ -193,7 +193,8 @@
 
   function isDisallowedProduct(p) {
     if (!p) return true;
-    // Apenas CPO e Android/marcas concorrentes são bloqueados; todo o restante (incluindo AS IS, Ativados e Seminovos) é permitido.
+    // Bloqueia Ativados, CPO, Android/marcas concorrentes e seminovos desautorizados.
+    if (isAtivadoProduct(p)) return true;
     if (isCpoProduct(p) || isDisallowedSeminovo(p)) return true;
     if (isDisallowedSupplierRegion(p)) return true;
 
@@ -351,7 +352,7 @@
     if (cost <= 0) return 0;
     const dfuCost = applyDFU(cost, category, rawModel);
     const margin = getProductMargin(rawModel, category, isSemi, marginsData);
-    return dfuCost + margin;
+    return Math.round((dfuCost + margin) * 100) / 100;
   }
 
   return {

@@ -1100,9 +1100,10 @@ function formatProductForClient(p, isAuthed = false, marginsData = null) {
 
   // Visitante não autenticado: TOTALMENTE BLINDADO!
   // Preço de venda final da loja com DFU e Margem de Lucro incorporados no servidor via PricingCore
-  const retailPrice = p.priceSource === 'buscabusca'
-    ? p.price + getServerProductMargin(p.name, p.category, isSemi, marginsData)
+  const rawRetailPrice = p.priceSource === 'buscabusca'
+    ? Number(p.price) + getServerProductMargin(p.name, p.category, isSemi, marginsData)
     : PricingCore.calculateRetailPrice(p.price, p.category, p.name, isSemi, marginsData || loadMargins());
+  const retailPrice = Math.round((Number(rawRetailPrice) || 0) * 100) / 100;
 
   return {
     id: p.id,

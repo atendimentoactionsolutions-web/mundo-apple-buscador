@@ -57,9 +57,10 @@ window.DFU_WATCH_VALUE = 100;
 window.DFU_IPAD_VALUE = 50;
 window.DFU_VALUE = 100;
 window.IS_CATALOG_SHIELDED = false;
+window.IS_COST_CATALOG = false;
 
 function applyDFU(cost, category, rawModel) {
-  if (window.IS_CATALOG_SHIELDED) return Number(cost) || 0;
+  if (window.IS_CATALOG_SHIELDED || window.IS_COST_CATALOG) return Number(cost) || 0;
 
   const activeUser = ((currentUser && currentUser.username) || localStorage.getItem('logged_username') || '').toLowerCase();
   if (activeUser === 'cledson') {
@@ -197,7 +198,8 @@ function isDisallowedProduct(p) {
     return window.PricingCore.isDisallowedProduct(p);
   }
   if (!p) return true;
-  if (isCpoProduct(p)) return true;
+  if (isAtivadoProduct(p)) return true;
+  if (isCpoProduct(p) || isDisallowedSeminovo(p)) return true;
   const cat = (p.category || '').toUpperCase().trim();
   const name = (p.name || '').toUpperCase();
   const desc = (p.description || '').toUpperCase();
@@ -326,7 +328,8 @@ async function restoreCachedCatalog() {
       if (cached.isShielded !== undefined) {
         window.IS_CATALOG_SHIELDED = !!cached.isShielded;
       }
-      allProducts = list;
+      window.IS_COST_CATALOG = Boolean(cached.isCostCatalog);
+      allProducts = list.filter(p => !isDisallowedProduct(p));
       if (window.PricingCore) window.PricingCore.DFU_CONFIG.feedBase = allProducts[0]?.priceSource === "buscabusca";
       catalogStatus = 'ready';
       if (totalCountEl) totalCountEl.textContent = allProducts.length;
@@ -360,11 +363,12 @@ async function loadProducts(dateParam) {
     if (requestId !== catalogRequestId) return;
     if (json.success && Array.isArray(json.data)) {
       window.IS_CATALOG_SHIELDED = !!json.isShielded;
+      window.IS_COST_CATALOG = Boolean(json.pricingMode === 'cost' || useCostApi);
       allProducts = json.data.filter(p => !isDisallowedProduct(p));
       if (window.PricingCore) window.PricingCore.DFU_CONFIG.feedBase = allProducts[0]?.priceSource === "buscabusca";
       catalogStatus = 'ready';
       lastColorCategory = '';
-      if (!json.isHistorical) saveCachedCatalog({ isShielded: window.IS_CATALOG_SHIELDED, products: allProducts }, cacheKey);
+      if (!json.isHistorical) saveCachedCatalog({ isShielded: window.IS_CATALOG_SHIELDED, isCostCatalog: window.IS_COST_CATALOG, products: allProducts }, cacheKey);
       if (totalCountEl) totalCountEl.textContent = allProducts.length;
       if (json.dollarRate) updateHeaderDollarDisplay(json.dollarRate, json.dollarVariation);
 
@@ -1506,12 +1510,44 @@ function cleanModelName(name) {
   return window.PricingCore?.canonicalModelName?.(cleaned) || cleaned;
 }
 
+function getVariantConditionTag(p) {
+  if (!p) return '';
+  const cond = String(p.condition || '').trim();
+  const desc = String(p.description || '').trim();
+  if (/deslacrad/i.test(cond) || /deslacrad/i.test(desc)) return 'Deslacrado';
+  if (isSeminovoProduct(p)) return 'Seminovo';
+  return '';
+}
+
+function getExportModelTitle(model, conditionTag, hasGroupKey) {
+  const clean = String(model || '').trim();
+  if (!conditionTag) return clean;
+  if (new RegExp(`\\b${conditionTag}\\b`, 'i').test(clean)) return clean;
+  if (!hasGroupKey && conditionTag === 'Seminovo') return `${clean} (Seminovo)`;
+  return `${clean} (${conditionTag})`;
+}
+
 // Categorização de Seções para Exportação WhatsApp e Listas
 function getProductSectionInfo(p) {
-  const isSemi = isSeminovoProduct(p);
+  const condTag = getVariantConditionTag(p);
+  const isDeslacrado = condTag === 'Deslacrado';
+  const isSemi = !isDeslacrado && isSeminovoProduct(p);
   const isCpo = isCpoProduct(p) || p.condition === 'CPO';
   const cat = (p.category || '').toUpperCase().trim();
   const name = (p.name || '').toUpperCase();
+
+  if (isDeslacrado) {
+    if (cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD')) {
+      return { key: 'IPADS_DESLACRADOS', title: 'IPADS DESLACRADOS', order: 23 };
+    }
+    if (cat === 'MCB' || cat === 'IMAC' || name.includes('MAC') || name.includes('IMAC')) {
+      return { key: 'MACS_DESLACRADOS', title: 'MACBOOKS DESLACRADOS', order: 43 };
+    }
+    if (cat === 'RLG' || name.includes('WATCH') || name.includes('SERIES') || name.includes('ULTRA')) {
+      return { key: 'WATCHES_DESLACRADOS', title: 'APPLE WATCHES DESLACRADOS', order: 53 };
+    }
+    return { key: 'IPHONES_DESLACRADOS', title: 'IPHONES DESLACRADOS', order: 18 };
+  }
 
   if (isSemi) {
     if (cat === 'IPAD' || cat === 'IPD' || name.includes('IPAD')) {
@@ -1704,7 +1740,7 @@ socket.on('card_rates_updated', async () => {
 });
 
 function getProductMargin(rawModel, category, isSemi = false) {
-  if (window.IS_CATALOG_SHIELDED) return 0; // Margem e DFU já embutidos no preço pelo backend
+  if (window.IS_CATALOG_SHIELDED && !window.IS_COST_CATALOG) return 0; // Margem e DFU já embutidos no preço pelo backend
   if (window.PricingCore && typeof window.PricingCore.getProductMargin === 'function') {
     return window.PricingCore.getProductMargin(rawModel, category, isSemi, margins);
   }
@@ -1783,12 +1819,12 @@ function getProductMargin(rawModel, category, isSemi = false) {
 function calculateRetailOfferPrice(rawCost, category, rawModel, isSemi = false) {
   const refCost = applyDFU(rawCost, category, rawModel);
   const marginVal = getProductMargin(rawModel, category, isSemi);
-  return refCost + marginVal;
+  return Math.round(((Number(refCost) || 0) + (Number(marginVal) || 0)) * 100) / 100;
 }
 
 function getProductRetailPrice(p) {
   if (!p || !p.price) return 0;
-  if (IS_COST_PAGE || window.IS_CATALOG_SHIELDED) return Number(p.price) || 0;
+  if (IS_COST_PAGE || window.IS_COST_CATALOG || window.IS_CATALOG_SHIELDED) return Number(p.price) || 0;
   const isSemi = isSeminovoProduct(p);
   if (window.PricingCore && typeof window.PricingCore.calculateRetailPrice === 'function') {
     return window.PricingCore.calculateRetailPrice(p.price, p.category, p.name, isSemi, margins);
@@ -2043,11 +2079,12 @@ function renderStoreFront() {
 
   filtered.forEach(p => {
     const isSemi = isSeminovoProduct(p);
+    const condTag = getVariantConditionTag(p);
     const baseModelName = p.groupKey ? p.name : cleanModelName(p.name);
     const displayName = !p.groupKey && isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
     const ram = getMacBookRam(p);
     const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
-    const cardUniqueKey = p.groupKey || `${baseModelName.toUpperCase()}__${isSemi ? 'SEMI' : 'NEW'}__${storageKey}__${ram || ''}`;
+    const cardUniqueKey = p.groupKey || `${baseModelName.toUpperCase()}__${condTag || 'NEW'}__${storageKey}__${ram || ''}`;
 
     if (!cardsMap.has(cardUniqueKey)) {
       cardsMap.set(cardUniqueKey, {
@@ -2059,6 +2096,7 @@ function renderStoreFront() {
         storage: (p.storage || '').trim(),
         ram: ram,
         isSeminovo: isSemi,
+        conditionTag: condTag,
         colorsMap: new Map()
       });
     }
@@ -2163,6 +2201,7 @@ function renderStoreFront() {
       storage: card.storage,
       ram: card.ram,
       isSeminovo: card.isSeminovo,
+      conditionTag: card.conditionTag || (card.isSeminovo ? 'Seminovo' : ''),
       productIds: Array.from(card.colorsMap.values()).flatMap(c => c.offers.map(p => String(p.id))),
       colors: card.colorsArr.map(c => ({ color: c.color, price: c.retailPrice }))
     });
@@ -2214,7 +2253,7 @@ function renderStoreFront() {
           </div>
           <div class="mock-card-badges-row">
             ${card.storage ? `<span class="mock-storage-badge">${card.family ? escapeHtml(card.storage) : formatStorageBadge(card.storage)}</span>` : ''}
-            ${card.isSeminovo ? `<span class="mock-seminovo-badge">Seminovo</span>` : ''}
+            ${card.conditionTag ? `<span class="mock-seminovo-badge"${card.conditionTag === 'Deslacrado' ? ' style="background: rgba(59, 130, 246, 0.14); color: #2563eb; border-color: rgba(59, 130, 246, 0.3);"' : ''}>${escapeHtml(card.conditionTag)}</span>` : (card.isSeminovo ? `<span class="mock-seminovo-badge">Seminovo</span>` : '')}
             ${card.ram ? `<span class="mock-ram-badge">${card.ram} RAM</span>` : ''}
           </div>
         </div>
@@ -2296,7 +2335,7 @@ window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSemino
   const bodyEl = document.getElementById('clientShowcaseBody');
   if (!modal || !bodyEl) return;
 
-  let model = '', storage = '', ram = '', isSemi = false, colors = [];
+  let model = '', storage = '', ram = '', isSemi = false, conditionTag = '', colors = [];
 
   if (typeof firstArg === 'string' && window.storefrontCardMap && window.storefrontCardMap.has(firstArg)) {
     const data = window.storefrontCardMap.get(firstArg);
@@ -2304,12 +2343,14 @@ window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSemino
     storage = data.storage;
     ram = data.ram;
     isSemi = Boolean(data.isSeminovo);
+    conditionTag = data.conditionTag || (isSemi ? 'Seminovo' : '');
     colors = data.colors || [];
   } else {
     model = decodeURIComponent(firstArg || '');
     storage = decodeURIComponent(encStorage || '');
     ram = decodeURIComponent(encRam || '');
     isSemi = Boolean(isSeminovo);
+    conditionTag = isSemi ? 'Seminovo' : '';
     try {
       colors = JSON.parse(decodeURIComponent(encColorsJson || '[]'));
     } catch (e) {
@@ -2320,7 +2361,10 @@ window.openClientShowcaseModal = function(firstArg, encStorage, encRam, isSemino
   const titleFormatted = formatModelTitleForCopy(model, storage, ram);
   if (titleEl) titleEl.textContent = titleFormatted;
   if (subEl) {
-    subEl.textContent = priceMode === 'cost' ? 'Preço de custo • DFU ativo • Sem margem de venda' : `${isSemi ? 'Seminovo Selecionado' : 'Produto Novo Lacrado'} • Preços válidos à vista e simulação no cartão`;
+    const condLabel = conditionTag === 'Deslacrado'
+      ? 'Aparelho Deslacrado'
+      : (isSemi ? 'Seminovo Selecionado' : 'Produto Novo Lacrado');
+    subEl.textContent = priceMode === 'cost' ? 'Preço de custo • DFU ativo • Sem margem de venda' : `${condLabel} • Preços válidos à vista e simulação no cartão`;
   }
 
   // Gera lista espaçosa de cores
@@ -2405,15 +2449,15 @@ async function robustCopyToClipboard(text) {
 
 // Helper para copiar tabela de preços formatada para WhatsApp de um modelo específico
 window.copyModelPrices = async function(firstArg, secondArg, encStorage, encRam, encColorsJson, isCusto = false) {
-  let btn, model = '', storage = '', ram = '', colors = [], custoFlag = false;
+  let btn, cardData = null, model = '', storage = '', ram = '', colors = [], custoFlag = false;
 
   if (typeof firstArg === 'string' && (window.storefrontCardMap?.has(firstArg) || window.matrixCardMap?.has(firstArg))) {
-    const data = window.storefrontCardMap?.get(firstArg) || window.matrixCardMap?.get(firstArg);
-    model = data.model;
-    storage = data.storage;
-    ram = data.ram;
-    colors = data.colors || [];
-    custoFlag = Boolean(data.isCusto);
+    cardData = window.storefrontCardMap?.get(firstArg) || window.matrixCardMap?.get(firstArg);
+    model = cardData.model;
+    storage = cardData.storage;
+    ram = cardData.ram;
+    colors = cardData.colors || [];
+    custoFlag = Boolean(cardData.isCusto);
     btn = secondArg;
   } else {
     btn = firstArg;
@@ -2429,7 +2473,11 @@ window.copyModelPrices = async function(firstArg, secondArg, encStorage, encRam,
   }
 
   try {
-    const titleLine = formatModelTitleForCopy(model, storage, ram);
+    const condTag = cardData?.conditionTag || '';
+    const displayTitleModel = condTag && !new RegExp(`\\b${condTag}\\b`, 'i').test(model)
+      ? `${model} (${condTag})`
+      : model;
+    const titleLine = formatModelTitleForCopy(displayTitleModel, storage, ram);
 
     let lines = [titleLine, ''];
     colors.forEach(c => {
@@ -2439,7 +2487,7 @@ window.copyModelPrices = async function(firstArg, secondArg, encStorage, encRam,
 
     if (!custoFlag) {
       lines.push('');
-      const isSemi = Boolean(data?.isSeminovo) || model.toUpperCase().includes('SEMINOVO') || model.toUpperCase().includes('SEMI NOVO');
+      const isSemi = Boolean(cardData?.isSeminovo) || model.toUpperCase().includes('SEMINOVO') || model.toUpperCase().includes('SEMI NOVO') || condTag === 'Deslacrado';
       if (!isSemi) {
         lines.push('Produto novo lacrado com 1 ano de garantia Apple.');
         lines.push('Emitimos nota fiscal.');
@@ -2925,8 +2973,9 @@ function renderPricesOfTheDay() {
     if (p.supplier?.name) suppliersSet.add(p.supplier.name);
 
     const isSemi = isSeminovoProduct(p);
+    const condTag = getVariantConditionTag(p);
     const baseModelName = p.groupKey ? p.name : cleanModelName(p.name);
-    const modelKey = isSemi ? `${baseModelName.toUpperCase()} [SEMINOVO]` : baseModelName.toUpperCase();
+    const modelKey = condTag ? `${baseModelName.toUpperCase()} [${condTag.toUpperCase()}]` : baseModelName.toUpperCase();
     const displayName = !p.groupKey && isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
     const ram = getMacBookRam(p);
     const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
@@ -2938,6 +2987,7 @@ function renderPricesOfTheDay() {
         rawModelName: baseModelName,
         category: p.category,
         isSeminovo: isSemi,
+        conditionTag: condTag,
         storagesMap: new Map()
       });
     }
@@ -2950,6 +3000,7 @@ function renderPricesOfTheDay() {
         storage: (p.storage || '').trim(),
         ram: ram,
         isSeminovo: isSemi,
+        conditionTag: condTag,
         colors: new Map(),
         allOffers: []
       });
@@ -3075,6 +3126,7 @@ function renderPricesOfTheDay() {
         storage: grp.storage,
         ram: grp.ram,
         isSeminovo: grp.isSeminovo,
+        conditionTag: grp.conditionTag || (grp.isSeminovo ? 'Seminovo' : ''),
         isCusto: (currentPriceMode === 'cost'),
         allOffers: grp.allOffers || [],
         colors: colorsArr.map(c => ({ color: c.color, price: c.displayPrice }))
@@ -3125,7 +3177,7 @@ function renderPricesOfTheDay() {
               </div>
             </div>
             <div class="matrix-card-badges-row">
-              ${grp.isSeminovo ? `<span class="matrix-card-semi-badge">Seminovo</span>` : ''}
+              ${grp.conditionTag ? `<span class="matrix-card-semi-badge"${grp.conditionTag === 'Deslacrado' ? ' style="background: rgba(59, 130, 246, 0.14); color: #2563eb; border-color: rgba(59, 130, 246, 0.3);"' : ''}>${escapeHtml(grp.conditionTag)}</span>` : (grp.isSeminovo ? `<span class="matrix-card-semi-badge">Seminovo</span>` : '')}
               ${grp.ram ? `<span class="matrix-card-ram-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/></svg>${grp.ram} RAM</span>` : ''}
               ${grp.storage ? `<span class="matrix-card-storage">${grp.storage}</span>` : ''}
             </div>
@@ -4318,21 +4370,24 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false, categ
 
   filtered.forEach(p => {
     const isSemi = isSeminovoProduct(p);
+    const condTag = getVariantConditionTag(p);
     const isCpo = isCpoProduct(p) || p.condition === 'CPO';
     const secInfo = getProductSectionInfo(p);
-    const baseModelName = cleanModelName(p.name).replace(/\s+/g, ' ').trim();
-    const modelKey = isSemi ? `${baseModelName.toUpperCase()} [SEMINOVO]` : baseModelName.toUpperCase();
-    const displayName = !p.groupKey && isSemi ? `${baseModelName} (Seminovo)` : baseModelName;
+    const baseModelName = p.groupKey ? p.name : cleanModelName(p.name).replace(/\s+/g, ' ').trim();
+    const modelKey = condTag ? `${baseModelName.toUpperCase()} [${condTag.toUpperCase()}]` : baseModelName.toUpperCase();
+    const displayName = getExportModelTitle(baseModelName, condTag, Boolean(p.groupKey));
     const ram = getMacBookRam(p);
     const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
-    const variantKey = `${modelKey}__${storageKey}__${ram || ''}`;
+    const variantKey = p.groupKey || `${modelKey}__${storageKey}__${ram || ''}`;
 
     if (!modelFamilies.has(modelKey)) {
       modelFamilies.set(modelKey, {
         modelName: displayName,
         rawModelName: baseModelName,
+        hasGroupKey: Boolean(p.groupKey),
         category: p.category,
         isSeminovo: isSemi,
+        conditionTag: condTag,
         isCpo: isCpo,
         sectionKey: secInfo.key,
         sectionTitle: secInfo.title,
@@ -4349,9 +4404,11 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false, categ
         variantKey: variantKey,
         model: displayName,
         rawModel: baseModelName,
+        hasGroupKey: Boolean(p.groupKey),
         storage: (p.storage || '').trim(),
         ram: ram,
         isSeminovo: isSemi,
+        conditionTag: condTag,
         isCpo: isCpo,
         colors: new Map()
       });
@@ -4395,9 +4452,10 @@ window.openExportSelectionModal = function(scope = 'SF', forceAll = false, categ
         </div>
       `;
     }
-    const badgeLabel = fam.isSeminovo ? 'SEMINOVO' : (fam.isCpo ? 'CPO' : 'LACRADO');
-    const badgeBg = fam.isSeminovo ? 'rgba(245, 158, 11, 0.15)' : (fam.isCpo ? 'rgba(59, 130, 246, 0.15)' : 'rgba(16, 185, 129, 0.15)');
-    const badgeColor = fam.isSeminovo ? '#f59e0b' : (fam.isCpo ? '#3b82f6' : '#10b981');
+    const isDeslacrado = fam.conditionTag === 'Deslacrado';
+    const badgeLabel = isDeslacrado ? 'DESLACRADO' : (fam.isSeminovo ? 'SEMINOVO' : (fam.isCpo ? 'CPO' : 'LACRADO'));
+    const badgeBg = isDeslacrado ? 'rgba(59, 130, 246, 0.15)' : (fam.isSeminovo ? 'rgba(245, 158, 11, 0.15)' : (fam.isCpo ? 'rgba(59, 130, 246, 0.15)' : 'rgba(16, 185, 129, 0.15)'));
+    const badgeColor = isDeslacrado ? '#3b82f6' : (fam.isSeminovo ? '#f59e0b' : (fam.isCpo ? '#3b82f6' : '#10b981'));
     html += `
       <div style="margin-bottom: 14px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 800; font-size: 0.88rem; color: var(--text-primary);">
@@ -4551,7 +4609,8 @@ window.copySelectedStorefrontWhatsApp = async function(btn) {
 
       if (colorsArr.length === 0) return;
 
-      const titleLine = formatModelTitleForCopy(grp.rawModel || grp.model, grp.storage, grp.ram);
+      const exportTitleModel = getExportModelTitle(grp.rawModel || grp.model, grp.conditionTag || '', grp.hasGroupKey);
+      const titleLine = formatModelTitleForCopy(exportTitleModel, grp.storage, grp.ram);
       const modelLines = [titleLine, ''];
 
       colorsArr.forEach(c => {
@@ -4666,18 +4725,21 @@ window.exportAllStorefrontWhatsApp = async function(btn) {
 
     const sectionObj = sectionsMap.get(secInfo.key);
     const isSemi = isSeminovoProduct(p);
-    const baseModelName = cleanModelName(p.name).replace(/\s+/g, ' ').trim();
-    const modelKey = baseModelName.toUpperCase();
+    const condTag = getVariantConditionTag(p);
+    const baseModelName = p.groupKey ? p.name : cleanModelName(p.name).replace(/\s+/g, ' ').trim();
+    const modelKey = condTag ? `${baseModelName.toUpperCase()} [${condTag.toUpperCase()}]` : baseModelName.toUpperCase();
     const ram = getMacBookRam(p);
     const storageKey = (p.storage || 'PADRÃO').trim().toUpperCase();
-    const variantKey = `${modelKey}__${storageKey}__${ram || ''}`;
+    const variantKey = p.groupKey || `${modelKey}__${storageKey}__${ram || ''}`;
 
     if (!sectionObj.familiesMap.has(modelKey)) {
       sectionObj.familiesMap.set(modelKey, {
         modelName: baseModelName,
         rawModelName: baseModelName,
+        hasGroupKey: Boolean(p.groupKey),
         category: p.category,
         isSeminovo: isSemi,
+        conditionTag: condTag,
         variantsMap: new Map()
       });
     }
@@ -4688,9 +4750,11 @@ window.exportAllStorefrontWhatsApp = async function(btn) {
         variantKey: variantKey,
         model: baseModelName,
         rawModel: baseModelName,
+        hasGroupKey: Boolean(p.groupKey),
         storage: (p.storage || '').trim(),
         ram: ram,
         isSeminovo: isSemi,
+        conditionTag: condTag,
         colors: new Map()
       });
     }
@@ -4758,7 +4822,8 @@ window.exportAllStorefrontWhatsApp = async function(btn) {
 
         if (colorsArr.length === 0) return;
 
-        const titleLine = formatModelTitleForCopy(grp.rawModel, grp.storage, grp.ram);
+        const exportTitleModel = getExportModelTitle(grp.rawModel || grp.model, grp.conditionTag || '', grp.hasGroupKey);
+        const titleLine = formatModelTitleForCopy(exportTitleModel, grp.storage, grp.ram);
         const modelLines = [titleLine, ''];
 
         colorsArr.forEach(c => {

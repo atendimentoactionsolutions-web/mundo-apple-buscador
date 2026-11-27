@@ -67,11 +67,10 @@ test('the shared catalog opens in customer mode, including with an existing logi
   assert.equal(app.elements.get('btnClientMode').style.display, 'none');
 });
 
-test('only CPO and Android products are blocked while ativados, AS IS and Apple items are allowed', () => {
+test('CPO, Ativado and Android products are strictly blocked while AS IS and Apple items are allowed', () => {
   const PricingCore = require('../public/js/pricing-core.js');
 
   const allowedSamples = [
-    { name: 'IPHONE 16 PRO MAX 256GB ATIVADO', category: 'IPH', price: 6500 },
     { name: 'IPHONE 17 PRO MAX AS IS', category: 'SEMI', price: 6750 },
     { name: 'APPLE TV 4K 64GB WI-FI', category: 'ACSS', price: 1200 },
     { name: 'IPHONE 16 PRO 128GB TITÂNIO NATURAL', category: 'IPH', price: 6800 },
@@ -83,6 +82,8 @@ test('only CPO and Android products are blocked while ativados, AS IS and Apple 
   }
 
   const blockedSamples = [
+    { name: 'IPHONE 16 PRO MAX 256GB ATIVADO', category: 'IPH', price: 6500 },
+    { name: 'iPhone 17 Pro', category: 'SEMI', condition: 'Ativado', price: 7300 },
     { name: 'IPHONE 15 CPO', category: 'IPH', price: 3500 },
     { name: 'APPLE WATCH ULTRA 3 CPO', category: 'RLG', price: 4500 },
     { name: 'HOTWAV A17 PRO MAX', category: 'HOTWAV', price: 650 },

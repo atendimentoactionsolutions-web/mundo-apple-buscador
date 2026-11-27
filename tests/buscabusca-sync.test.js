@@ -19,12 +19,14 @@ const feed = [
   offer({ id: 'b', modelo: 'IPHONE 17 PRO MAX', capacidade: '256GB', cor: 'LARANJA', categoria: 'iPhones', condicao: 'Novo / Lacrado', preco: 7500, fornecedor: 'PETRA CELL 8866', telefone: '5511999998866' }),
   offer({ id: 'c', modelo: 'IPHONE 15', capacidade: '128GB', cor: 'ROSA', categoria: 'iPhones', condicao: 'Seminovo', preco: 2500, fornecedor: 'ULTRA PHONE 8812', telefone: '5511988888812' }),
   offer({ id: 'd', modelo: 'HOTWAV A17 PRO MAX', capacidade: '128GB', cor: 'PRETO', categoria: 'Outros', condicao: 'Novo / Lacrado', preco: 680, fornecedor: 'ANDROID SHOP', telefone: '5511955550000' }),
+  offer({ id: 'e', modelo: 'IPHONE 17 PRO', capacidade: '256GB', cor: 'LARANJA', categoria: 'iPhones', condicao: 'Ativado', preco: 7300, fornecedor: 'ATIVADO SHOP', telefone: '5511944440000' }),
 ];
 
-test('storefrontOffers keeps the cheapest supplier and WhatsApp per variant and blocks non-Apple', { skip: !catalogPath && 'catalog.js do BuscaBusca indisponível' }, async () => {
+test('storefrontOffers keeps the cheapest supplier and WhatsApp per variant and blocks non-Apple and Ativado', { skip: !catalogPath && 'catalog.js do BuscaBusca indisponível' }, async () => {
   const rows = await storefrontOffers(feed);
   assert.ok(rows.length >= 2);
   assert.equal(rows.filter(r => /HOTWAV/i.test(r.name)).length, 0);
+  assert.equal(rows.filter(r => /ATIVAD/i.test(r.condition)).length, 0);
   for (const row of rows) {
     assert.ok(row.supplier && row.supplier.name, `fornecedor ausente em ${row.name}`);
     assert.match(row.supplier.whatsappNumber, /^\d{12,13}$/);

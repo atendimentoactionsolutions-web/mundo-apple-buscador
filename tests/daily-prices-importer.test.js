@@ -93,7 +93,7 @@ test('daily prices importer processes batch text and reports block stats', () =>
   assert.equal(stats.blockedSeminovos, 0); // Seminovos não são mais bloqueados
 });
 
-test('daily prices importer allows AS IS and ATIVADO while blocking only Android and CPO', () => {
+test('daily prices importer allows AS IS while blocking Android, CPO and ATIVADO', () => {
   const text = `
     IPHONE 17 PRO MAX AS IS • 256GB • SILVER • Custo R$ 6.750,00
     IPHONE 17 ATIVADO • 256GB • SAGE • Custo R$ 5.199,00
@@ -104,19 +104,14 @@ test('daily prices importer allows AS IS and ATIVADO while blocking only Android
   const { success, products, stats } = processDailyPricesText(text, { dateStr: '24-11' });
 
   assert.equal(success, true);
-  assert.equal(products.length, 2);
-  assert.equal(stats.accepted, 2);
+  assert.equal(products.length, 1);
+  assert.equal(stats.accepted, 1);
   assert.equal(stats.blockedCpo, 1);
   assert.equal(stats.blockedHotwav, 1);
-  assert.equal(stats.blockedOthers, 0);
+  assert.equal(stats.blockedOthers, 1);
 
   const asIs = products.find(p => p.name.includes('AS IS'));
   assert.ok(asIs);
   assert.equal(asIs.category, 'SEMI');
   assert.equal(asIs.isSeminovo, true);
-
-  const ativado = products.find(p => p.name.includes('ATIVADO'));
-  assert.ok(ativado);
-  assert.equal(ativado.category, 'IPH');
-  assert.equal(ativado.condition, 'ATIVADO');
 });

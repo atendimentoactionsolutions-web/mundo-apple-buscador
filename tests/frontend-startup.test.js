@@ -456,3 +456,47 @@ test('export modal pulls active selected category, supports switching categories
   assert.match(copiedText, /Emitimos nota fiscal/);
   assert.doesNotMatch(copiedText, /margem|dfu/i);
 });
+
+test('WhatsApp export blocks Ativado, separates Deslacrado from Seminovo prices, copies single card, and protects margins on /preco-de-custo', async () => {
+  const products = [
+    { id: 'semi-1', name: 'iPhone 17 Pro', category: 'SEMI', condition: 'Seminovo', isSeminovo: true, storage: '256GB', color: 'COSMIC ORANGE', price: 6000, groupKey: 'seminovos|iphone 17 pro|256gb|seminovo', priceSource: 'buscabusca' },
+    { id: 'desl-1', name: 'iPhone 17 Pro', category: 'SEMI', condition: 'Deslacrado', isSeminovo: true, storage: '256GB', color: 'COSMIC ORANGE', price: 7550, groupKey: 'seminovos|iphone 17 pro|256gb|deslacrado', priceSource: 'buscabusca' },
+    { id: 'ativ-1', name: 'iPhone 17 Pro', category: 'SEMI', condition: 'Ativado', isSeminovo: true, storage: '256GB', color: 'COSMIC ORANGE', price: 7300, groupKey: 'seminovos|iphone 17 pro|256gb|ativado', priceSource: 'buscabusca' }
+  ];
+
+  // 1. Visitor export: Ativado excluded, Deslacrado (8150) and Seminovo (6600) NOT averaged together!
+  const app = await setup({ id: 'admin-felipe', username: 'felipe', role: 'admin' }, products);
+  let copiedText = '';
+  app.context.robustCopyToClipboard = async text => { copiedText = text; return true; };
+  app.read("podCurrentCategory = 'SEMI';");
+  app.context.openStorefrontExportModal();
+  await app.context.copySelectedStorefrontWhatsApp();
+  assert.doesNotMatch(copiedText, /Ativado/i);
+  assert.match(copiedText, /IPHONES DESLACRADOS/);
+  assert.match(copiedText, /IPHONES SEMINOVOS/);
+  assert.match(copiedText, /IPHONE 17 PRO \(DESLACRADO\) 256GB[\s\S]*8\.150/);
+  assert.match(copiedText, /IPHONE 17 PRO \(SEMINOVO\) 256GB[\s\S]*6\.600/);
+
+  // 2. Full catalog export keeps Deslacrado and Seminovo separated without price collision
+  await app.context.exportAllStorefrontWhatsApp();
+  assert.match(copiedText, /IPHONE 17 PRO \(DESLACRADO\) 256GB[\s\S]*8\.150/);
+  assert.match(copiedText, /IPHONE 17 PRO \(SEMINOVO\) 256GB[\s\S]*6\.600/);
+  assert.doesNotMatch(copiedText, /7\.375|7\.900/);
+
+  // 3. Single card copy works without ReferenceError
+  app.read("sfCurrentCategory = 'SEMI'; renderStoreFront();");
+  const [firstCardKey] = Array.from(app.context.storefrontCardMap.keys());
+  await app.context.copyModelPrices(firstCardKey);
+  assert.equal(app.errors.length, 0);
+  assert.match(copiedText, /IPHONE 17 PRO/);
+
+  // 4. Cost page (/preco-de-custo) export ALWAYS adds retail margin instead of leaking cost price (6000)
+  const costApp = await setup({ id: 'admin-felipe', username: 'felipe', role: 'admin' }, [
+    { id: 'cost-iph', name: 'IPHONE 17 PRO', category: 'IPH', storage: '256GB', color: 'BLACK', price: 6000, condition: 'NOVO', priceSource: 'buscabusca' }
+  ], false, '/preco-de-custo');
+  let costExportText = '';
+  costApp.context.robustCopyToClipboard = async text => { costExportText = text; return true; };
+  await costApp.context.exportAllStorefrontWhatsApp();
+  assert.match(costExportText, /6\.400/);
+  assert.doesNotMatch(costExportText, /6\.000/);
+});
