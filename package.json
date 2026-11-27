@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test tests/*.test.js",
-    "import:catalog": "node scripts/import-catalog.js"
+    "import:catalog": "node scripts/import-catalog.js",
+    "audit": "node scripts/audit-robot.js"
   },
   "overrides": {
     "qs": "^6.16.2"

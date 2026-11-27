@@ -12,6 +12,7 @@ const QuoteCore = require('./public/js/quote-core.js');
 const { sanitizeCatalog } = require('./lib/catalog-sanitizer.js');
 const { processDailyPricesText } = require('./lib/daily-prices-importer.js');
 const { createBuscaBuscaSync } = require('./lib/buscabusca-sync.js');
+const { auditCatalog } = require('./lib/catalog-auditor.js');
 
 const localEnvFile = path.join(__dirname, '.env');
 if (fs.existsSync(localEnvFile) && typeof process.loadEnvFile === 'function') process.loadEnvFile(localEnvFile);
@@ -1283,6 +1284,7 @@ app.get('/api/stats', (req, res) => {
 const buscaBuscaSync = createBuscaBuscaSync({
   getCurrentProducts: () => Array.from(productsMap.values()),
   getCurrentCount: () => productsMap.size,
+  getMargins: () => loadMargins(),
   onProductsSynced: async (products, { isoDate, dateStr }) => {
     productsMap.clear();
     for (const item of products) {
@@ -1307,8 +1309,36 @@ app.post('/api/admin/sync-buscabusca', requireAdminApi, asyncHandler(async (req,
   res.json({ success: result.ok !== false, result, sync: buscaBuscaSync.getStatus(), totalProducts: productsMap.size });
 }));
 
+app.get('/api/admin/audit-robot', requireAdminApi, (req, res) => {
+  const marginsData = loadMargins();
+  const currentProducts = Array.from(productsMap.values());
+  const liveAudit = auditCatalog(currentProducts, { margins: marginsData, quarantine: false });
+  res.json({
+    success: true,
+    syncAudit: buscaBuscaSync.getStatus().lastAudit,
+    liveAudit: {
+      timestamp: liveAudit.timestamp,
+      passed: liveAudit.passed,
+      checkedCount: liveAudit.checkedCount,
+      acceptedCount: liveAudit.acceptedCount,
+      quarantinedCount: liveAudit.quarantinedCount,
+      warningsCount: liveAudit.warningsCount,
+      violations: liveAudit.violations,
+      specWarnings: liveAudit.specWarnings
+    }
+  });
+});
+
 app.get(['/api/health', '/api/v1/health'], (req, res) => {
-  const syncStatus = buscaBuscaSync.getStatus(); res.json({ status: 'OK', mode: syncStatus.active ? 'live-sync' : 'manual', totalProducts: productsMap.size, totalSuppliers, latestDate, sync: syncStatus });
+  const syncStatus = buscaBuscaSync.getStatus();
+  res.json({
+    status: 'OK',
+    mode: syncStatus.active ? 'live-sync' : 'manual',
+    totalProducts: productsMap.size,
+    totalSuppliers,
+    latestDate,
+    sync: syncStatus
+  });
 });
 
 // Local client socket connection com Anti-Pirataria e segregação de salas
